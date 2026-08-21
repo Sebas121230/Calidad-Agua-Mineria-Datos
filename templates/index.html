@@ -1,11 +1,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Mi App en Flask</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calidad de Agua · Minería</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0D1B1E;
+    --line: rgba(143, 168, 166, 0.18);
+    --accent: #5FBFB3;
+    --text-primary: #EAF2F1;
+    --text-muted: #8FA8A6;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 40px 24px;
+  }
+
+  .card{
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .eyebrow{
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    line-height: 1.15;
+    margin-bottom: 18px;
+  }
+
+  p{
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.65;
+    margin-bottom: 8px;
+  }
+
+  .divider{
+    height: 1px;
+    background: var(--line);
+    margin: 28px 0;
+  }
+
+  .footer{
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+</style>
 </head>
 <body>
-    <h1>¡Bienvenido a mi aplicación Flask!</h1>
-    <p>Esta página se renderiza desde una plantilla HTML.</p>
+
+  <div class="card">
+    <p class="eyebrow">Monitoreo ambiental</p>
+    <h1>Calidad del agua en zonas mineras</h1>
+    <p>Esta página se renderiza desde una plantilla Flask, lista para conectar tus datos de campo y laboratorio.</p>
+
+    <div class="divider"></div>
+
+    <p class="footer">Calidad-Agua-Mineria-Datos · Flask</p>
+  </div>
+
 </body>
 </html>
