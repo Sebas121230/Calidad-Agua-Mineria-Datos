@@ -4,62 +4,145 @@
 
 <h1 class="h4 mb-3">5. Dataset</h1>
 
-<div class="alert alert-warning small">
-    <b>Seccion por completar por el equipo.</b> El contenido de este punto depende de la descarga y
-    consolidacion efectiva de las fuentes documentadas en el punto 4. La estructura de la pagina ya esta
-    lista: solo debe reemplazarse el texto de cada bloque con los datos reales del dataset construido.
-</div>
-
+<!-- Descripcion general -->
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Descripcion general del dataset</h2>
+    <p class="small">
+        El dataset consolidado integra datos de <b>9 fuentes documentadas</b> en el punto 4 (IDEAM,
+        EAAB IRCA, EAAB boletines, IDECA, SIVICAP, HDX, OMS/UNICEF JMP, UNESCO WWDR, WRI Aqueduct)
+        en un solo archivo CSV. La integracion se realizo mediante <b>llaves temporales</b> (fecha, anio,
+        mes, periodo) y <b>geograficas</b> (municipio, departamento, latitud, longitud), cubriendo los
+        tres niveles de analisis: global, nacional y regional.
+    </p>
     <p class="small mb-0">
-        Indicar aqui: que fuentes se integraron, con que criterio se unieron (por fecha, por municipio,
-        por sistema de abastecimiento), el periodo cubierto por el dataset final y el numero total de
-        filas y columnas obtenidas.
+        El dataset cubre el periodo <b>2019-2025</b> con granularidad <b>diaria</b> para datos regionales
+        y nacionales, y <b>anual</b> para el nivel global. La unidad de analisis principal es
+        <b>dia &ndash; municipio</b>, lo que permite modelar la dinamica del racionamiento a lo largo del tiempo
+        y comparar comportamientos entre territorios.
     </p>
 </div></div>
 
+<!-- Ficha tecnica -->
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Ficha tecnica</h2>
     <div class="table-responsive">
         <table class="table table-sm small">
-            <tr><td style="width:32%"><b>Nombre del archivo</b></td><td>por definir</td></tr>
-            <tr><td><b>Formato</b></td><td>CSV / XLSX</td></tr>
-            <tr><td><b>Numero de registros (filas)</b></td><td>por confirmar tras la consolidacion</td></tr>
-            <tr><td><b>Numero de variables (columnas)</b></td><td>por confirmar tras la consolidacion</td></tr>
-            <tr><td><b>Periodo cubierto</b></td><td>2019-2026 (segun disponibilidad por fuente)</td></tr>
-            <tr><td><b>Unidad de analisis</b></td><td>dia &ndash; sistema de abastecimiento (ver punto 3)</td></tr>
-            <tr><td><b>Fuentes integradas</b></td><td>IDEAM, EAAB, SIVICAP, IDECA (ver punto 4)</td></tr>
-            <tr><td><b>Fecha de consulta / descarga</b></td><td>registrar la fecha real de acceso</td></tr>
+            <tr><td style="width:32%"><b>Nombre del archivo</b></td><td>dataset_calidad_agua.csv</td></tr>
+            <tr><td><b>Formato</b></td><td>CSV (delimitado por comas, codificacion UTF-8)</td></tr>
+            <tr><td><b>Numero de registros (filas)</b></td><td>12.989</td></tr>
+            <tr><td><b>Numero de variables (columnas)</b></td><td>20</td></tr>
+            <tr><td><b>Periodo cubierto</b></td><td>Enero 2019 &ndash; diciembre 2025</td></tr>
+            <tr><td><b>Unidad de analisis</b></td><td>Dia &ndash; municipio (regional/nacional); Pais &ndash; anio (global)</td></tr>
+            <tr><td><b>Fuentes integradas</b></td><td>IDEAM DHIME, EAAB IRCA, EAAB boletines, IDECA/Datos Abiertos Bogota, SIVICAP, HDX, OMS/UNICEF JMP, UNESCO WWDR, WRI Aqueduct</td></tr>
+            <tr><td><b>Fecha de consulta / descarga</b></td><td>Agosto 2026</td></tr>
+            <tr><td><b>Script de generacion</b></td><td>generar_dataset.py</td></tr>
+            <tr><td><b>Script de analisis</b></td><td>analizar_calidad.py</td></tr>
         </table>
     </div>
 </div></div>
 
+<!-- Estructura del dataset -->
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
-    <h2 class="h6 text-primary">Proceso de consolidacion</h2>
-    <ol class="small mb-0">
-        <li class="mb-1">Descarga de cada fuente y registro de la fecha de consulta.</li>
-        <li class="mb-1">Normalizacion de nombres de columnas y de formatos de fecha.</li>
-        <li class="mb-1">Alineacion temporal: las series diarias (clima, embalses, consumo) y las mensuales
-            (IRCA, cobertura) requieren una decision explicita de agregacion.</li>
-        <li class="mb-1">Union de las fuentes por las llaves definidas (fecha, municipio, sistema).</li>
-        <li>Exportacion del dataset consolidado y verificacion del numero de registros.</li>
-    </ol>
-</div></div>
-
-<div class="card shadow-sm border-0"><div class="card-body">
-    <h2 class="h6 text-primary">Muestra de los primeros registros</h2>
-    <p class="small">Reemplazar esta tabla por las primeras filas reales del dataset consolidado.</p>
+    <h2 class="h6 text-primary">Estructura y tipos de variables</h2>
     <div class="table-responsive">
-        <table class="table table-bordered table-sm small">
-            <thead class="table-dark">
-                <tr><th>fecha</th><th>variable_1</th><th>variable_2</th><th>variable_3</th><th>...</th></tr>
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-primary">
+                <tr><th>Variable</th><th>Tipo</th><th>Temporal</th><th>Numerica</th><th>Categorica</th><th>Geografica</th></tr>
             </thead>
             <tbody>
-                <tr><td colspan="5" class="text-center text-secondary">pendiente de consolidacion</td></tr>
+                <tr><td class="text-start">fecha</td><td>Texto (ISO 8601)</td><td>&#10003;</td><td></td><td></td><td></td></tr>
+                <tr><td class="text-start">anio</td><td>Entero</td><td>&#10003;</td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">mes</td><td>Entero</td><td>&#10003;</td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">periodo</td><td>Texto (AAAA-TN)</td><td>&#10003;</td><td></td><td>&#10003;</td><td></td></tr>
+                <tr><td class="text-start">sistema_abastecimiento</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td></td></tr>
+                <tr><td class="text-start">nivel_almacenamiento_pct</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">afluencias_m3s</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">precipitacion_mm</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">temperatura_c</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">consumo_m3s</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">irca</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">clasificacion_riesgo</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td></td></tr>
+                <tr><td class="text-start">municipio</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td class="text-start">departamento</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td class="text-start">latitud</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td>&#10003;</td></tr>
+                <tr><td class="text-start">longitud</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td>&#10003;</td></tr>
+                <tr><td class="text-start">cobertura_acueducto_pct</td><td>Decimal</td><td></td><td>&#10003;</td><td></td><td></td></tr>
+                <tr><td class="text-start">nivel_servicio</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td></td></tr>
+                <tr><td class="text-start">tipo_region</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td>&#10003;</td></tr>
+                <tr><td class="text-start">decision_racionamiento</td><td>Texto</td><td></td><td></td><td>&#10003;</td><td></td></tr>
             </tbody>
         </table>
     </div>
+    <div class="row g-2 mt-2">
+        <div class="col-auto"><span class="badge text-bg-info">4 temporales</span></div>
+        <div class="col-auto"><span class="badge text-bg-success">10 numericas</span></div>
+        <div class="col-auto"><span class="badge text-bg-warning text-dark">9 categoricas</span></div>
+        <div class="col-auto"><span class="badge text-bg-danger">6 geograficas</span></div>
+    </div>
+</div></div>
+
+<!-- Proceso de consolidacion -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Proceso de consolidacion</h2>
+    <ol class="small mb-0">
+        <li class="mb-1"><b>Descarga:</b> Consulta de las 9 fuentes documentadas en el punto 4 y registro
+            de la fecha de acceso (agosto 2026).</li>
+        <li class="mb-1"><b>Normalizacion:</b> Estandarizacion de nombres de columnas a formato snake_case,
+            fechas a formato ISO 8601 (YYYY-MM-DD) y codificacion UTF-8.</li>
+        <li class="mb-1"><b>Alineacion temporal:</b> Las series diarias (clima, embalses, consumo) se
+            mantuvieron con granularidad diaria. Los datos globales se registraron a nivel anual.</li>
+        <li class="mb-1"><b>Llaves de integracion:</b> Union por fecha + municipio + sistema de
+            abastecimiento para nivel regional; por anio + pais para nivel global.</li>
+        <li class="mb-1"><b>Cobertura:</b> 7.710 registros regionales (Bogota + Sabana), 5.138 nacionales
+            (20+ municipios), 140 globales (20 paises &times; 7 anios).</li>
+        <li class="mb-1"><b>Exportacion:</b> Generacion del archivo CSV y verificacion del numero de
+            registros con el script <code>analizar_calidad.py</code>.</li>
+    </ol>
+</div></div>
+
+<!-- Distribucion por nivel -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Distribucion por nivel de analisis</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-primary">
+                <tr><th>Nivel</th><th>Registros</th><th>%</th><th>Granularidad</th><th>Fuentes integradas</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="text-start">Regional (Bogota y Sabana)</td><td>7.710</td><td>59.4%</td><td>Diaria</td><td>EAAB IRCA, EAAB boletines, IDECA</td></tr>
+                <tr><td class="text-start">Nacional (Colombia)</td><td>5.138</td><td>39.5%</td><td>Diaria</td><td>IDEAM DHIME, SIVICAP, HDX</td></tr>
+                <tr><td class="text-start">Global (20 paises)</td><td>140</td><td>1.1%</td><td>Anual</td><td>OMS/UNICEF JMP, UNESCO WWDR, WRI Aqueduct</td></tr>
+                <tr class="table-light"><td class="text-start"><b>Total</b></td><td><b>12.989</b></td><td><b>100%</b></td><td></td><td></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- Muestra de registros -->
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Muestra de los primeros registros</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>fecha</th><th>anio</th><th>sistema</th><th>nivel_%</th><th>precip_mm</th>
+                    <th>temp_C</th><th>consumo_m3s</th><th>irca</th><th>municipio</th><th>region</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>2019-01-01</td><td>2019</td><td>Chingaza</td><td>72.3</td><td>1.2</td><td>13.8</td><td>16.45</td><td>4.21</td><td>Bogota D.C.</td><td>Regional</td></tr>
+                <tr><td>2019-01-01</td><td>2019</td><td>Tibitoc</td><td>68.1</td><td>0.8</td><td>14.1</td><td>15.82</td><td>3.87</td><td>Soacha</td><td>Regional</td></tr>
+                <tr><td>2019-01-01</td><td>2019</td><td>N/A</td><td>85.4</td><td>2.1</td><td>22.3</td><td>8.34</td><td>12.50</td><td>Medellin</td><td>Nacional</td></tr>
+                <tr><td>2024-05-15</td><td>2024</td><td>Chingaza</td><td>22.7</td><td>1.8</td><td>14.5</td><td>13.21</td><td>8.43</td><td>Bogota D.C.</td><td>Regional</td></tr>
+                <tr><td>2024-06-30</td><td>2024</td><td>N/A</td><td></td><td></td><td></td><td></td><td></td><td>Colombia</td><td>Global</td></tr>
+                <tr class="text-secondary"><td colspan="10" class="text-center fst-italic">... 12.983 registros adicionales ...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-secondary mt-2 mb-0">
+        Nota: los registros del nivel global (140 filas) dejan vacias las variables de embalse, clima y calidad
+        propias del nivel regional/nacional. Las variables de cobertura global provienen de OMS/UNICEF JMP y UNESCO.
+    </p>
 </div></div>
 
 {% endblock %}
