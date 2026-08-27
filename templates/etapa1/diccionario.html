@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">6. Diccionario de datos</h1>
+
+<div class="alert alert-warning small">
+    <b>Seccion por completar por el equipo.</b> El diccionario debe incluir <u>una fila por cada columna</u>
+    del dataset consolidado en el punto 5. La tabla de abajo ya tiene las columnas exigidas: solo debe
+    llenarse con las variables reales una vez exista el dataset.
+</div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Que debe contener cada fila</h2>
+    <ul class="small mb-0">
+        <li><b>Variable:</b> nombre exacto de la columna en el archivo.</li>
+        <li><b>Tipo de dato:</b> entero, decimal, texto, fecha, booleano.</li>
+        <li><b>Unidad de medida:</b> mm, &deg;C, %, m&sup3;/s, 0-100, etc.</li>
+        <li><b>Descripcion:</b> que representa la variable y como fue medida o calculada.</li>
+        <li><b>Rango o valores posibles:</b> minimo y maximo observados, o las categorias validas.</li>
+        <li><b>Fuente:</b> entidad de la que proviene (ver punto 4).</li>
+    </ul>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Diccionario de variables</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary">
+                <tr>
+                    <th>Variable</th>
+                    <th>Tipo</th>
+                    <th>Unidad</th>
+                    <th>Descripcion</th>
+                    <th>Rango / valores</th>
+                    <th>Fuente</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="6" class="text-center text-secondary">
+                    pendiente: completar con las variables reales del dataset
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+{% endblock %}

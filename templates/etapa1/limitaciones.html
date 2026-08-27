@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">8. Limitaciones y consideraciones</h1>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Limitaciones de las fuentes</h2>
+    <ul class="small mb-0">
+        <li class="mb-2">
+            <b>No existe una fuente genuinamente primaria a nivel global.</b> Casi todos los datos globales
+            de agua son compilaciones de reportes nacionales. Es una limitacion estructural real del
+            dominio, no un vacio de busqueda.
+        </li>
+        <li class="mb-2">
+            <b>El nivel regional no cuenta con una fuente terciaria propia</b>, por lo que la comparacion
+            entre niveles no es simetrica en cuanto al tipo de fuente.
+        </li>
+        <li class="mb-2">
+            <b>Datos climaticos sin validacion oficial.</b> Las series crudas del IDEAM (DHIME) se publican
+            sin validacion al momento de la consulta, lo que exige revision antes de su uso analitico.
+        </li>
+        <li class="mb-2">
+            <b>Ausencia de datos rurales en calidad del agua.</b> En 2024, 476 municipios rurales quedaron
+            sin informacion en SIVICAP, lo que sesga cualquier comparacion urbano-rural.
+        </li>
+        <li>
+            <b>Los boletines de la EAAB requieren extraccion manual.</b> No existe descarga masiva
+            estructurada de niveles de embalse, de modo que la serie debe reconstruirse boletin por boletin.
+        </li>
+    </ul>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Limitaciones metodologicas</h2>
+    <ul class="small mb-0">
+        <li class="mb-2">
+            <b>Diferentes granularidades temporales.</b> Combinar series diarias (clima, embalses, consumo)
+            con series mensuales o anuales (calidad, cobertura) obliga a decisiones de agregacion que pueden
+            afectar los resultados.
+        </li>
+        <li class="mb-2">
+            <b>Correlacion no implica causalidad.</b> El estudio puede identificar relaciones entre clima,
+            consumo, almacenamiento y decisiones institucionales, pero no establece por si mismo relaciones
+            causales.
+        </li>
+        <li class="mb-2">
+            <b>Interaccion de multiples causas.</b> El racionamiento de 2024 no obedecio a un unico factor:
+            intervienen clima, infraestructura, demanda y decisiones institucionales de forma simultanea.
+        </li>
+        <li>
+            <b>Efecto de las decisiones humanas.</b> Las medidas de ahorro y los cambios de frecuencia de
+            cortes modifican el comportamiento del consumo, por lo que las variables observadas no son
+            independientes de la intervencion institucional.
+        </li>
+    </ul>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Delimitacion asumida</h2>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <tr><td style="width:28%"><b>Espacio geografico</b></td><td>Bogota D.C., incluyendo cuando los datos lo permitan los municipios abastecidos por la EAAB; Colombia como contexto comparativo</td></tr>
+            <tr><td><b>Periodo</b></td><td>2019-2030, con foco en el subperiodo 2019-2025 del evento de racionamiento</td></tr>
+            <tr><td><b>Fenomeno central</b></td><td>Disponibilidad y continuidad del agua potable frente a variabilidad climatica, demanda e infraestructura</td></tr>
+            <tr><td><b>Dimensiones</b></td><td>Calidad, continuidad, cobertura, consumo, almacenamiento, clima, infraestructura y decisiones institucionales</td></tr>
+            <tr><td><b>Unidad de analisis</b></td><td>Variable segun la fuente: dia/mes, embalse, localidad, municipio, sector de servicio o registro de calidad</td></tr>
+            <tr><td><b>Resultado esperado</b></td><td>Identificacion de patrones y relaciones que permitan explicar y, si la calidad de los datos lo permite, anticipar condiciones de mayor riesgo de restriccion</td></tr>
+        </table>
+    </div>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Consideraciones eticas y de uso</h2>
+    <ul class="small mb-0">
+        <li class="mb-1">Todas las fuentes utilizadas son de acceso publico y se citan segun las condiciones
+            de uso indicadas por cada entidad.</li>
+        <li class="mb-1">Los datos son agregados (municipio, sector, sistema de abastecimiento) y no
+            contienen informacion personal identificable.</li>
+        <li>Los resultados se presentan como analisis academico y no constituyen una evaluacion oficial de
+            la gestion de las entidades involucradas.</li>
+    </ul>
+</div></div>
+
+{% endblock %}

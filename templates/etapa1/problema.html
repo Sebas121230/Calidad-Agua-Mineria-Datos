@@ -1,4 +1,155 @@
 {% extends "base.html" %}
+
 {% block contenido %}
-  <h1>1. Problema y contexto</h1>
+
+<h1 class="h4 mb-3">1. Problema y contexto</h1>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Contexto general</h2>
+    <p class="small">
+        El acceso al agua potable no depende unicamente de que exista una fuente hidrica. Para que el
+        servicio sea considerado seguro y confiable, el agua debe ser accesible, estar disponible cuando
+        se necesita y no presentar contaminacion. Esta perspectiva permite estudiar el problema desde dos
+        dimensiones relacionadas: la <b>calidad del agua</b> y la <b>accesibilidad o continuidad del servicio</b>.
+    </p>
+    <p class="small">
+        A escala mundial, el informe de UNESCO sobre el desarrollo de los recursos hidricos senala que
+        2,2 mil millones de personas no tenian acceso a agua potable gestionada de forma segura en 2022,
+        y que cerca de la mitad de la poblacion mundial experimenta escasez hidrica severa durante alguna
+        parte del ano.
+    </p>
+    <p class="small mb-0">
+        En Colombia el problema presenta una marcada desigualdad territorial. En febrero de 2024 la
+        Superintendencia de Servicios Publicos Domiciliarios reporto una cobertura nacional de acueducto
+        del 72 %, frente al 85 % en zonas urbanas y 39 % en zonas rurales. Ademas, el 44 % de los municipios
+        urbanos y el 86 % de los rurales presentaban algun tipo de riesgo en el agua consumida, y el 34 %
+        de los municipios no contaba con un sistema de potabilizacion.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Delimitacion del problema especifico</h2>
+    <p class="small mb-0">
+        El problema se delimita al analisis de la <b>disponibilidad y continuidad del servicio de agua
+        potable en Bogota D.C.</b>, considerando su relacion con variables climaticas, niveles de
+        almacenamiento de los embalses, consumo, capacidad e infraestructura de abastecimiento y decisiones
+        institucionales. El periodo principal es <b>2019-2025</b>, con enfasis en 2024-2025, cuando Bogota
+        implemento un esquema extraordinario de racionamiento. La investigacion no asume una causa unica:
+        el fenomeno se estudia como la interaccion entre variabilidad climatica y sequia asociada a El Nino,
+        niveles y afluencias del Sistema Chingaza, demanda y comportamiento del consumo, capacidad y
+        flexibilidad de la infraestructura, y decisiones de operacion, ahorro y regulacion.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">El caso de Bogota: origen de la crisis</h2>
+    <p class="small mb-0">
+        El 5 de abril de 2024 la Empresa de Acueducto y Alcantarillado de Bogota (EAAB) informo que el
+        almacenamiento del Sistema Chingaza habia caido por debajo del 18 %. Chingaza era entonces la
+        principal fuente de abastecimiento de la ciudad. La crisis no consistia simplemente en "falta de
+        agua", sino en una reduccion de las reservas que sostienen el suministro futuro: la EAAB debia
+        administrar el agua disponible para evitar que los embalses llegaran a un nivel desde el cual la
+        recuperacion fuera demasiado lenta.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Cronologia del racionamiento 2024-2025</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm small align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Fecha / periodo</th>
+                    <th>Situacion</th>
+                    <th>Decision o medida</th>
+                    <th>Importancia para el analisis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>5-7 abril 2024</td>
+                    <td>Chingaza cae a niveles criticos; almacenamiento por debajo de 18 %.</td>
+                    <td>La EAAB anuncia restricciones y divide la ciudad en 9 sectores.</td>
+                    <td>Punto de inicio del evento; permite estudiar variables previas al corte.</td>
+                </tr>
+                <tr>
+                    <td>11 abril 2024</td>
+                    <td>Inicio operativo del esquema de restricciones.</td>
+                    <td>Suspension aproximada de 24 horas por sector; rotacion de 9 turnos.</td>
+                    <td>Comienzo de la serie de cortes programados.</td>
+                </tr>
+                <tr>
+                    <td>Abril-junio 2024</td>
+                    <td>Persisten niveles bajos, con mejora gradual.</td>
+                    <td>Se mantiene el esquema y se intensifican campanas de ahorro.</td>
+                    <td>Permite comparar clima, consumo, afluencias y ahorro.</td>
+                </tr>
+                <tr>
+                    <td>1 julio 2024</td>
+                    <td>Mejora la tendencia de almacenamiento y afluencias.</td>
+                    <td>Los cortes pasan de cada 9 dias a cada 18 dias.</td>
+                    <td>Variable institucional relacionable con embalses y consumo.</td>
+                </tr>
+                <tr>
+                    <td>Septiembre 2024</td>
+                    <td>Las metas de ahorro y almacenamiento no resultan suficientes.</td>
+                    <td>Se retorna al esquema de restricciones cada 9 dias.</td>
+                    <td>Ejemplo de decision adaptativa basada en datos operativos.</td>
+                </tr>
+                <tr>
+                    <td>23 dic 2024 - 6 ene 2025</td>
+                    <td>Historicamente disminuye el consumo por vacaciones.</td>
+                    <td>Se suspende temporalmente el racionamiento.</td>
+                    <td>Permite estudiar estacionalidad y comportamiento de la demanda.</td>
+                </tr>
+                <tr>
+                    <td>7 enero 2025</td>
+                    <td>Se retoma el esquema de restricciones.</td>
+                    <td>Continuan turnos de 24 horas por sectores.</td>
+                    <td>Muestra persistencia del riesgo despues del primer ano.</td>
+                </tr>
+                <tr>
+                    <td>11 abril 2025</td>
+                    <td>Chingaza alcanza una recuperacion suficiente y supera la curva optima.</td>
+                    <td>Se levanta el racionamiento.</td>
+                    <td>Marca el final del evento y permite evaluar la recuperacion.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-secondary mb-0">
+        Fuente: EAAB, boletines de abril de 2024, julio de 2024, diciembre de 2024, enero de 2025 y abril de 2025.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Factores que intervinieron</h2>
+    <p class="small mb-1"><b>Clima y disponibilidad hidrica.</b> La menor precipitacion y las condiciones
+        de sequia asociadas a El Nino disminuyeron las afluencias hacia los embalses, de modo que el
+        almacenamiento dejo de recuperarse al ritmo necesario.</p>
+    <p class="small mb-1"><b>Infraestructura del acueducto.</b> La EAAB opera los sistemas Chingaza,
+        Tibitoc y Sur. Tras la crisis se reporto el aumento de la capacidad de tratamiento de Tibitoc de
+        4,5 a 10,5 m&sup3;/s y la modernizacion de Wiesner de 14 a 21 m&sup3;/s.</p>
+    <p class="small mb-1"><b>Decisiones de la Alcaldia y la EAAB.</b> Esquema de nueve turnos, cambios en
+        la frecuencia de cortes, campanas de ahorro y desincentivo al consumo superior a 44 m&sup3; bimestrales.</p>
+    <p class="small mb-0"><b>Escala regional y nacional.</b> Los turnos incluyeron municipios como Soacha,
+        Chia, Cajica, Sopo, Tocancipa, Funza, Madrid y Mosquera; a nivel nacional intervienen el Plan
+        Nacional de Desarrollo 2022-2026, el Ministerio de Vivienda y la Superservicios.</p>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Analisis en tres niveles</h2>
+    <p class="small mb-1"><b>Global.</b> Seguridad hidrica, cambio climatico, crecimiento urbano y
+        desigualdad. El reporte OMS/UNICEF de 2025 muestra que en 2024 aproximadamente 2,1 mil millones de
+        personas aun no tenian acceso a servicios de agua potable gestionados de forma segura.</p>
+    <p class="small mb-1"><b>Nacional.</b> Colombia tiene alta disponibilidad relativa de recursos hidricos,
+        pero no acceso uniforme. El Informe Nacional de Calidad del Agua 2024 (SIVICAP) reporta en zona
+        urbana 614 municipios sin riesgo y 9 inviables sanitariamente; en zona rural, 107 sin riesgo,
+        46 inviables sanitariamente y 476 sin informacion.</p>
+    <p class="small mb-0"><b>Regional.</b> En Bogota el reto no es ampliar la cobertura basica sino
+        garantizar continuidad y seguridad del abastecimiento ante variabilidad climatica y alta demanda.
+        El evento 2024-2025 produjo una secuencia de decisiones observables, lo que lo hace un caso
+        apropiado para mineria de datos.</p>
+</div></div>
+
 {% endblock %}

@@ -4,19 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calidad y Accesibilidad del Agua - Mineria de Datos</title>
+
+    <!-- Bootstrap 5 (CSS ya hecho, se trae desde internet) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+
+    <!-- Nuestros estilos propios (viven en static/css/estilos.css) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 </head>
 <body>
 
+    <!-- ================= MENU LATERAL ================= -->
     <nav class="sidebar">
+        <div class="brand text-white">
+            <div class="fs-5 fw-semibold">Calidad del Agua</div>
+            <div class="small text-white-50">Mineria de Datos &middot; Bogota 2019-2025</div>
+        </div>
+
+        <div class="etiqueta">General</div>
         <a class="nav-link" href="{{ url_for('inicio') }}">Inicio</a>
+
         <div class="etiqueta">Etapa 1</div>
         <a class="nav-link" href="{{ url_for('problema') }}"><span class="num">1</span> Problema y contexto</a>
+        <a class="nav-link" href="{{ url_for('preguntas') }}"><span class="num">2</span> Pregunta principal y preguntas secundarias</a>
+        <a class="nav-link" href="{{ url_for('necesidades') }}"><span class="num">3</span> Necesidades de informacion</a>
+        <a class="nav-link" href="{{ url_for('fuentes') }}"><span class="num">4</span> Fuentes de datos</a>
+        <a class="nav-link" href="{{ url_for('dataset') }}"><span class="num">5</span> Dataset</a>
+        <a class="nav-link" href="{{ url_for('diccionario') }}"><span class="num">6</span> Diccionario de datos</a>
+        <a class="nav-link" href="{{ url_for('calidad') }}"><span class="num">7</span> Calidad inicial de los datos</a>
+        <a class="nav-link" href="{{ url_for('limitaciones') }}"><span class="num">8</span> Limitaciones y consideraciones</a>
+
+        <div class="p-3 mt-3 small text-white-50 border-top border-secondary">
+            Universidad de Cundinamarca<br>
+            Ingenieria de Sistemas y Computacion
+        </div>
     </nav>
 
+    <!-- ================= CONTENIDO ================= -->
     <main class="contenido">
         {% block contenido %}{% endblock %}
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

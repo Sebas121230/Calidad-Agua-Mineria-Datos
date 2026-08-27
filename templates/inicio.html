@@ -1,4 +1,76 @@
-{% extends "base.html"%}
-{% block contenido%}
-<h1>Pagina de inicio</h1>
-{%endblock%}
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<!-- ===== Portada ===== -->
+<div class="card shadow-sm border-0 mb-4 text-center">
+    <div class="card-body py-4">
+        <img src="{{ url_for('static', filename='img/logo_udec.png') }}"
+             alt="Universidad de Cundinamarca"
+             style="max-width:220px;height:auto;" class="mb-3">
+
+        <div class="text-uppercase small text-secondary" style="letter-spacing:.15em;">
+            Ingenieria de Sistemas y Computacion
+        </div>
+
+        <h1 class="h3 mt-3 mb-1" style="color:#0d2137;">Calidad y Accesibilidad del Agua</h1>
+        <p class="text-secondary mb-1">
+            Mineria de Datos &mdash; Etapa 1 &middot; Continuidad del servicio de agua potable en Bogota D.C. (2019-2025)
+        </p>
+
+        <hr class="w-50 mx-auto">
+
+        <div class="small text-uppercase text-secondary mb-2" style="letter-spacing:.12em;">Equipo de trabajo</div>
+        <div class="row justify-content-center small g-2">
+            <div class="col-auto">Diego Armando Guzman Garzon</div>
+            <div class="col-auto">Andres Felipe Beltran Barrera</div>
+        </div>
+        <div class="row justify-content-center small g-2">
+            <div class="col-auto">Juan Sebastian Rodriguez Rivero</div>
+            <div class="col-auto">John Sebastian Rodriguez Dominguez</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Cifras de contexto ===== -->
+<div class="row g-3 my-2">
+    <div class="col-md-3 col-6">
+        <div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+            <h3>2.100 M</h3>
+            <div class="small text-secondary">personas sin agua potable gestionada de forma segura en 2024 (OMS/UNICEF)</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+            <h3>&lt; 18 %</h3>
+            <div class="small text-secondary">nivel del Sistema Chingaza el 5 de abril de 2024</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+            <h3>abr 24 - abr 25</h3>
+            <div class="small text-secondary">ciclo completo del racionamiento en Bogota</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+            <h3>9</h3>
+            <div class="small text-secondary">fuentes de datos documentadas en tres niveles</div>
+        </div></div>
+    </div>
+</div>
+
+<!-- ===== Sobre el proyecto ===== -->
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <h2 class="h6">Sobre el proyecto</h2>
+        <p class="small mb-0">
+            Este sitio documenta la Etapa 1 del proyecto de Mineria de Datos: definicion del problema,
+            preguntas de investigacion, necesidades de informacion, fuentes de datos, dataset consolidado,
+            diccionario de datos, evaluacion de la calidad inicial y limitaciones del estudio.
+            Use el menu lateral para navegar por cada uno de los ocho puntos.
+        </p>
+    </div>
+</div>
+
+{% endblock %}

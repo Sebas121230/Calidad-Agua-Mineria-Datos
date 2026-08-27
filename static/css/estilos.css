@@ -1,0 +1,99 @@
+/* ===== Estilos propios del proyecto (complementan a Bootstrap) ===== */
+
+body {
+  min-height: 100vh;
+  background: #f4f6f9;
+}
+
+/* ---- Menu lateral ---- */
+.sidebar {
+  width: 280px;
+  min-height: 100vh;
+  background: #0d2137;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+}
+
+.sidebar .brand {
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+
+.sidebar .etiqueta {
+  font-size: .72rem;
+  letter-spacing: .12em;
+  color: #6c8bab;
+  padding: 1rem 1rem .4rem;
+  text-transform: uppercase;
+}
+
+.sidebar a.nav-link {
+  color: #c3d4e6;
+  border-radius: .4rem;
+  margin: .1rem .6rem;
+  padding: .55rem .8rem;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar a.nav-link:hover {
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+
+.sidebar a.nav-link.active {
+  background: #1a73c1;
+  color: #fff;
+}
+
+/* Numerito de cada submenu */
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgba(255, 255, 255, .12);
+  border-radius: .35rem;
+  font-size: .75rem;
+  margin-right: .6rem;
+  flex-shrink: 0;
+}
+
+.nav-link.active .num {
+  background: rgba(255, 255, 255, .25);
+}
+
+/* ---- Area de contenido ---- */
+.contenido {
+  margin-left: 280px;
+  padding: 2rem 2.5rem;
+}
+
+.stat-card h3 {
+  font-size: 1.6rem;
+  margin: 0;
+  color: #0d6efd;
+}
+
+.cita {
+  border-left: 4px solid #0d6efd;
+  background: #eaf2fe;
+  font-style: italic;
+}
+
+/* ---- Responsive: en pantallas pequenas el menu pasa arriba ---- */
+@media (max-width: 900px) {
+  .sidebar {
+    position: static;
+    width: 100%;
+    min-height: auto;
+  }
+  .contenido {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}

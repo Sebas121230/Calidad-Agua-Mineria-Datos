@@ -1,0 +1,16 @@
+# Entorno virtual (NO debe subirse al repositorio)
+venv/
+env/
+.venv/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+
+# Configuracion de editores
+.vscode/
+.idea/
+
+# Sistema operativo
+Thumbs.db
+.DS_Store

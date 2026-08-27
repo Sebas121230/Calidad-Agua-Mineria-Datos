@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">5. Dataset</h1>
+
+<div class="alert alert-warning small">
+    <b>Seccion por completar por el equipo.</b> El contenido de este punto depende de la descarga y
+    consolidacion efectiva de las fuentes documentadas en el punto 4. La estructura de la pagina ya esta
+    lista: solo debe reemplazarse el texto de cada bloque con los datos reales del dataset construido.
+</div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Descripcion general del dataset</h2>
+    <p class="small mb-0">
+        Indicar aqui: que fuentes se integraron, con que criterio se unieron (por fecha, por municipio,
+        por sistema de abastecimiento), el periodo cubierto por el dataset final y el numero total de
+        filas y columnas obtenidas.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Ficha tecnica</h2>
+    <div class="table-responsive">
+        <table class="table table-sm small">
+            <tr><td style="width:32%"><b>Nombre del archivo</b></td><td>por definir</td></tr>
+            <tr><td><b>Formato</b></td><td>CSV / XLSX</td></tr>
+            <tr><td><b>Numero de registros (filas)</b></td><td>por confirmar tras la consolidacion</td></tr>
+            <tr><td><b>Numero de variables (columnas)</b></td><td>por confirmar tras la consolidacion</td></tr>
+            <tr><td><b>Periodo cubierto</b></td><td>2019-2026 (segun disponibilidad por fuente)</td></tr>
+            <tr><td><b>Unidad de analisis</b></td><td>dia &ndash; sistema de abastecimiento (ver punto 3)</td></tr>
+            <tr><td><b>Fuentes integradas</b></td><td>IDEAM, EAAB, SIVICAP, IDECA (ver punto 4)</td></tr>
+            <tr><td><b>Fecha de consulta / descarga</b></td><td>registrar la fecha real de acceso</td></tr>
+        </table>
+    </div>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Proceso de consolidacion</h2>
+    <ol class="small mb-0">
+        <li class="mb-1">Descarga de cada fuente y registro de la fecha de consulta.</li>
+        <li class="mb-1">Normalizacion de nombres de columnas y de formatos de fecha.</li>
+        <li class="mb-1">Alineacion temporal: las series diarias (clima, embalses, consumo) y las mensuales
+            (IRCA, cobertura) requieren una decision explicita de agregacion.</li>
+        <li class="mb-1">Union de las fuentes por las llaves definidas (fecha, municipio, sistema).</li>
+        <li>Exportacion del dataset consolidado y verificacion del numero de registros.</li>
+    </ol>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Muestra de los primeros registros</h2>
+    <p class="small">Reemplazar esta tabla por las primeras filas reales del dataset consolidado.</p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small">
+            <thead class="table-dark">
+                <tr><th>fecha</th><th>variable_1</th><th>variable_2</th><th>variable_3</th><th>...</th></tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="5" class="text-center text-secondary">pendiente de consolidacion</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+{% endblock %}

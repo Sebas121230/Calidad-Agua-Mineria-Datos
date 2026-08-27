@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">7. Calidad inicial de los datos</h1>
+
+<div class="alert alert-warning small">
+    <b>Seccion por completar por el equipo.</b> Este punto requiere el perfilado del dataset construido en
+    el punto 5 (por ejemplo con pandas: <code>df.info()</code>, <code>df.isnull().sum()</code>,
+    <code>df.describe()</code>, <code>df.duplicated().sum()</code>). La estructura ya esta lista; deben
+    reemplazarse los valores por los resultados reales.
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3>&mdash;</h3><div class="small text-secondary">% de valores faltantes</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3>&mdash;</h3><div class="small text-secondary">registros duplicados</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3>&mdash;</h3><div class="small text-secondary">valores fuera de rango</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3>&mdash;</h3><div class="small text-secondary">variables con inconsistencias de formato</div>
+    </div></div></div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Dimensiones de calidad a evaluar</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Dimension</th><th>Que se revisa</th><th>Resultado</th></tr></thead>
+            <tbody>
+                <tr><td>Completitud</td><td>Porcentaje de valores nulos por variable</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td>Unicidad</td><td>Registros duplicados segun la llave (fecha, sistema)</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td>Validez</td><td>Valores fuera de rango fisico (por ejemplo, nivel &gt; 100 %)</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td>Consistencia</td><td>Unidades, formatos de fecha y codificacion de municipios</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td>Actualidad</td><td>Fecha del ultimo dato disponible por fuente</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td>Continuidad temporal</td><td>Vacios en las series diarias</td><td class="text-secondary">pendiente</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Problemas de calidad ya identificados en las fuentes</h2>
+    <p class="small">Estos hallazgos provienen de la revision documental de las fuentes (punto 4) y son
+        validos antes de la descarga:</p>
+    <ul class="small mb-0">
+        <li class="mb-1">Los datos crudos del IDEAM (DHIME) <b>no estan validados oficialmente</b> al momento
+            de la consulta.</li>
+        <li class="mb-1">El catalogo oficial de SIVICAP describe el conjunto como un buen dataset pero
+            <b>con inconsistencias menores en codificacion y limpieza</b>.</li>
+        <li class="mb-1">En 2024, la zona rural registro <b>476 municipios sin informacion</b> de calidad
+            del agua, lo que constituye un vacio estructural de datos.</li>
+        <li class="mb-1">Los boletines de la EAAB <b>no son un dataset estructurado</b>: los porcentajes de
+            embalses requieren extraccion manual, con riesgo de errores de transcripcion.</li>
+        <li>Las fuentes tienen <b>frecuencias de publicacion distintas</b> (diaria, mensual, anual), lo que
+            obliga a decisiones explicitas de agregacion temporal.</li>
+    </ul>
+</div></div>
+
+{% endblock %}
