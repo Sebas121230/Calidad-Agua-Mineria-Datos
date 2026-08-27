@@ -4,61 +4,243 @@
 
 <h1 class="h4 mb-3">7. Calidad inicial de los datos</h1>
 
-<div class="alert alert-warning small">
-    <b>Seccion por completar por el equipo.</b> Este punto requiere el perfilado del dataset construido en
-    el punto 5 (por ejemplo con pandas: <code>df.info()</code>, <code>df.isnull().sum()</code>,
-    <code>df.describe()</code>, <code>df.duplicated().sum()</code>). La estructura ya esta lista; deben
-    reemplazarse los valores por los resultados reales.
-</div>
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Contexto del diagnostico</h2>
+    <p class="small mb-0">
+        Este diagnostico se realizo <b>antes de cualquier limpieza o transformacion</b> sobre el dataset
+        consolidado (<code>dataset_calidad_agua.csv</code>, 12.989 registros &times; 20 variables). El
+        objetivo es identificar el estado inicial de calidad y documentar los problemas para guiar la
+        etapa de limpieza. Los resultados provienen del script <code>analizar_calidad.py</code> ejecutado
+        sobre el archivo CSV sin modificaciones.
+    </p>
+</div></div>
 
+<!-- Tarjetas resumen -->
 <div class="row g-3 mb-3">
     <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
-        <h3>&mdash;</h3><div class="small text-secondary">% de valores faltantes</div>
+        <h3>3.18%</h3><div class="small text-secondary">Celdas faltantes (8.252 de 259.780)</div>
     </div></div></div>
     <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
-        <h3>&mdash;</h3><div class="small text-secondary">registros duplicados</div>
+        <h3>63</h3><div class="small text-secondary">Registros duplicados exactos (0.49%)</div>
     </div></div></div>
     <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
-        <h3>&mdash;</h3><div class="small text-secondary">valores fuera de rango</div>
+        <h3>242</h3><div class="small text-secondary">Valores fuera de rango fisico</div>
     </div></div></div>
     <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
-        <h3>&mdash;</h3><div class="small text-secondary">variables con inconsistencias de formato</div>
+        <h3>246</h3><div class="small text-secondary">Registros con inconsistencias de formato</div>
     </div></div></div>
 </div>
 
+<!-- Completitud -->
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
-    <h2 class="h6 text-primary">Dimensiones de calidad a evaluar</h2>
+    <h2 class="h6 text-primary">1. Completitud &mdash; Valores faltantes</h2>
+    <p class="small mb-2">
+        Se evaluaron las 259.780 celdas del dataset (12.989 filas &times; 20 columnas). El
+        <b>3.18%</b> presenta valores vacios. Las variables con mayor afectacion son
+        <code>sistema_abastecimiento</code> (40.64%, propios de registros nacionales y globales que no
+        pertenecen a un sistema EAAB) y <code>precipitacion_mm</code> (5.89%).
+    </p>
     <div class="table-responsive">
         <table class="table table-striped table-sm small">
-            <thead class="table-primary"><tr><th>Dimension</th><th>Que se revisa</th><th>Resultado</th></tr></thead>
+            <thead class="table-primary"><tr><th>Variable</th><th>Faltantes</th><th>% faltante</th><th>Causa probable</th></tr></thead>
             <tbody>
-                <tr><td>Completitud</td><td>Porcentaje de valores nulos por variable</td><td class="text-secondary">pendiente</td></tr>
-                <tr><td>Unicidad</td><td>Registros duplicados segun la llave (fecha, sistema)</td><td class="text-secondary">pendiente</td></tr>
-                <tr><td>Validez</td><td>Valores fuera de rango fisico (por ejemplo, nivel &gt; 100 %)</td><td class="text-secondary">pendiente</td></tr>
-                <tr><td>Consistencia</td><td>Unidades, formatos de fecha y codificacion de municipios</td><td class="text-secondary">pendiente</td></tr>
-                <tr><td>Actualidad</td><td>Fecha del ultimo dato disponible por fuente</td><td class="text-secondary">pendiente</td></tr>
-                <tr><td>Continuidad temporal</td><td>Vacios en las series diarias</td><td class="text-secondary">pendiente</td></tr>
+                <tr><td><code>sistema_abastecimiento</code></td><td>5.279</td><td>40.64%</td><td>Registros nacionales y globales sin sistema EAAB asignado (valor "N/A" no se registro)</td></tr>
+                <tr><td><code>precipitacion_mm</code></td><td>765</td><td>5.89%</td><td>Dias sin registro en la estacion meteorologica (equivalente al 5% inyectado)</td></tr>
+                <tr><td><code>temperatura_c</code></td><td>534</td><td>4.11%</td><td>Fallas en la captacion de la estacion meteorologica</td></tr>
+                <tr><td><code>irca</code></td><td>405</td><td>3.12%</td><td>Municipios sin muestra de calidad en el periodo</td></tr>
+                <tr><td><code>nivel_almacenamiento_pct</code></td><td>141</td><td>1.09%</td><td>Registros nacionales sin embalse asociado</td></tr>
+                <tr><td><code>afluencias_m3s</code></td><td>141</td><td>1.09%</td><td>Mismo motivo que nivel_almacenamiento</td></tr>
+                <tr><td><code>consumo_m3s</code></td><td>141</td><td>1.09%</td><td>Registros sin datos de demanda</td></tr>
+                <tr><td><code>clasificacion_riesgo</code></td><td>141</td><td>1.09%</td><td>Derivada de irca; faltante cuando irca es nulo</td></tr>
+                <tr><td><code>departamento</code></td><td>141</td><td>1.09%</td><td>Registros globales (paises) sin departamento</td></tr>
+                <tr><td><code>latitud</code></td><td>141</td><td>1.09%</td><td>Registros globales sin coordenadas</td></tr>
+                <tr><td><code>longitud</code></td><td>141</td><td>1.09%</td><td>Registros globales sin coordenadas</td></tr>
+                <tr><td><code>nivel_servicio</code></td><td>141</td><td>1.09%</td><td>Registros sin informacion de continuidad</td></tr>
+                <tr><td><code>decision_racionamiento</code></td><td>141</td><td>1.09%</td><td>Registros sin decision institucional</td></tr>
             </tbody>
         </table>
     </div>
 </div></div>
 
+<!-- Unicidad -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">2. Unicidad &mdash; Registros duplicados</h2>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <p class="small mb-0">
+                <b>Duplicados exactos:</b> 63 registros (0.49%) son copias identicas de otra fila. Esto
+                corresponde a la inyeccion de duplicados en la fase de generacion del dataset para simular
+                un problema realista de calidad.
+            </p>
+        </div>
+        <div class="col-md-6">
+            <p class="small mb-0">
+                <b>Duplicados por llave:</b> al verificar la llave candidata (<code>fecha</code> +
+                <code>municipio</code> + <code>sistema_abastecimiento</code>), se encuentran los mismos
+                63 registros, lo que confirma que no existen violaciones de unicidad adicionales.
+            </p>
+        </div>
+    </div>
+</div></div>
+
+<!-- Validez -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">3. Validez &mdash; Valores fuera de rango</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Variable</th><th>Regla de validez</th><th>Violaciones</th><th>Ejemplos</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>nivel_almacenamiento_pct</code></td>
+                    <td>0 &le; valor &le; 100 %</td>
+                    <td>135 registros (1.04%)</td>
+                    <td>Valores de 101% a 129.8%, inconsistentes fisicamente</td>
+                </tr>
+                <tr>
+                    <td><code>irca</code></td>
+                    <td>0 &le; valor &le; 100</td>
+                    <td>107 registros (0.82%)</td>
+                    <td>Valores negativos (-0.1 a -4.95), imposibles para un indice 0-100</td>
+                </tr>
+                <tr>
+                    <td><code>precipitacion_mm</code></td>
+                    <td>valor &ge; 0</td>
+                    <td>0 registros</td>
+                    <td>Todos los valores son validos</td>
+                </tr>
+                <tr>
+                    <td><code>temperatura_c</code></td>
+                    <td>-10 &le; valor &le; 50 &deg;C</td>
+                    <td>0 registros</td>
+                    <td>Todos los valores son validos para Colombia</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- Consistencia -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">4. Consistencia &mdash; Formatos y codificacion</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Problema</th><th>Variable afectada</th><th>Cantidad</th><th>Detalle</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>Formato de fecha inconsistente</td>
+                    <td><code>fecha</code></td>
+                    <td>136 registros (1.05%)</td>
+                    <td>Fechas en formato DD/MM/YYYY, MM-DD-YYYY o YYYY/MM/DD en vez de ISO 8601</td>
+                </tr>
+                <tr>
+                    <td>Capitalizacion inconsistente</td>
+                    <td><code>municipio</code></td>
+                    <td>110 registros (0.85%)</td>
+                    <td>Nombres en mayusculas, minusculas o con caracteres sustituidos (ej. "bogota", "BOGOTA", "bogot@")</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- Continuidad temporal -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">5. Continuidad temporal</h2>
+    <p class="small mb-0">
+        El dataset cubre el periodo 2019-01-01 a 2025-12-31 (<b>2.557 dias</b>). Se registraron datos
+        en los 2.557 dias, logrando una <b>cobertura temporal del 100%</b>. No existen vacios en la
+        serie diaria a nivel de fechas. Sin embargo, dentro de cada dia puede haber municipios sin
+        registro completo de todas las variables (especialmente en las variables de embalse y calidad).
+    </p>
+</div></div>
+
+<!-- Estadisticas descriptivas -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">6. Estadisticas descriptivas (variables numericas)</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-primary">
+                <tr><th>Variable</th><th>Count</th><th>Media</th><th>Desv. Est.</th><th>Min</th><th>Max</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="text-start">nivel_almacenamiento_pct</td><td>12.848</td><td>59.83</td><td>18.50</td><td>16.1</td><td>129.8</td></tr>
+                <tr><td class="text-start">afluencias_m3s</td><td>12.848</td><td>15.14</td><td>6.87</td><td>2.03</td><td>30.0</td></tr>
+                <tr><td class="text-start">precipitacion_mm</td><td>12.224</td><td>3.14</td><td>2.26</td><td>0.0</td><td>14.3</td></tr>
+                <tr><td class="text-start">temperatura_c</td><td>12.455</td><td>17.24</td><td>5.34</td><td>8.1</td><td>38.0</td></tr>
+                <tr><td class="text-start">consumo_m3s</td><td>12.848</td><td>13.70</td><td>4.99</td><td>2.0</td><td>21.12</td></tr>
+                <tr><td class="text-start">irca</td><td>12.584</td><td>14.28</td><td>13.51</td><td>-4.95</td><td>55.4</td></tr>
+                <tr><td class="text-start">cobertura_acueducto_pct</td><td>12.989</td><td>87.85</td><td>11.59</td><td>31.3</td><td>100.0</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- Sesgos y limitaciones -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">7. Posibles sesgos y limitaciones del dataset</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Sesgo / Limitacion</th><th>Impacto</th><th>Mitigacion propuesta</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><b>Sobrerrepresentacion regional</b> (59.4% vs 39.5% nacional vs 1.1% global)</td>
+                    <td>Algoritmos pueden favorecer patrones de Bogota/Sabana</td>
+                    <td>Estratificacion o ponderacion al modelar</td>
+                </tr>
+                <tr>
+                    <td><b>Datos globales solo anuales</b> (no diarios)</td>
+                    <td>No permite integracion temporal fina con datos locales</td>
+                    <td>Usar solo para contexto comparativo, no para modelado conjunto</td>
+                </tr>
+                <tr>
+                    <td><b>Fuentes no integradas directamente:</b> SIVICAP, HDX y UNESCO solo se documentaron pero no se descargaron como CSV separados</td>
+                    <td>El dataset depende de simulaciones basadas en las tendencias reportadas</td>
+                    <td>Descargar fuentes reales en la etapa de limpieza</td>
+                </tr>
+                <tr>
+                    <td><b>Datos de embalses simulados:</b> Los niveles de Chingaza se modelaron con patron estacional + efecto ENSO, no con datos reales de la EAAB</td>
+                    <td>Los patrones pueden no capturar la variabilidad real exacta</td>
+                    <td>Reemplazar con datos reales de boletines EAAB cuando se consoliden</td>
+                </tr>
+                <tr>
+                    <td><b>Datos crudos IDEAM no validados</b></td>
+                    <td>Pueden contener errores de medicion o codificacion</td>
+                    <td>Aplicar filtros de calidad en la etapa de limpieza</td>
+                </tr>
+                <tr>
+                    <td><b>Inconsistencias en SIVICAP</b> (descrito en su catalogo oficial)</td>
+                    <td>Errores de codificacion y limpieza en el fuente original</td>
+                    <td>Verificacion cruzada con EAAB IRCA regional</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- Trazabilidad -->
 <div class="card shadow-sm border-0"><div class="card-body">
-    <h2 class="h6 text-primary">Problemas de calidad ya identificados en las fuentes</h2>
-    <p class="small">Estos hallazgos provienen de la revision documental de las fuentes (punto 4) y son
-        validos antes de la descarga:</p>
-    <ul class="small mb-0">
-        <li class="mb-1">Los datos crudos del IDEAM (DHIME) <b>no estan validados oficialmente</b> al momento
-            de la consulta.</li>
-        <li class="mb-1">El catalogo oficial de SIVICAP describe el conjunto como un buen dataset pero
-            <b>con inconsistencias menores en codificacion y limpieza</b>.</li>
-        <li class="mb-1">En 2024, la zona rural registro <b>476 municipios sin informacion</b> de calidad
-            del agua, lo que constituye un vacio estructural de datos.</li>
-        <li class="mb-1">Los boletines de la EAAB <b>no son un dataset estructurado</b>: los porcentajes de
-            embalses requieren extraccion manual, con riesgo de errores de transcripcion.</li>
-        <li>Las fuentes tienen <b>frecuencias de publicacion distintas</b> (diaria, mensual, anual), lo que
-            obliga a decisiones explicitas de agregacion temporal.</li>
-    </ul>
+    <h2 class="h6 text-primary">8. Trazabilidad de los datos</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Artefacto</th><th>Descripcion</th><th>Estado</th></tr></thead>
+            <tbody>
+                <tr><td><code>dataset_calidad_agua.csv</code></td><td>Dataset consolidado final (12.989 registros)</td><td>Generado</td></tr>
+                <tr><td><code>generar_dataset.py</code></td><td>Script de generacion con documentacion de cada decision</td><td>Disponible</td></tr>
+                <tr><td><code>analizar_calidad.py</code></td><td>Script de diagnostico de calidad (reproducible)</td><td>Disponible</td></tr>
+                <tr><td>Fuente original EAAB IRCA</td><td>saludata.saludcapital.gov.co</td><td>Referenciada en punto 4</td></tr>
+                <tr><td>Fuente original IDEAM</td><td>dhime.ideam.gov.co</td><td>Referenciada en punto 4</td></tr>
+                <tr><td>Fuente original SIVICAP</td><td>datos.gov.co/nxt2-39c3</td><td>Referenciada en punto 4</td></tr>
+                <tr><td>Fuente original JMP</td><td>washdata.org / who.int</td><td>Referenciada en punto 4</td></tr>
+                <tr><td>Fuente original UNESCO</td><td>unesco.org/en/reports/wwdr/2024</td><td>Referenciada en punto 4</td></tr>
+                <tr><td>Fuente original WRI</td><td>wbwaterdata.org</td><td>Referenciada en punto 4</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-secondary mb-0">
+        Los archivos <code>generar_dataset.py</code> y <code>analizar_calidad.py</code> se conservan en
+        el repositorio para garantizar la reproducibilidad del diagnostico. Cualquier investigador puede
+        regenerar el dataset y reproduci el analisis ejecutando ambos scripts en orden.
+    </p>
 </div></div>
 
 {% endblock %}
