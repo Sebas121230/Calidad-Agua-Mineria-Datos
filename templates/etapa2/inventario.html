@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">6. Inventario de problemas encontrados</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; Diagnostico sobre <code>dataset_calidad_agua.csv</code>
+</p>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Procedimiento</h2>
+    <p class="small mb-2">
+        Sobre el dataset consolidado (<b>{{ n_registros }} registros &times; {{ n_variables }} variables</b>)
+        se ejecuto el script <code>inventario_calidad.py</code>, que evalua las <b>seis dimensiones
+        de calidad</b> exigidas y levanta el inventario de hallazgos. El archivo se leyo
+        <b>sin ninguna limpieza previa</b> y con todas las columnas cargadas como texto: si se dejan
+        inferir los tipos, pandas normaliza por su cuenta las fechas y los espacios sobrantes, y los
+        errores de formato dejan de ser detectables.
+    </p>
+    <p class="small mb-0">
+        Cada problema se documenta con la variable afectada, la descripcion, la cantidad exacta de
+        registros comprometidos, la dimension de calidad, el nivel de impacto y la evidencia
+        reproducible que lo sustenta. Fecha del analisis: <b>{{ fecha_analisis }}</b>.
+    </p>
+</div></div>
+
+<!-- ============ METRICAS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Metricas por dimension</h2>
+    <p class="small text-secondary">
+        Resultado de la metrica definida para cada una de las seis dimensiones. Cada indicador es
+        verificable: se recalcula ejecutando el script sobre el mismo archivo.
+    </p>
+
+    <div class="row g-2 mb-3">
+        {% for m in metricas %}
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card border-0 h-100" style="background:#f4f7fb">
+                <div class="card-body p-3">
+                    <div class="small text-secondary text-uppercase"
+                         style="font-size:.68rem;letter-spacing:.08em">{{ m.dimension }}</div>
+                    <div class="fw-bold" style="font-size:1.35rem;color:#0d6efd">{{ m.resultado }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:110px">Dimension</th>
+                    <th>Definicion de la metrica</th>
+                    <th style="width:250px">Formula y calculo</th>
+                    <th style="width:110px">Resultado</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for m in metricas %}
+                <tr>
+                    <td class="fw-semibold">{{ m.dimension }}</td>
+                    <td>{{ m.definicion }}<br>
+                        <span class="text-secondary">{{ m.interpretacion }}</span></td>
+                    <td><code style="font-size:.75rem">{{ m.formula }}</code><br>
+                        <code style="font-size:.75rem" class="text-secondary">{{ m.calculo }}</code></td>
+                    <td class="fw-bold text-primary">{{ m.resultado }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-secondary mb-0">
+        La ventana de vigencia de <b>12 meses</b> usada en Actualidad la definio el equipo a partir
+        del proposito del proyecto: anticipar periodos de riesgo de desabastecimiento exige informacion
+        del ultimo ano hidrologico.
+    </p>
+</div></div>
+
+<!-- ============ RESUMEN ============ -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3>{{ total }}</h3><div class="small text-secondary">Problemas identificados</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3 class="text-danger">{{ altos }}</h3><div class="small text-secondary">Impacto alto</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3 class="text-warning">{{ medios }}</h3><div class="small text-secondary">Impacto medio</div>
+    </div></div></div>
+    <div class="col-md-3 col-6"><div class="card stat-card shadow-sm border-0 h-100"><div class="card-body">
+        <h3 class="text-success">{{ bajos }}</h3><div class="small text-secondary">Impacto bajo</div>
+    </div></div></div>
+</div>
+
+<!-- ============ CRITERIO DE IMPACTO ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Criterio para asignar el nivel de impacto</h2>
+    <p class="small text-secondary">
+        El criterio se definio antes de calificar los hallazgos, y se aplico de forma uniforme a
+        todos. La referencia son las preguntas de investigacion formuladas en la Etapa 1.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <thead class="table-light"><tr><th style="width:110px">Nivel</th><th>Criterio</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge bg-danger">Alto</span></td>
+                    <td>Compromete la variable objetivo (IRCA), la llave del registro o la serie
+                        temporal. Sin corregirlo, los resultados del analisis no son validos.</td></tr>
+                <tr><td><span class="badge bg-warning text-dark">Medio</span></td>
+                    <td>Sesga agregaciones, promedios o comparaciones entre escalas, pero el analisis
+                        sigue siendo posible si se documenta la limitacion.</td></tr>
+                <tr><td><span class="badge bg-success">Bajo</span></td>
+                    <td>Afecta la presentacion, la conformidad con la norma o variables de contexto.
+                        Se corrige con bajo esfuerzo y no altera las conclusiones.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ INVENTARIO ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Inventario de problemas</h2>
+    <p class="small text-secondary">
+        Tabla generada a partir de <code>inventario_problemas.csv</code>. Cada fila documenta los seis
+        elementos exigidos. La columna <i>Dim. complementaria</i> se incluye cuando el hallazgo afecta
+        de forma secundaria a otra dimension.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:46px">ID</th>
+                    <th style="width:160px">Variable o campo afectado</th>
+                    <th>Descripcion del problema</th>
+                    <th style="width:95px">Registros afectados</th>
+                    <th style="width:105px">Dimension de calidad</th>
+                    <th style="width:80px">Impacto</th>
+                    <th style="width:225px">Evidencia obtenida</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in problemas %}
+                <tr>
+                    <td class="fw-semibold">{{ p.id }}</td>
+                    <td><code>{{ p.variable_afectada }}</code></td>
+                    <td>{{ p.descripcion_problema }}</td>
+                    <td class="text-end">
+                        <b>{{ "{:,}".format(p.registros_afectados|int).replace(",", ".") }}</b><br>
+                        <span class="text-secondary">{{ p.porcentaje }}</span>
+                    </td>
+                    <td>
+                        <span class="fw-semibold">{{ p.dimension_calidad }}</span>
+                        {% if p.dimension_complementaria %}
+                            <br><span class="text-secondary" style="font-size:.75rem">
+                            + {{ p.dimension_complementaria }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.nivel_impacto == "Alto" %}
+                            <span class="badge bg-danger">Alto</span>
+                        {% elif p.nivel_impacto == "Medio" %}
+                            <span class="badge bg-warning text-dark">Medio</span>
+                        {% else %}
+                            <span class="badge bg-success">Bajo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-secondary">{{ p.evidencia }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ DISTRIBUCION ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Distribucion de los hallazgos por dimension</h2>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <thead class="table-light">
+                <tr><th style="width:130px">Dimension</th><th style="width:70px" class="text-end">Hallazgos</th>
+                    <th>Concentracion</th></tr>
+            </thead>
+            <tbody>
+            {% for d, c in por_dimension %}
+                <tr>
+                    <td class="fw-semibold">{{ d }}</td>
+                    <td class="text-end">{{ c }}</td>
+                    <td>
+                        <div style="background:#e9eef5;border-radius:3px;height:14px;width:100%">
+                            <div style="background:#1a73c1;height:14px;border-radius:3px;
+                                        width:{{ (c / max_dim * 100)|round(0)|int }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ SIN HALLAZGOS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Verificaciones ejecutadas sin hallazgos</h2>
+    <p class="small text-secondary">
+        Pruebas que tambien se corrieron y arrojaron cero registros afectados. Se documentan para
+        dejar constancia de que la revision cubrio todo el dominio declarado de las variables y no
+        solo los campos donde se encontraron defectos.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small mb-0">
+            <thead class="table-light">
+                <tr><th>Variable</th><th>Prueba realizada</th><th>Dimension</th>
+                    <th class="text-end">Resultado</th></tr>
+            </thead>
+            <tbody>
+            {% for v in verificaciones %}
+                <tr>
+                    <td><code>{{ v.variable }}</code></td>
+                    <td>{{ v.prueba_realizada }}</td>
+                    <td>{{ v.dimension_calidad }}</td>
+                    <td class="text-end"><span class="badge bg-light text-success border">0 registros</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ SINTESIS ============ -->
+<div class="card shadow-sm border-0 mb-4"><div class="card-body">
+    <h2 class="h6 text-primary">Sintesis del diagnostico</h2>
+    <p class="small mb-2">
+        La dimension mas comprometida es <b>Actualidad</b>: la ultima observacion del dataset es del
+        31 de diciembre de 2025 y el analisis se ejecuta con 252 dias de rezago, de modo que solo el
+        4,35% de los registros cae dentro de la ventana de vigencia de 12 meses. Para un proyecto
+        cuyo proposito es anticipar periodos de riesgo de desabastecimiento, ese rezago es la
+        limitacion estructural mas seria del conjunto.
+    </p>
+    <p class="small mb-2">
+        Le siguen <b>Exactitud</b> (88,76%), afectada sobre todo por el error de escritura en la
+        categoria normativa y por los atipicos del IRCA, y <b>Consistencia</b> (94,80%), donde se
+        concentra el mayor numero de hallazgos: cuatro formatos de fecha, municipios escritos de
+        multiples maneras y una clasificacion de riesgo que contradice al indice que la origina.
+        <b>Completitud</b> (96,82%), <b>Unicidad</b> (99,51%) y <b>Validez</b> (99,68%) presentan
+        defectos acotados y de correccion directa.
+    </p>
+    <p class="small mb-0">
+        Este diagnostico define el orden del plan de tratamiento: primero normalizar formatos de
+        fecha y municipio, porque de ello depende poder identificar cada registro; luego eliminar
+        duplicados sobre la llave ya normalizada; despues corregir los valores fuera de dominio y
+        recalcular las variables derivadas; y por ultimo decidir la imputacion de faltantes y el
+        tratamiento justificado de los atipicos.
+    </p>
+</div></div>
+
+{% endblock %}

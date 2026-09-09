@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">7. Analisis de las causas</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; Causas raiz de los {{ total }} problemas inventariados
+</p>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Metodo</h2>
+    <p class="small mb-2">
+        Cada problema del inventario se asocio a una causa de la taxonomia establecida en el
+        enunciado: errores de captura, formatos diferentes, ausencia de validaciones, duplicidad de
+        fuentes y falta de actualizacion. La asignacion se sustenta en las nueve fuentes documentadas
+        en la Etapa 1 y en el patron que muestra cada defecto dentro del propio dataset.
+    </p>
+    <p class="small mb-0">
+        Se registran <b>dos causas por problema</b> cuando corresponde, porque en varios hallazgos una
+        causa <b>origina</b> el valor incorrecto y otra distinta explica por que ese valor
+        <b>sobrevivio</b> hasta el archivo consolidado. Un IRCA negativo nace de un error de captura,
+        pero llega al dataset porque nadie valido el dominio de la variable. Distinguirlas importa
+        para el plan de tratamiento: la primera se corrige limpiando, la segunda solo se corrige
+        cambiando el proceso.
+    </p>
+</div></div>
+
+<!-- ============ HALLAZGO TRANSVERSAL ============ -->
+<div class="card shadow-sm border-0 mb-3" style="border-left:4px solid #0d6efd !important">
+    <div class="card-body">
+    <h2 class="h6 text-primary">Hallazgo principal del analisis</h2>
+    <p class="small mb-0">
+        La <b>ausencia de validaciones</b> es causa raiz de solo 3 problemas, pero aparece como causa
+        secundaria en <b>12 de los 23</b>. Es decir: casi nunca es lo que produce el error, y casi
+        siempre es lo que permite que el error llegue al dataset. Esa es la causa mas sistemica del
+        conjunto, y tambien la de mayor retorno: los errores de captura de las estaciones del IDEAM no
+        estan bajo control del equipo, pero validar el dominio de cada variable al momento de la carga
+        si lo esta, y habria bloqueado los 242 valores fuera de rango, los 77 registros con
+        clasificacion incoherente y los 265 con etiqueta sin dato de origen.
+    </p>
+</div></div>
+
+<!-- ============ RESUMEN POR CAUSA ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Distribucion de los problemas por causa raiz</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:180px">Causa</th>
+                    <th style="width:75px" class="text-end">Como raiz</th>
+                    <th style="width:95px" class="text-end">Como secundaria</th>
+                    <th style="width:75px" class="text-end">Impacto alto</th>
+                    <th>Peso relativo como causa raiz</th>
+                    <th style="width:150px">Problemas</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in resumen %}
+                <tr>
+                    <td class="fw-semibold">{{ c.causa }}</td>
+                    <td class="text-end">{{ c.problemas_como_causa_raiz }}</td>
+                    <td class="text-end">{{ c.problemas_como_causa_secundaria }}</td>
+                    <td class="text-end">
+                        {% if c.problemas_de_impacto_alto|int > 0 %}
+                            <span class="badge bg-danger">{{ c.problemas_de_impacto_alto }}</span>
+                        {% else %}
+                            <span class="text-secondary">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="background:#e9eef5;border-radius:3px;height:14px;width:100%">
+                            <div style="background:#1a73c1;height:14px;border-radius:3px;
+                                 width:{{ (c.problemas_como_causa_raiz|int / max_raiz * 100)|round(0)|int }}%"></div>
+                        </div>
+                    </td>
+                    <td class="text-secondary" style="font-size:.75rem">{{ c.ids }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ LAS CINCO CAUSAS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Como se manifiesta cada causa en este proyecto</h2>
+    {% for c in resumen %}
+    <div class="{% if not loop.last %}mb-3 pb-3 border-bottom{% endif %}">
+        <div class="d-flex justify-content-between align-items-baseline mb-1">
+            <h3 class="h6 mb-0">{{ loop.index }}. {{ c.causa }}</h3>
+            <span class="small text-secondary">
+                {{ c.problemas_como_causa_raiz }} problemas &middot;
+                dimensiones: {{ c.dimensiones_afectadas }}
+            </span>
+        </div>
+        <p class="small text-secondary mb-0">{{ c.descripcion }}</p>
+    </div>
+    {% endfor %}
+</div></div>
+
+<!-- ============ DETALLE ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Causa de cada problema</h2>
+    <p class="small text-secondary">
+        Tabla generada a partir de <code>analisis_causas.csv</code>. El mecanismo explica como se
+        produce el defecto; la evidencia de respaldo es el patron observado en el dataset que sustenta
+        esa explicacion y no otra.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:44px">ID</th>
+                    <th style="width:145px">Variable</th>
+                    <th style="width:75px">Impacto</th>
+                    <th style="width:140px">Causa raiz</th>
+                    <th>Mecanismo</th>
+                    <th style="width:230px">Evidencia de respaldo</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in causas %}
+                <tr>
+                    <td class="fw-semibold">{{ c.id }}</td>
+                    <td><code>{{ c.variable_afectada }}</code></td>
+                    <td>
+                        {% if c.nivel_impacto == "Alto" %}
+                            <span class="badge bg-danger">Alto</span>
+                        {% elif c.nivel_impacto == "Medio" %}
+                            <span class="badge bg-warning text-dark">Medio</span>
+                        {% else %}
+                            <span class="badge bg-success">Bajo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="fw-semibold">{{ c.causa_raiz }}</span>
+                        {% if c.causa_secundaria %}
+                            <br><span class="text-secondary" style="font-size:.75rem">
+                            luego: {{ c.causa_secundaria }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.mecanismo }}</td>
+                    <td class="text-secondary">{{ c.evidencia_de_respaldo }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ MATIZ ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Tres hallazgos que no son defectos</h2>
+    <p class="small mb-0">
+        Los atipicos de <code>irca</code>, <code>cobertura_acueducto_pct</code> y
+        <code>temperatura_c</code> (P18, P19 y P20) no provienen de un error: reflejan
+        <b>heterogeneidad real de la poblacion</b>. El dataset mezcla en una sola columna municipios de
+        Bogota con municipios de Amazonas, Choco y Vaupes, y ciudades de clima frio con ciudades de
+        clima calido. La distribucion resultante es bimodal y el criterio del rango intercuartilico
+        marca como atipicos los extremos de ambos modos. Eliminarlos seria un error metodologico:
+        borraria justamente los territorios que la quinta pregunta secundaria del proyecto quiere
+        comparar. El tratamiento correcto es estratificar por <code>tipo_region</code> y por piso
+        termico antes de calcular cualquier estadistico, no depurar.
+    </p>
+</div></div>
+
+<!-- ============ PUENTE AL PLAN ============ -->
+<div class="card shadow-sm border-0 mb-4"><div class="card-body">
+    <h2 class="h6 text-primary">Que se deriva de este analisis</h2>
+    <p class="small mb-2">
+        Las causas se separan en dos grupos segun lo que exigen. Las que se resuelven
+        <b>limpiando el dataset actual</b>: formatos diferentes (homologar fechas, municipios y
+        categorias) y duplicidad de fuentes (deduplicar sobre la llave ya normalizada). Y las que solo
+        se resuelven <b>cambiando el proceso</b>: la ausencia de validaciones exige un esquema que
+        declare el dominio de cada variable en la carga, y la falta de actualizacion exige un
+        procedimiento periodico de refresco con su metadato de vigencia.
+    </p>
+    <p class="small mb-0">
+        Los errores de captura son el unico grupo que el equipo no puede evitar en el origen, porque
+        dependen de terceros: las estaciones del IDEAM, el muestreo sanitario del SIVICAP y los
+        boletines de la EAAB. Frente a ellos la accion posible es detectarlos y documentarlos, no
+        prevenirlos. Esta separacion define el plan de tratamiento del punto 9.
+    </p>
+</div></div>
+
+{% endblock %}

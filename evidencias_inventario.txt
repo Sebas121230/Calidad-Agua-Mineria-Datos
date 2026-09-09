@@ -1,0 +1,164 @@
+EVIDENCIAS DE CALIDAD - dataset_calidad_agua.csv
+12989 registros x 20 variables
+Fecha de analisis: 2026-09-09
+
+==========================================================================
+COMPLETITUD - celdas sin dato util por variable
+==========================================================================
+sistema_abastecimiento           5279  (40.64%)
+precipitacion_mm                  765  (5.89%)
+temperatura_c                     534  (4.11%)
+irca                              405  (3.12%)
+nivel_almacenamiento_pct          141  (1.09%)
+afluencias_m3s                    141  (1.09%)
+consumo_m3s                       141  (1.09%)
+clasificacion_riesgo              141  (1.09%)
+departamento                      141  (1.09%)
+latitud                           141  (1.09%)
+longitud                          141  (1.09%)
+nivel_servicio                    141  (1.09%)
+decision_racionamiento            141  (1.09%)
+==========================================================================
+UNICIDAD - ejemplos de registros duplicados
+==========================================================================
+            fecha  anio mes  periodo sistema_abastecimiento nivel_almacenamiento_pct afluencias_m3s precipitacion_mm temperatura_c consumo_m3s irca clasificacion_riesgo municipio  departamento latitud  longitud cobertura_acueducto_pct nivel_servicio tipo_region decision_racionamiento
+5561   2019-01-09  2019   1  2019-T1                    Sur                     56.9           23.7              0.9          12.8       18.67    0     Sin riesgo (0-5)    Soacha  Cundinamarca  4.5898  -74.2003                    92.4       Continuo    Regional        Sin restriccion
+12974  2019-01-09  2019   1  2019-T1                    Sur                     56.9           23.7              0.9          12.8       18.67    0     Sin riesgo (0-5)    Soacha  Cundinamarca  4.5898  -74.2003                    92.4       Continuo    Regional        Sin restriccion
+5647   2019-01-25  2019   1  2019-T1                Tibitoc                     56.6          18.67              2.4          11.6       17.22    0     Sin riesgo (0-5)      Sopo  Cundinamarca  4.7382  -73.9493                    97.5       Continuo    Regional        Sin restriccion
+12958  2019-01-25  2019   1  2019-T1                Tibitoc                     56.6          18.67              2.4          11.6       17.22    0     Sin riesgo (0-5)      Sopo  Cundinamarca  4.7382  -73.9493                    97.5       Continuo    Regional        Sin restriccion
+4881   2019-03-09  2019   3  2019-T1                Tibitoc                     63.1          19.42              5.2          13.1       19.13  9.8   Bajo riesgo (5-14)    Soacha  Cundinamarca  4.5856  -74.2211                    94.0       Continuo    Regional        Sin restriccion
+12925  2019-03-09  2019   3  2019-T1                Tibitoc                     63.1          19.42              5.2          13.1       19.13  9.8   Bajo riesgo (5-14)    Soacha  Cundinamarca  4.5856  -74.2211                    94.0       Continuo    Regional        Sin restriccion
+==========================================================================
+VALIDEZ - dominio declarado y violaciones por variable
+==========================================================================
+nivel_almacenamiento_pct     rango [0, 100]  evaluados= 12848  fuera=  135
+irca                         rango [0, 100]  evaluados= 12584  fuera=  107
+precipitacion_mm             rango [0, 500]  evaluados= 12224  fuera=    0
+temperatura_c                rango [-10, 50]  evaluados= 12455  fuera=    0
+cobertura_acueducto_pct      rango [0, 100]  evaluados= 12989  fuera=    0
+afluencias_m3s               rango [0, 1000]  evaluados= 12848  fuera=    0
+==========================================================================
+VALIDEZ - ejemplos de nivel_almacenamiento_pct > 100
+==========================================================================
+          fecha municipio nivel_almacenamiento_pct
+39   2019-06-30    Madrid                    120.1
+174  2020-05-06    Cajica                    128.6
+557  2020-08-17  Monteria                    112.2
+655  2023-10-24    Cajica                    124.7
+745  2019-09-14  Mosquera                    127.2
+841  2025-10-17     Pasto                    109.6
+890  2025-01-26    Cajica                    125.4
+991  2020-06-20    Cajica                    118.8
+==========================================================================
+VALIDEZ - ejemplos de irca negativo
+==========================================================================
+          fecha   municipio   irca            clasificacion_riesgo
+51   2020-01-03      Soacha  -4.38              Bajo riesgo (5-14)
+63   2023-03-31        Sopo   -2.8                Sin riesgo (0-5)
+82   2019-05-29        Sopo  -2.59                Sin riesgo (0-5)
+135  2021-01-16     Popayan  -3.12             Alto riesgo (28-40)
+171  2019-10-10      Cajica  -2.05              Bajo riesgo (5-14)
+180  2024-03-20  Valledupar  -4.95  Inviabile sanitariamente (>40)
+301  2024-07-29    Mosquera  -3.49                Sin riesgo (0-5)
+444  2020-01-31     Soacha   -0.57                Sin riesgo (0-5)
+==========================================================================
+CONSISTENCIA - formatos de fecha distintos al ISO
+==========================================================================
+Patrones hallados: {'9999/99/99': 49, '99/99/9999': 44, '99-99-9999': 43}
+
+Ejemplos:
+71      15/08/2023
+89      08-04-2022
+164     15/09/2021
+473     23/12/2021
+560     08-17-2022
+861     01-15-2022
+881     2021/06/12
+1110    2022/06/09
+1113    04-19-2025
+1120    17/05/2019
+1134    2023/07/08
+1141    23/11/2022
+==========================================================================
+CONSISTENCIA - municipio mal escrito
+==========================================================================
+municipio
+USA             7
+TOCANCIPA       6
+madrid          6
+ Sopo           6
+cajica          5
+Mosquera        5
+CHIA            5
+ Funza          5
+Soacha          5
+Chi@            4
+ Madrid         4
+sopo            4
+bogota d.c.     4
+ Soacha         4
+Bogota D.C.     4
+M@drid          4
+SOPO            4
+Sopo            3
+FUNZA           3
+Funza           3
+
+Valores unicos sin normalizar: 145
+Valores unicos tras normalizar:  49
+==========================================================================
+CONSISTENCIA - clasificacion_riesgo que no corresponde al irca
+==========================================================================
+       irca            clasificacion_riesgo
+51    -4.38              Bajo riesgo (5-14)
+135   -3.12             Alto riesgo (28-40)
+171   -2.05              Bajo riesgo (5-14)
+180   -4.95  Inviabile sanitariamente (>40)
+544   -1.05              Bajo riesgo (5-14)
+589   -1.01             Alto riesgo (28-40)
+1096  -4.09            Riesgo medio (14-28)
+1185  -3.44              Bajo riesgo (5-14)
+1232  -1.83              Bajo riesgo (5-14)
+1297  -1.03            Riesgo medio (14-28)
+==========================================================================
+EXACTITUD - resumen estadistico de las variables numericas
+==========================================================================
+       nivel_almacenamiento_pct  afluencias_m3s  precipitacion_mm  temperatura_c  consumo_m3s      irca  cobertura_acueducto_pct
+count                  12848.00        12848.00          12224.00       12455.00     12848.00  12584.00                 12989.00
+mean                      59.83           15.14              3.14          17.24        13.70     14.28                    87.85
+std                       18.50            6.87              2.26           5.34         4.99     13.51                    11.59
+min                       16.10            2.03              0.00           8.10         2.00     -4.95                    31.30
+25%                       45.90            9.29              1.40          13.30        10.20      4.86                    81.30
+50%                       61.20           15.01              2.80          15.80        15.63      9.30                    92.70
+75%                       73.10           20.50              4.40          20.60        17.58     20.08                    95.90
+max                      129.80           30.00             14.30          38.00        21.12     55.40                   100.00
+==========================================================================
+ACTUALIDAD - vigencia de la informacion
+==========================================================================
+Fecha de analisis:            2026-09-09
+Ultima observacion registrada:2025-12-31
+Desfase:                      252 dias (8.3 meses)
+Ventana de vigencia adoptada: 12 meses (corte 2025-09-09)
+Registros vigentes:           565 (4.35%)
+Registros desactualizados:    12424 (95.65%)
+
+Registros por ano:
+anio
+2019    1857
+2020    1861
+2021    1851
+2022    1851
+2023    1853
+2024    1862
+2025    1854
+==========================================================================
+VERIFICACIONES SIN HALLAZGOS (pruebas ejecutadas que dieron cero)
+==========================================================================
+nivel_almacenamiento_pct     | Valores negativos                                       | 0 registros
+irca                         | Valores por encima de 100 (fuera de la escala normativa) | 0 registros
+precipitacion_mm             | Laminas de lluvia negativas                             | 0 registros
+temperatura_c                | Temperaturas fuera del rango -10 C a 50 C               | 0 registros
+cobertura_acueducto_pct      | Coberturas superiores al 100%                           | 0 registros
+afluencias_m3s               | Caudales negativos                                      | 0 registros
+fecha vs anio / mes          | Ano y mes que no coinciden con la fecha                 | 0 registros
+fecha                        | Dias del periodo sin ningun registro                    | 0 registros
