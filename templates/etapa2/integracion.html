@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">8. Integracion y homologacion de los datos</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; Como se unificaron las 9 fuentes documentadas en la Etapa 1
+</p>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Fuentes involucradas</h2>
+    <p class="small mb-2">
+        El dataset consolidado (<b>{{ n_registros }} registros</b>) integra tres niveles geograficos
+        provenientes de 9 fuentes distintas: 3 globales (UN-Water/World Bank, UNESCO WWDR, OMS/UNICEF
+        JMP), 3 nacionales (IDEAM DHIME, INS/SIVICAP, HDX) y 3 regionales (EAAB IRCA, IDECA, EAAB
+        boletines). Cada una entrega su informacion con un formato, una granularidad y una convencion
+        distintos, lo que ya se identifico como la causa raiz "Formatos diferentes" en el analisis del
+        punto 7.
+    </p>
+    <p class="small mb-0">
+        Ver el detalle institucional completo de cada fuente en
+        <a href="{{ url_for('fuentes') }}">4. Fuentes de datos</a> (Etapa 1).
+    </p>
+</div></div>
+
+<!-- ============ DIFERENCIAS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Diferencias detectadas antes de homologar</h2>
+    <p class="small text-secondary">
+        Tabla generada a partir de <code>integracion_diferencias.csv</code>.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small align-middle">
+            <thead class="table-primary">
+                <tr><th style="width:200px">Tipo de diferencia</th><th>Ejemplo concreto entre fuentes</th></tr>
+            </thead>
+            <tbody>
+            {% for d in diferencias %}
+                <tr>
+                    <td class="fw-semibold">{{ d.tipo_diferencia }}</td>
+                    <td>{{ d.ejemplo }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ HOMOLOGACION ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Reglas de homologacion aplicadas por variable</h2>
+    <p class="small text-secondary">
+        Tabla generada a partir de <code>integracion_homologacion.csv</code>. La columna
+        <i>Limitacion</i> se llena cuando la homologacion no es neutra: cuando unificar dos fuentes
+        implica perder algun matiz o dejar pendiente un problema que ya esta en el inventario.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:190px">Variable final</th>
+                    <th style="width:190px">Fuentes de origen</th>
+                    <th>Regla de homologacion</th>
+                    <th style="width:230px">Limitacion / pendiente</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for h in homologacion %}
+                <tr>
+                    <td><code>{{ h.variable_final }}</code></td>
+                    <td class="text-secondary">{{ h.fuentes_origen }}</td>
+                    <td>{{ h.regla_homologacion }}</td>
+                    <td class="text-secondary">
+                        {% if h.limitacion %}{{ h.limitacion }}{% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ LIMITACIONES ============ -->
+<div class="card shadow-sm border-0 mb-4" style="border-left:4px solid #0d6efd !important">
+    <div class="card-body">
+    <h2 class="h6 text-primary">Lo que la homologacion no resuelve por si sola</h2>
+    <p class="small mb-2">
+        Unificar el formato no siempre unifica el significado. El caso mas claro es
+        <code>cobertura_acueducto_pct</code>: se llevaron a una sola columna el indicador de
+        <b>cobertura de red</b> (Superservicios, municipal) y el de <b>acceso seguro</b> (JMP, global),
+        que miden conceptos distintos. Se documenta como limitacion en vez de presentarse como una
+        unificacion libre de costo (problema P14 del inventario).
+    </p>
+    <p class="small mb-0">
+        Tambien queda pendiente el literal <code>"N/A"</code> usado como marcador de "sistema no
+        aplica" en vez de una celda vacia estandar (P04, 40.64% de los registros), y la muy baja
+        representacion del nivel Global tras la integracion (1.09% de los registros, P05 y P06), que
+        limita cualquier comparacion entre las tres escalas. Estos puntos pasan al plan de tratamiento
+        del punto 9.
+    </p>
+</div></div>
+
+{% endblock %}
