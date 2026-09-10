@@ -5,5 +5,5 @@ precipitacion_mm,Laminas de lluvia negativas,0,Validez
 temperatura_c,Temperaturas fuera del rango -10 C a 50 C,0,Validez
 cobertura_acueducto_pct,Coberturas superiores al 100%,0,Validez
 afluencias_m3s,Caudales negativos,0,Validez
-fecha vs anio / mes,Ano y mes que no coinciden con la fecha,0,Consistencia
+fecha vs anio / mes,Año o mes que no coinciden con la fecha (sobre las 12853 fechas en formato ISO),0,Consistencia
 fecha,Dias del periodo sin ningun registro,0,Actualidad

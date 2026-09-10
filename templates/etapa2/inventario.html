@@ -70,11 +70,6 @@
             </tbody>
         </table>
     </div>
-    <p class="small text-secondary mb-0">
-        La ventana de vigencia de <b>12 meses</b> usada en Actualidad la definio el equipo a partir
-        del proposito del proyecto: anticipar periodos de riesgo de desabastecimiento exige informacion
-        del ultimo ano hidrologico.
-    </p>
 </div></div>
 
 <!-- ============ RESUMEN ============ -->
@@ -233,17 +228,20 @@
     <h2 class="h6 text-primary">Sintesis del diagnostico</h2>
     <p class="small mb-2">
         La dimension mas comprometida es <b>Actualidad</b>: la ultima observacion del dataset es del
-        31 de diciembre de 2025 y el analisis se ejecuta con 252 dias de rezago, de modo que solo el
-        4,35% de los registros cae dentro de la ventana de vigencia de 12 meses. Para un proyecto
+        31 de diciembre de 2025 y el analisis se ejecuta con {{ desfase_dias }} dias de rezago, de modo
+        que solo el {{ met['Actualidad'] }} de los registros cae dentro de la ventana de vigencia de
+        12 meses. Para un proyecto
         cuyo proposito es anticipar periodos de riesgo de desabastecimiento, ese rezago es la
         limitacion estructural mas seria del conjunto.
     </p>
     <p class="small mb-2">
-        Le siguen <b>Exactitud</b> (88,76%), afectada sobre todo por el error de escritura en la
-        categoria normativa y por los atipicos del IRCA, y <b>Consistencia</b> (94,80%), donde se
+        Le siguen <b>Exactitud</b> ({{ met['Exactitud'] }}), afectada sobre todo por el error de
+        escritura en la categoria normativa y por los atipicos del IRCA, y
+        <b>Consistencia</b> ({{ met['Consistencia'] }}), donde se
         concentra el mayor numero de hallazgos: cuatro formatos de fecha, municipios escritos de
         multiples maneras y una clasificacion de riesgo que contradice al indice que la origina.
-        <b>Completitud</b> (96,82%), <b>Unicidad</b> (99,51%) y <b>Validez</b> (99,68%) presentan
+        <b>Completitud</b> ({{ met['Completitud'] }}), <b>Unicidad</b> ({{ met['Unicidad'] }}) y
+        <b>Validez</b> ({{ met['Validez'] }}) presentan
         defectos acotados y de correccion directa.
     </p>
     <p class="small mb-0">

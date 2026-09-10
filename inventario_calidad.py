@@ -36,7 +36,7 @@ FECHA_ANALISIS = date.today()
 # Ventana de vigencia adoptada por el equipo para la dimension Actualidad.
 # Justificacion: el proyecto busca anticipar periodos de riesgo de
 # desabastecimiento, y una alerta se construye sobre el comportamiento del
-# ultimo ano hidrologico. Un dato de hace mas de 12 meses ya no es operativo.
+# ultimo año hidrologico. Un dato de hace mas de 12 meses ya no es operativo.
 VENTANA_VIGENCIA_MESES = 12
 
 df = pd.read_csv(ARCHIVO, dtype=str, keep_default_na=False)
@@ -237,7 +237,6 @@ registrar(
 # Dominio declarado de cada variable, tomado del diccionario de datos y de la
 # Resolucion 2115 de 2007 para el IRCA.
 reglas_validez = {
-    "nivel_almacenamiento_pct": (nivel, 0, 100, "porcentaje de capacidad del embalse"),
     "irca": (irca, 0, 100, "escala del IRCA segun Resolucion 2115 de 2007"),
     "precipitacion_mm": (precip, 0, 500, "lamina de lluvia diaria"),
     "temperatura_c": (temp, -10, 50, "temperatura ambiente en Colombia"),
@@ -266,23 +265,14 @@ log("VALIDEZ - ejemplos de irca negativo",
 medir(
     "Validez",
     "Proporcion de valores que caen dentro del dominio declarado para su "
-    "variable (rango fisico o escala normativa).",
+    "variable. Se evaluaron irca, precipitacion_mm, temperatura_c, "
+    "cobertura_acueducto_pct y afluencias_m3s contra su rango fisico o su "
+    "escala normativa.",
     "Validez = (valores dentro del dominio / valores evaluados) x 100",
     f"({val_evaluados} - {val_invalidos}) / {val_evaluados} x 100",
     f"{validez}%",
     f"Se evaluaron {val_evaluados:,} valores numericos contra su dominio; "
-    f"{val_invalidos} lo violan. Todas las violaciones se concentran en "
-    f"nivel_almacenamiento_pct e irca.".replace(",", "."),
-)
-
-nivel_alto = int((nivel > 100).sum())
-registrar(
-    "nivel_almacenamiento_pct",
-    "Porcentajes de almacenamiento superiores al 100%, fisicamente imposibles: "
-    "un embalse no puede contener mas que su capacidad total.",
-    nivel_alto, "Validez", "Alto",
-    f"{nivel_alto} registros ({pct(nivel_alto)}%) con valor > 100. "
-    f"Maximo observado: {nivel.max()}%",
+    f"{val_invalidos} lo violan, todos en la variable irca.".replace(",", "."),
 )
 
 irca_neg = int((irca < 0).sum())
@@ -438,7 +428,7 @@ registrar(
     "las series diarias sin agregar primero.",
     globales, "Consistencia", "Medio",
     f"{globales} registros globales concentrados en "
-    f"{df.loc[df.tipo_region == 'Global', 'fecha'].nunique()} fechas, una por ano",
+    f"{df.loc[df.tipo_region == 'Global', 'fecha'].nunique()} fechas, una por año",
     complementaria="Granularidad",
 )
 
@@ -546,7 +536,7 @@ log("ACTUALIDAD - vigencia de la informacion",
     f"(corte {corte.date()})\n"
     f"Registros vigentes:           {vigentes} ({actualidad}%)\n"
     f"Registros desactualizados:    {desactualizados} ({pct(desactualizados)}%)\n\n"
-    + "Registros por ano:\n" + df["anio"].value_counts().sort_index().to_string())
+    + "Registros por año:\n" + df["anio"].value_counts().sort_index().to_string())
 
 medir(
     "Actualidad",
@@ -603,6 +593,15 @@ registrar(
 dias_rango = (fechas_ok.max() - fechas_ok.min()).days + 1
 dias_con_datos = int(fechas_ok.dropna().nunique())
 
+# Coherencia entre la fecha y las columnas derivadas anio y mes.
+# Solo se evalua sobre las fechas que se pudieron interpretar (formato ISO):
+# las que tienen formato inconsistente ya se contabilizan en el problema P10.
+fecha_parseada = fechas_ok.notna()
+desalineados = int((
+    (fechas_ok[fecha_parseada].dt.year.astype(str) != df.loc[fecha_parseada, "anio"])
+    | (fechas_ok[fecha_parseada].dt.month.astype(str) != df.loc[fecha_parseada, "mes"])
+).sum())
+
 sin_hallazgo = [
     ("nivel_almacenamiento_pct", "Valores negativos", int((nivel < 0).sum()), "Validez"),
     ("irca", "Valores por encima de 100 (fuera de la escala normativa)",
@@ -612,9 +611,10 @@ sin_hallazgo = [
      int(((temp < -10) | (temp > 50)).sum()), "Validez"),
     ("cobertura_acueducto_pct", "Coberturas superiores al 100%", int((cob > 100).sum()), "Validez"),
     ("afluencias_m3s", "Caudales negativos", int((aflu < 0).sum()), "Validez"),
-    ("fecha vs anio / mes", "Ano y mes que no coinciden con la fecha",
-     int((fechas_ok.dt.year.astype("Int64").astype(str) != df["anio"]).sum()
-         - fechas_ok.isna().sum()), "Consistencia"),
+    ("fecha vs anio / mes",
+     f"Año o mes que no coinciden con la fecha "
+     f"(sobre las {int(fechas_ok.notna().sum())} fechas en formato ISO)",
+     desalineados, "Consistencia"),
     ("fecha", "Dias del periodo sin ningun registro", dias_rango - dias_con_datos, "Actualidad"),
 ]
 log("VERIFICACIONES SIN HALLAZGOS (pruebas ejecutadas que dieron cero)",

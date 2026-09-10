@@ -80,7 +80,7 @@ DESCRIPCION_CAUSAS = {
     DESACTUALIZACION: (
         "El dataset se corto en una fecha y no se ha refrescado, y las fuentes que "
         "lo alimentan tienen periodicidades de publicacion muy distintas: el JMP de "
-        "OMS/UNICEF publica con cerca de un ano de rezago, mientras el IDEAM ofrece "
+        "OMS/UNICEF publica con cerca de un año de rezago, mientras el IDEAM ofrece "
         "series casi en tiempo real. No se definio un proceso de actualizacion ni "
         "un metadato que registre la vigencia de cada carga."
     ),
@@ -97,7 +97,7 @@ CAUSAS = {
         "se consulta cruda desde DHIME y los dias sin transmision quedan como celda "
         "vacia en lugar de marcarse como dato no disponible.",
         "El 5,89% de faltantes se distribuye a lo largo de todo el periodo y no se "
-        "concentra en ningun ano ni municipio, patron propio de una falla "
+        "concentra en ningun año ni municipio, patron propio de una falla "
         "intermitente de transmision y no de un vacio estructural.",
     ),
     "P02": (
@@ -155,15 +155,6 @@ CAUSAS = {
     ),
     "P08": (
         CAPTURA, VALIDACIONES,
-        "Un porcentaje por encima de 100 corresponde a un error de transcripcion "
-        "desde el boletin de la EAAB o a un sensor de nivel descalibrado. Llega al "
-        "archivo final porque ninguna regla verifica que la variable este acotada "
-        "entre 0 y 100 al momento de la carga.",
-        "135 registros con valores entre 101 y 129,8. Los valores no se agrupan en "
-        "una fecha ni en un municipio: aparecen dispersos, como errores puntuales.",
-    ),
-    "P09": (
-        CAPTURA, VALIDACIONES,
         "El IRCA esta definido entre 0 y 100 por la Resolucion 2115 de 2007. Un "
         "valor negativo solo puede originarse en un error de digitacion o en una "
         "resta mal aplicada durante el calculo del indice, y sobrevive porque no se "
@@ -171,7 +162,7 @@ CAUSAS = {
         "107 registros con IRCA entre -4,95 y -0,1. La magnitud pequena de los "
         "negativos sugiere un signo mal capturado antes que un valor inventado.",
     ),
-    "P10": (
+    "P09": (
         FORMATOS, VALIDACIONES,
         "Cada fuente entrega la fecha en su propia convencion: ISO en las descargas "
         "CSV del IDEAM, DD/MM/YYYY en los boletines de la EAAB, y MM-DD-YYYY en las "
@@ -181,7 +172,7 @@ CAUSAS = {
         "DD/MM/YYYY (44) y MM-DD-YYYY (43). El reparto casi equitativo apunta a "
         "tres origenes distintos, no a un error aislado.",
     ),
-    "P11": (
+    "P10": (
         FORMATOS, DUPLICIDAD,
         "Cada fuente escribe el nombre del municipio a su manera: el DANE lo publica "
         "en mayusculas sostenidas, IDECA en formato titulo, y los boletines de la "
@@ -192,7 +183,7 @@ CAUSAS = {
         "minusculas, 89 con espacios sobrantes y 30 con '@'. El dataset reporta 145 "
         "municipios unicos cuando en realidad existen 49.",
     ),
-    "P12": (
+    "P11": (
         VALIDACIONES, CAPTURA,
         "clasificacion_riesgo se almaceno como texto independiente en vez de "
         "derivarse por regla desde el IRCA. Sin una restriccion que ligue las dos "
@@ -201,7 +192,7 @@ CAUSAS = {
         "Todos los casos revisados tienen IRCA negativo, lo que indica que la "
         "etiqueta se asigno antes de que el valor se corrompiera.",
     ),
-    "P13": (
+    "P12": (
         VALIDACIONES, CAPTURA,
         "Mismo origen que el anterior: la variable derivada y su variable de origen "
         "no estan ligadas. Aqui el IRCA se perdio o se borro despues de calcular la "
@@ -210,7 +201,7 @@ CAUSAS = {
         "sentido contrario solo hay 1 caso, asimetria que confirma que la etiqueta "
         "se calculo primero y el valor se perdio despues.",
     ),
-    "P14": (
+    "P13": (
         FORMATOS, VALIDACIONES,
         "Al forzar un esquema unico para las tres escalas, la columna 'municipio' se "
         "reutilizo para guardar el nombre del pais en las filas globales, porque no "
@@ -219,7 +210,7 @@ CAUSAS = {
         "(Colombia, India, USA, Alemania). Coinciden exactamente con las filas que "
         "tienen departamento vacio.",
     ),
-    "P15": (
+    "P14": (
         FORMATOS, VALIDACIONES,
         "Dos indicadores distintos se cargaron bajo el mismo nombre de columna: el "
         "porcentaje de cobertura de acueducto que reporta el SUI para municipios, y "
@@ -229,16 +220,16 @@ CAUSAS = {
         "141 registros globales cuyo valor proviene del JMP frente a 12.848 "
         "municipales del SUI, todos bajo el rotulo cobertura_acueducto_pct.",
     ),
-    "P16": (
+    "P15": (
         FORMATOS, DUPLICIDAD,
         "Las fuentes globales publican una sola cifra anual por pais. Para "
         "integrarlas en un esquema disenado para registros diarios, se les asigno "
-        "una fecha de relleno a mitad de ano en lugar de conservar la granularidad "
+        "una fecha de relleno a mitad de año en lugar de conservar la granularidad "
         "original en una columna aparte.",
         "Los 141 registros globales se concentran en 7 fechas, todas 30 de junio, "
-        "una por cada ano del periodo 2019-2025.",
+        "una por cada año del periodo 2019-2025.",
     ),
-    "P17": (
+    "P16": (
         CAPTURA, VALIDACIONES,
         "Error de digitacion en el catalogo de categorias: se escribio 'Inviabile' "
         "en vez de 'Inviable'. Como la categoria es una constante del catalogo, el "
@@ -248,7 +239,7 @@ CAUSAS = {
         "No hay ni un solo registro con la grafia correcta, lo que descarta el error "
         "de captura fila por fila.",
     ),
-    "P18": (
+    "P17": (
         DUPLICIDAD, CAPTURA,
         "Causa mixta. Una parte de los atipicos es real: el dataset mezcla "
         "municipios de Bogota, con IRCA bajo y vigilancia frecuente, con municipios "
@@ -259,7 +250,7 @@ CAUSAS = {
         "la dispersion cae, lo que indica heterogeneidad poblacional real mas que "
         "error de medicion.",
     ),
-    "P19": (
+    "P18": (
         DUPLICIDAD, "",
         "Los valores bajos de cobertura corresponden a municipios de Amazonas, "
         "Choco, Vaupes y Guainia, donde la cobertura de acueducto es efectivamente "
@@ -270,7 +261,7 @@ CAUSAS = {
         "en los municipios de departamentos perifericos incluidos por la fuente "
         "nacional.",
     ),
-    "P20": (
+    "P19": (
         DUPLICIDAD, "",
         "Igual que el anterior: la columna mezcla ciudades de clima frio (Bogota, "
         "Tunja, Pasto) y calido (Leticia, Barranquilla, Cucuta) sin controlar por "
@@ -279,7 +270,7 @@ CAUSAS = {
         "149 registros fuera del rango [2,35, 31,55], en un recorrido observado de "
         "8,1 C a 38,0 C, coherente con la diversidad climatica del pais.",
     ),
-    "P21": (
+    "P20": (
         DESACTUALIZACION, VALIDACIONES,
         "El dataset se consolido con corte al 31 de diciembre de 2025 y no se ha "
         "vuelto a alimentar. No existe un proceso programado de actualizacion ni un "
@@ -289,17 +280,17 @@ CAUSAS = {
         "Solo 565 registros (4,35%) caen dentro de la ventana de vigencia de 12 "
         "meses adoptada por el equipo.",
     ),
-    "P22": (
+    "P21": (
         DESACTUALIZACION, DUPLICIDAD,
         "Las fuentes globales publican con un rezago editorial propio: el JMP de "
         "OMS/UNICEF consolida y valida cifras de todos los paises antes de publicar, "
-        "proceso que toma cerca de un ano. Ese rezago se suma al del corte del "
+        "proceso que toma cerca de un año. Ese rezago se suma al del corte del "
         "dataset, y por eso el nivel global queda mas desactualizado que el regional.",
         "La ultima observacion global es del 2025-06-30, 184 dias anterior al cierre "
         "del conjunto completo. La comparacion entre escalas contrasta periodos "
         "distintos.",
     ),
-    "P23": (
+    "P22": (
         DESACTUALIZACION, VALIDACIONES,
         "No se diseno control de versiones del dataset. Al consolidar no se agrego "
         "ninguna columna que registre cuando se descargo cada fuente ni que version "

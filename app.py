@@ -88,10 +88,20 @@ def inventario():
         conteo[p["dimension_calidad"]] = conteo.get(p["dimension_calidad"], 0) + 1
     por_dimension = sorted(conteo.items(), key=lambda x: -x[1])
 
+    # Diccionario dimension -> resultado, para citar las cifras en la sintesis
+    # sin escribirlas a mano (asi nunca se desfasan del script).
+    met = {m["dimension"]: m["resultado"].split("  ")[0] for m in metricas}
+    desfase = ""
+    for m in metricas:
+        if m["dimension"] == "Actualidad" and "desfase de" in m["resultado"]:
+            desfase = m["resultado"].split("desfase de ")[1].split(" dias")[0]
+
     return render_template(
         "etapa2/inventario.html",
         problemas=problemas,
         metricas=metricas,
+        met=met,
+        desfase_dias=desfase,
         verificaciones=verificaciones,
         por_dimension=por_dimension,
         max_dim=max(conteo.values()) if conteo else 1,
