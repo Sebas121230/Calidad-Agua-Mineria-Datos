@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">4. Fuentes de datos</h1>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Resolucion del alcance regional</h2>
+    <p class="small mb-0">
+        Se delimita el nivel regional como <b>Bogota D.C. y los municipios de la Sabana abastecidos por la
+        EAAB</b> (Soacha, Chia, Cajica, Sopo, Tocancipa, Funza, Madrid y Mosquera). Las fuentes de
+        CEPAL/OLADE/BID sobre America Latina no se usan como "regional", sino como contexto comparativo
+        dentro del nivel nacional. Las fuentes verdaderamente regionales se tomaron de la EAAB y de
+        IDECA / Datos Abiertos Bogota.
+    </p>
+</div></div>
+
+<!-- ===== Resumen ===== -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Resumen de clasificacion</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-primary"><tr><th>Nivel</th><th>Primaria</th><th>Secundaria</th><th>Terciaria</th><th>Total</th></tr></thead>
+            <tbody>
+                <tr><td class="text-start">Global</td><td>0</td><td>2</td><td>1</td><td><b>3</b></td></tr>
+                <tr><td class="text-start">Nacional</td><td>1</td><td>1</td><td>1</td><td><b>3</b></td></tr>
+                <tr><td class="text-start">Regional (Bogota)</td><td>2</td><td>1</td><td>0</td><td><b>3</b></td></tr>
+                <tr class="table-light"><td class="text-start"><b>Total</b></td><td><b>3</b></td><td><b>4</b></td><td><b>2</b></td><td><b>9</b></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ===== NIVEL GLOBAL ===== -->
+<h2 class="h6 text-uppercase text-secondary mt-4 mb-2" style="letter-spacing:.1em;">Nivel global</h2>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">1. UN-Water / World Bank Water Data Portal (Aqueduct 4.0, SDG 6, WPDx)
+        <span class="badge text-bg-secondary">Terciaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>World Resources Institute (Aqueduct) / UN-Water &ndash; IMI-SDG6</td></tr>
+        <tr><td><b>URL</b></td><td>https://wbwaterdata.org/dataset?tags=water+quality</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Global, con desagregacion por pais y por subcuenca hidrografica</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Aqueduct 4.0: 2010-2080 (incluye proyecciones); SDG6: series anuales desde ~2015</td></tr>
+        <tr><td><b>Formato</b></td><td>CSV, API REST, capas geoespaciales</td></tr>
+        <tr><td><b>Metodo de adquisicion</b></td><td>Descarga directa / consulta via API</td></tr>
+        <tr><td><b>N.&deg; aprox. de registros</b></td><td>13 indicadores por subcuenca a nivel mundial (decenas de miles de subcuencas)</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>Estres hidrico, agotamiento hidrico, variabilidad interanual, riesgo de calidad, cobertura de agua y saneamiento (SDG 6.1/6.2)</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Uso libre con atribucion a WRI / UN-Water</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> pertinente para comparar el estres hidrico de Colombia frente
+        al mundo; confiable por ser fuente institucional con metodologia revisada por pares; actualizada y
+        con cobertura global suficientemente desagregada.</p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">2. UNESCO &mdash; World Water Development Report (WWDR) 2024
+        <span class="badge text-bg-info">Secundaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>UNESCO (WWAP)</td></tr>
+        <tr><td><b>URL</b></td><td>https://www.unesco.org/en/reports/wwdr/2024</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Global</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Datos hasta 2022, publicado en 2024; serie anual desde 2003</td></tr>
+        <tr><td><b>Formato</b></td><td>PDF + anexo estadistico</td></tr>
+        <tr><td><b>Metodo de adquisicion</b></td><td>Descarga directa</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>% acceso a agua potable gestionada de forma segura, escasez hidrica estacional, inversion en resiliencia climatica</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Uso academico libre, citando la fuente</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> ya usado como referencia en el punto 1 (2.200 millones sin
+        acceso seguro en 2022); institucionalmente confiable y con cobertura global adecuada como marco de comparacion.</p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">3. OMS/UNICEF &mdash; Joint Monitoring Programme (JMP), 2025
+        <span class="badge text-bg-info">Secundaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>OMS / UNICEF</td></tr>
+        <tr><td><b>URL</b></td><td>https://www.who.int/publications/i/item/9789240115149</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Global, desagregado por pais y por zona urbana/rural</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Serie 2000-2024, publicacion 2025</td></tr>
+        <tr><td><b>Formato</b></td><td>PDF + base de datos descargable (washdata.org)</td></tr>
+        <tr><td><b>N.&deg; aprox. de registros</b></td><td>Series pais-ano desde 2000 (~25 anos &times; ~190 paises)</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>% acceso a agua gestionada de forma segura/basica/limitada/no mejorada; desigualdad urbano-rural</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Uso libre, citacion requerida</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> ya citado en el punto 1 (2.100 millones sin acceso seguro en
+        2024); alta confiabilidad, serie larga y actualizada, permite comparacion internacional directa con Colombia.</p>
+</div></div>
+
+<!-- ===== NIVEL NACIONAL ===== -->
+<h2 class="h6 text-uppercase text-secondary mt-4 mb-2" style="letter-spacing:.1em;">Nivel nacional (Colombia)</h2>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">1. IDEAM &mdash; Red de estaciones hidrometeorologicas (DHIME)
+        <span class="badge text-bg-success">Primaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>IDEAM</td></tr>
+        <tr><td><b>URL</b></td><td>dhime.ideam.gov.co &middot; visualizador.ideam.gov.co/CatalogoObjetos/geo-open-data</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Nacional, con estaciones en la cuenca del Sistema Chingaza y alrededor de Bogota</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Series historicas variables por estacion, hasta tiempo casi real</td></tr>
+        <tr><td><b>Formato</b></td><td>CSV / API (Socrata), shapefile para el catalogo geoespacial</td></tr>
+        <tr><td><b>N.&deg; aprox. de registros</b></td><td>Mas de 4.000 estaciones hidrometeorologicas</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>Precipitacion, temperatura, caudal, nivel, humedad relativa</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Datos no validados oficialmente al momento de la consulta cruda; libre uso bajo Ley 1712 de 2014</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> es la fuente primaria climatica central del proyecto (variable
+        causal en la pregunta principal); alta confiabilidad institucional y detalle local suficiente para la cuenca de Chingaza.</p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">2. INS / SIVICAP &mdash; Calidad del Agua para Consumo Humano en Colombia
+        <span class="badge text-bg-info">Secundaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>Instituto Nacional de Salud (SIVICAP), catalogado tambien por Superservicios</td></tr>
+        <tr><td><b>URL</b></td><td>datos.gov.co/Salud-y-Protecci-n-Social/Calidad-del-Agua-para-Consumo-Humano-en-Colombia/nxt2-39c3</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Nacional, desagregado por municipio</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Serie historica multianual</td></tr>
+        <tr><td><b>Formato</b></td><td>CSV descargable / vista previa via API</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>IRCA, clasificacion de riesgo, parametros fisicoquimicos y microbiologicos por municipio</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>El catalogo oficial lo describe con inconsistencias menores en codificacion y limpieza</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> permite comparar Bogota con el resto de municipios de Colombia
+        en calidad del agua; fuente oficial de salud publica con cobertura nacional completa a nivel municipal.</p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">3. Humanitarian Data Exchange (HDX) &mdash; Indicadores de calidad del agua en Colombia
+        <span class="badge text-bg-secondary">Terciaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>HDX/OCHA, redistribuye datos originados en INS/SIVICAP</td></tr>
+        <tr><td><b>URL</b></td><td>data.humdata.org/dataset/indicadores-de-la-calidad-del-agua-en-colombia</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Nacional</td></tr>
+        <tr><td><b>Formato</b></td><td>CSV</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>pH, dureza, metales pesados, coliformes (parametros estandarizados)</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Licencia HDX (habitualmente CC BY)</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> util como fuente ya limpia y estandarizada para analisis tecnico
+        rapido, complementaria de la fuente cruda de SIVICAP.</p>
+</div></div>
+
+<!-- ===== NIVEL REGIONAL ===== -->
+<h2 class="h6 text-uppercase text-secondary mt-4 mb-2" style="letter-spacing:.1em;">Nivel regional (Bogota y municipios abastecidos por la EAAB)</h2>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">1. EAAB &mdash; Indice de Riesgo de la Calidad del Agua (IRCA)
+        <span class="badge text-bg-success">Primaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>EAAB-ESP, en coordinacion con la Secretaria Distrital de Salud</td></tr>
+        <tr><td><b>URL</b></td><td>saludata.saludcapital.gov.co/osb/indicadores/calidad-agua-irca/ &middot; datosabiertos.bogota.gov.co</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Bogota D.C. y sistemas de abastecimiento operados por la EAAB</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Enero 2012 &ndash; marzo 2026 (serie mensual)</td></tr>
+        <tr><td><b>Formato</b></td><td>CSV descargable</td></tr>
+        <tr><td><b>N.&deg; aprox. de registros</b></td><td>~14.962 muestras en 2022 y ~13.038 en 2023 (aprox. 1.100 muestras/mes)</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>IRCA mensual, pH, turbidez, conductividad, hierro, cloro residual libre</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Datos oficiales de uso publico; citar EAAB / Secretaria Distrital de Salud</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> fuente primaria de calidad del agua directamente ligada al caso
+        de estudio; metodologia oficial (Res. 2115/2007) y cobertura exacta del area de estudio.</p>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h3 class="h6">2. Estaciones de Calidad del Agua: Bogota D.C. (IDECA / Datos Abiertos Bogota)
+        <span class="badge text-bg-info">Secundaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>IDECA / Secretaria Distrital de Ambiente</td></tr>
+        <tr><td><b>URL</b></td><td>datosabiertos.bogota.gov.co/dataset/estaciones-calidad-del-agua-bogota-d-c</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Bogota D.C.</td></tr>
+        <tr><td><b>Formato</b></td><td>Shapefile / GeoJSON / CSV</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>Ubicacion geografica de estaciones, tipo de monitoreo</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Licencia de datos abiertos de Bogota</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> aporta la variable geografica exigida por la guia
+        (georreferenciacion de puntos de monitoreo); util para mapas e integracion por ubicacion.</p>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h3 class="h6">3. EAAB &mdash; Boletines oficiales de niveles de embalses y racionamiento
+        <span class="badge text-bg-success">Primaria</span></h3>
+    <table class="table table-sm small mb-2">
+        <tr><td style="width:32%"><b>Institucion responsable</b></td><td>EAAB-ESP</td></tr>
+        <tr><td><b>URL</b></td><td>acueducto.com.co/wps/portal/EAB2/Home/general/sala-de-prensa/boletines/</td></tr>
+        <tr><td><b>Cobertura geografica</b></td><td>Bogota D.C. y municipios de la Sabana abastecidos por la EAAB</td></tr>
+        <tr><td><b>Periodo disponible</b></td><td>Abril 2024 &ndash; abril 2025 (ciclo completo documentado)</td></tr>
+        <tr><td><b>Formato</b></td><td>HTML / PDF (boletines de prensa)</td></tr>
+        <tr><td><b>Metodo de adquisicion</b></td><td>Consulta directa en el sitio web; sin descarga masiva estructurada</td></tr>
+        <tr><td><b>Variables disponibles</b></td><td>% de almacenamiento por sistema (Chingaza, Tibitoc, Sur), fecha de medicion, decision operativa asociada</td></tr>
+        <tr><td><b>Restricciones de uso</b></td><td>Contenido publico institucional; requiere extraccion manual y estructuracion cuidadosa</td></tr>
+    </table>
+    <p class="small mb-0"><b>Justificacion:</b> sostiene toda la cronologia del racionamiento (variable
+        "resultado" central); fuente oficial directa y cobertura exacta del caso de estudio.</p>
+</div></div>
+
+{% endblock %}

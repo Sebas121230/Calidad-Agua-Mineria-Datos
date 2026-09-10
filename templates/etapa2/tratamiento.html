@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">7. Plan de tratamiento</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; Accion planeada para cada problema del inventario (punto 4)
+</p>
+
+<div class="card shadow-sm border-0 mb-3" style="border-left:4px solid #fd7e14 !important">
+    <div class="card-body">
+    <h2 class="h6 text-primary">Alcance de esta entrega</h2>
+    <p class="small mb-0">
+        Esta seccion documenta <b>que se haria y por que</b>, no un resultado ya aplicado. No se
+        ejecuta ningun script de limpieza sobre <code>dataset_calidad_agua.csv</code>, no se genera una
+        version "despues" del dataset y no se presenta una comparacion antes/despues. La ejecucion del
+        ETL queda para una etapa posterior del proyecto.
+    </p>
+</div></div>
+
+<!-- ============ CRITERIO ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Criterio general para decidir el tratamiento</h2>
+    <ol class="small mb-0">
+        <li class="mb-1"><b>Si la variable es central para la pregunta de investigacion</b> (como
+            <code>irca</code>), se prioriza no inventar dato sobre completar a toda costa.</li>
+        <li class="mb-1"><b>Si el problema es de forma y no de contenido</b> (fechas, mayusculas, texto
+            libre), se estandariza sin perder informacion.</li>
+        <li class="mb-1"><b>Si el problema es de duplicidad o de dominio invalido</b>, se corrige contra
+            una regla verificable (llave candidata, rango normativo), no por eliminacion arbitraria.</li>
+        <li class="mb-0"><b>Cuando la correccion podria ocultar un evento real</b> (como los atipicos del
+            ano de crisis 2024), se marca para revision manual en vez de aplicar una regla automatica
+            ciega.</li>
+    </ol>
+</div></div>
+
+<!-- ============ PLAN ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Plan de tratamiento por problema</h2>
+    <p class="small text-secondary">
+        Tabla generada a partir de <code>plan_tratamiento.csv</code>, construida sobre el inventario
+        vigente de <code>inventario_problemas.csv</code> ({{ total_problemas }} problemas).
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:80px">ID</th>
+                    <th style="width:150px">Variable / campo</th>
+                    <th style="width:170px">Problema</th>
+                    <th>Accion planeada</th>
+                    <th style="width:190px">Tipo de accion</th>
+                    <th style="width:130px">Dimension</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in tratamiento %}
+                <tr>
+                    <td class="fw-semibold" style="font-size:.78rem">{{ t.id }}</td>
+                    <td><code style="font-size:.8rem">{{ t.variable_o_campo }}</code></td>
+                    <td class="text-secondary">{{ t.problema_resumen }}</td>
+                    <td>{{ t.accion_planeada }}</td>
+                    <td class="text-secondary">{{ t.tipo_accion }}</td>
+                    <td class="text-secondary">{{ t.dimension_que_mejora }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+{% endblock %}

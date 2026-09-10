@@ -1,0 +1,8 @@
+tipo_diferencia,ejemplo
+Formato de fecha,IDEAM entrega fecha diaria ISO; JMP/UNESCO entregan solo el ano; los boletines de la EAAB usan la fecha de publicacion del PDF y no la de la medicion.
+Granularidad temporal,"Diaria (IDEAM, EAAB embalses) frente a mensual (EAAB IRCA) frente a anual (JMP, UNESCO, World Bank)."
+Granularidad espacial,Estacion puntual (IDEAM) frente a municipio (SIVICAP) frente a pais (JMP / World Bank).
+Nomenclatura de campos,"""% acceso a agua gestionada de forma segura"" (JMP) frente a ""cobertura de acueducto"" (Superservicios): mismo concepto general, nombre de campo distinto en cada fuente."
+Codificacion de categorias,"Nombres de municipio sin normalizar entre IDECA y SIVICAP: mayusculas, tildes, espacios sobrantes y caracteres especiales."
+Definicion del indicador,El JMP mide acceso seguro (incluye tratamiento en el hogar); Superservicios mide cobertura de red (solo conexion fisica). Son conceptos distintos aunque terminaron homologados en una sola columna.
+Marcador de ausencia,"Los registros nacionales y globales no tienen sistema de abastecimiento EAAB, y ese vacio se represento con el literal 'N/A' en vez de una celda vacia estandar (problema P04 del inventario)."

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-3">3. Necesidades de informacion</h1>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Entidades involucradas</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Entidad</th><th>Rol en el proyecto</th></tr></thead>
+            <tbody>
+                <tr><td>EAAB (Empresa de Acueducto y Alcantarillado de Bogota)</td><td>Fuente operativa: embalses, consumo, cortes, infraestructura</td></tr>
+                <tr><td>IDEAM</td><td>Datos climaticos: precipitacion, temperatura, sequia, ENSO</td></tr>
+                <tr><td>Superservicios</td><td>Indicadores de cobertura, calidad y continuidad a nivel nacional</td></tr>
+                <tr><td>INS / SIVICAP</td><td>Calidad del agua (IRCA) a nivel municipal</td></tr>
+                <tr><td>DANE</td><td>Poblacion, densidad, division politico-administrativa</td></tr>
+                <tr><td>Alcaldia Mayor de Bogota</td><td>Decisiones institucionales de racionamiento</td></tr>
+                <tr><td>Ministerio de Vivienda, Ciudad y Territorio</td><td>Politica publica nacional (minimo vital de agua, PND)</td></tr>
+                <tr><td>UNESCO (WWAP)</td><td>Reportes globales de seguridad hidrica</td></tr>
+                <tr><td>OMS/UNICEF (JMP)</td><td>Estadisticas globales de acceso a agua potable segura</td></tr>
+                <tr><td>Municipios de la Sabana</td><td>Escala regional: comparten sistema de abastecimiento con Bogota</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Variables relevantes y su justificacion</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Dimension</th><th>Variables</th><th>Razon para incluirla</th></tr></thead>
+            <tbody>
+                <tr><td>Clima</td><td>Precipitacion, temperatura, anomalias, indice de sequia, ENSO</td><td>Causa externa que reduce afluencias a los embalses</td></tr>
+                <tr><td>Embalses</td><td>Nivel %, volumen, afluencias, curva guia, dias de reserva</td><td>Mide la disponibilidad del recurso; detonante operativo del racionamiento</td></tr>
+                <tr><td>Demanda / consumo</td><td>Consumo m&sup3;/s, por usuario, residencial/comercial, variacion diaria</td><td>Permite evaluar el efecto de las campanas de ahorro</td></tr>
+                <tr><td>Continuidad</td><td>N.&deg; de cortes, duracion, frecuencia (9/18 dias), turno, localidad</td><td>Variable "resultado" central que el proyecto busca explicar</td></tr>
+                <tr><td>Calidad</td><td>IRCA, clasificacion de riesgo, resultados microbiologicos y fisicoquimicos</td><td>Relaciona disponibilidad con la calidad entregada</td></tr>
+                <tr><td>Cobertura</td><td>% cobertura acueducto, urbana/rural, suscriptores, poblacion servida</td><td>Contextualiza Bogota frente a la desigualdad territorial nacional</td></tr>
+                <tr><td>Infraestructura</td><td>Capacidad de tratamiento por planta (Tibitoc, Wiesner), respaldo</td><td>Explica la capacidad de respuesta del sistema y los cambios postcrisis</td></tr>
+                <tr><td>Gobernanza</td><td>Fecha de decision, tipo de medida, frecuencia vigente, incentivos</td><td>Captura la decision humana que interactua con las variables fisicas</td></tr>
+                <tr><td>Estructurales</td><td>Poblacion, densidad, division politico-administrativa</td><td>Necesarias para normalizar comparaciones entre escalas</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card shadow-sm border-0 h-100"><div class="card-body">
+        <h2 class="h6 text-primary">Periodo de analisis</h2>
+        <ul class="small mb-0">
+            <li>Periodo de recoleccion: <b>2019-2026</b> (historico disponible).</li>
+            <li>Foco analitico: <b>2024-2025</b>, ciclo completo del racionamiento (5 abril 2024 - 11 abril 2025).</li>
+            <li>Permite comparar el comportamiento antes / durante / despues de la crisis.</li>
+        </ul>
+    </div></div></div>
+    <div class="col-lg-6"><div class="card shadow-sm border-0 h-100"><div class="card-body">
+        <h2 class="h6 text-primary">Cobertura geografica</h2>
+        <ul class="small mb-0">
+            <li><b>Regional (foco principal):</b> Bogota D.C. y municipios de la Sabana abastecidos por la EAAB.</li>
+            <li><b>Nacional:</b> Colombia, para comparar cobertura, calidad y continuidad entre municipios.</li>
+            <li><b>Global:</b> agregados por pais o region (UNESCO/JMP) como contexto.</li>
+        </ul>
+    </div></div></div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Unidad de analisis y granularidad</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Unidad</th><th>Ambito o variable</th></tr></thead>
+            <tbody>
+                <tr><td>Dia &ndash; Sistema de abastecimiento (Chingaza, Tibitoc, Sur)</td><td>Embalses, afluencias</td></tr>
+                <tr><td>Dia / Mes &ndash; Estacion meteorologica</td><td>Clima</td></tr>
+                <tr><td>Fecha &ndash; Sector / Turno</td><td>Cortes y racionamiento</td></tr>
+                <tr><td>Municipio &ndash; Periodo</td><td>Calidad (IRCA) y cobertura</td></tr>
+                <tr><td>Pais &ndash; Ano</td><td>Comparacion global</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="small mb-0">
+        <b>Granularidad requerida:</b> diaria para clima, niveles de embalse y consumo (indispensable para
+        modelar la dinamica del racionamiento); mensual o anual para cobertura, calidad e indicadores
+        institucionales, que es la frecuencia real de publicacion de esas fuentes.
+    </p>
+</div></div>
+
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Variables comparables entre escalas</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm small">
+            <thead class="table-primary"><tr><th>Variable comparable</th><th>Global</th><th>Nacional</th><th>Regional</th></tr></thead>
+            <tbody>
+                <tr><td>% cobertura de acueducto</td><td>JMP (OMS/UNICEF)</td><td>Superservicios / DANE</td><td>EAAB / Bogota</td></tr>
+                <tr><td>Poblacion sin acceso seguro</td><td>UNESCO / JMP</td><td>Superservicios</td><td>Municipios Sabana</td></tr>
+                <tr><td>Indicador de calidad del agua</td><td>JMP</td><td>IRCA (SIVICAP)</td><td>EAAB</td></tr>
+                <tr><td>Estres / escasez hidrica</td><td>UNESCO / FAO Aquastat</td><td>IDEAM (Indice de Uso del Agua)</td><td>Niveles embalses Chingaza</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+{% endblock %}

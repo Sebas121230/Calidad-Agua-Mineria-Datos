@@ -1,0 +1,13 @@
+variable_final,fuentes_origen,regla_homologacion,limitacion
+fecha,"IDEAM, EAAB, SIVICAP, JMP/UNESCO/World Bank",Todas las fechas se llevan a formato ISO 8601 (AAAA-MM-DD). Las fuentes anuales globales se anclan al 30 de junio de cada ano como fecha representativa.,
+"anio, mes, periodo",Derivadas de fecha,"Se calculan una sola vez a partir de la fecha ya homologada, para no volver a tener formatos distintos por fuente.",
+"municipio, departamento","IDECA, SIVICAP, DANE",Se usa el nombre oficial DANE como catalogo maestro; los alias y variaciones de escritura de las demas fuentes se mapean contra ese catalogo.,Ver problema P10 (variantes de escritura aun presentes).
+"latitud, longitud","IDECA, IDEAM",Coordenadas en grados decimales (WGS84) para todas las fuentes.,
+sistema_abastecimiento,EAAB boletines,Solo aplica a municipios de la Sabana cubiertos por la EAAB; para el resto se deberia declarar explicitamente 'Fuera de cobertura EAAB' en vez de dejarlo ambiguo.,Homologado con el literal 'N/A' en vez de un nulo estandar (P04).
+"nivel_almacenamiento_pct, afluencias_m3s","EAAB boletines, IDEAM",Ambas ya vienen en las mismas unidades de origen (% y m3/s); solo requieren alineacion temporal diaria.,
+"precipitacion_mm, temperatura_c",IDEAM DHIME,Unidad ya estandarizada por el IDEAM entre estaciones; se homologa solo el formato de fecha y el identificador estacion -> municipio.,
+consumo_m3s,EAAB / Superservicios,Ambas fuentes reportan en m3/s; se homologa la periodicidad (diaria vs. bimestral) llevando todo a un agregado diario.,
+"irca, clasificacion_riesgo","EAAB IRCA, SIVICAP","Se usa la formula de la Res. 2115/2007 como referencia; cuando SIVICAP y EAAB reportan el mismo municipio-mes, se prioriza el dato de la EAAB por ser la autoridad del sistema de estudio.","Persisten incoherencias irca/clasificacion (P11, P12)."
+cobertura_acueducto_pct,"Superservicios, JMP",Homologacion con perdida de matiz: se unifican dos indicadores que miden cosas distintas (cobertura de red vs. acceso seguro).,"Documentado como limitacion, no como una unificacion libre de costo (P14)."
+"nivel_servicio, decision_racionamiento",EAAB boletines,Se homologa el texto libre de los boletines de prensa a un catalogo cerrado de 4 y 6 categorias respectivamente.,
+tipo_region,Campo agregado en la integracion,No viene de ninguna fuente; se crea para distinguir de donde vino cada fila (Global / Nacional / Regional).,"El nivel Global queda con muy poca representacion, 1.09% (P05, P06)."

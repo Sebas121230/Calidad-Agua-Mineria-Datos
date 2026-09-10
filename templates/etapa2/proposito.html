@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">1. Proposito del conjunto de datos y requisitos de calidad</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; puntos 1 y 2 del diagnostico
+    sobre <code>dataset_calidad_agua.csv</code>
+</p>
+
+<!-- ============ PROPOSITO ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Proposito del conjunto de datos</h2>
+    <p class="small">
+        El conjunto de datos <b>{{ p.nombre_archivo }}</b> integra <b>9 fuentes documentadas</b>
+        (IDEAM, EAAB IRCA, EAAB boletines, IDECA, SIVICAP, HDX, OMS/UNICEF JMP, UNESCO WWDR y
+        WRI Aqueduct) en un solo archivo CSV, cubriendo el periodo <b>{{ p.periodo_cubierto }}</b>.
+    </p>
+    <div class="cita px-3 py-2 mb-3 small rounded">
+        {{ p.proposito_principal }}
+    </div>
+    <p class="small text-secondary mb-1">{{ p.descripcion_corta }}</p>
+    <p class="small text-secondary mb-0">{{ p.descripcion_detallada }}</p>
+</div></div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card shadow-sm border-0 h-100"><div class="card-body">
+        <h2 class="h6 text-primary">Preguntas que orienta el dataset</h2>
+        <ol class="small mb-0 ps-3">
+        {% for q in p.preguntas_investigacion %}
+            <li class="mb-1">{{ q }}</li>
+        {% endfor %}
+        </ol>
+    </div></div></div>
+    <div class="col-lg-6"><div class="card shadow-sm border-0 h-100"><div class="card-body">
+        <h2 class="h6 text-primary">Fuentes integradas ({{ p.fuentes_integradas|length }})</h2>
+        <ul class="small mb-0 ps-3">
+        {% for f in p.fuentes_integradas %}
+            <li class="mb-1">{{ f }}</li>
+        {% endfor %}
+        </ul>
+        <p class="small text-secondary mt-2 mb-0">
+            Generado con <code>{{ p.script_generacion }}</code>.
+        </p>
+    </div></div></div>
+</div>
+
+<!-- ============ REQUISITOS ============ -->
+<div class="card shadow-sm border-0"><div class="card-body">
+    <h2 class="h6 text-primary">Requisitos de calidad (RC01-RC06)</h2>
+    <p class="small text-secondary">
+        Los requisitos se derivan del proposito: un proyecto orientado a anticipar riesgos de
+        desabastecimiento exige datos completos, unicos, validos, coherentes, exactos y actualizados.
+        Cada requisito se asocia a una dimension y define un umbral verificable.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:60px">ID</th>
+                    <th style="width:110px">Dimension</th>
+                    <th>Requerimiento</th>
+                    <th style="width:200px">Justificacion</th>
+                    <th style="width:90px">Umbral</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in requisitos %}
+                <tr>
+                    <td class="fw-semibold">{{ r.id }}</td>
+                    <td>{{ r.dimension }}</td>
+                    <td>{{ r.requerimiento }}</td>
+                    <td class="text-secondary">{{ r.justificacion }}</td>
+                    <td><span class="badge bg-light border text-dark">{{ r.umbral }}</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-secondary mt-2 mb-0">
+        El cumplimiento de estos requisitos se verifica en las paginas siguientes:
+        <a href="{{ url_for('perfilamiento') }}">perfilamiento</a>,
+        <a href="{{ url_for('dimensiones') }}">dimensiones y metricas</a> e
+        <a href="{{ url_for('inventario') }}">inventario de problemas</a>.
+    </p>
+</div></div>
+
+{% endblock %}
