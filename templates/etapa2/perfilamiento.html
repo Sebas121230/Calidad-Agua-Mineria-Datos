@@ -4,8 +4,8 @@
 
 <h1 class="h4 mb-1">2. Perfilamiento del conjunto de datos</h1>
 <p class="text-secondary small mb-3">
-    Seccion Calidad de Datos &middot; punto 3 del diagnostico: estructura, nulos,
-    duplicados, distribucion por nivel y estadisticas
+    Seccion Calidad de Datos &middot; punto 3 del diagnostico: estructura, tipo de dato,
+    valores unicos, nulos, duplicados, distribucion, estadisticas y atipicos
 </p>
 
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
@@ -36,6 +36,41 @@
         <div class="small text-secondary">{{ datos.grupos_dup }} grupos repiten ({{ '{:.2f}%'.format(datos.pct_duplicados) }})</div>
     </div></div></div>
 </div>
+
+<!-- ============ TIPO DE DATO Y VALORES UNICOS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Tipo de dato y valores unicos por variable</h2>
+    <p class="small text-secondary">
+        El tipo de dato es el que se infiere del contenido real del CSV (fecha ISO, entero, decimal o
+        texto categorico), sin conversiones previas. Los valores unicos cuentan las cadenas distintas
+        no vacias de cada variable.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <thead class="table-light">
+                <tr><th>Variable</th><th>Tipo de dato</th>
+                    <th class="text-end">Valores unicos</th>
+                    <th style="width:140px">Concentracion</th></tr>
+            </thead>
+            <tbody>
+            {% set max_u = datos.unicos_por_variable.values()|list|max if datos.unicos_por_variable else 1 %}
+            {% for t in datos.tipos %}
+                <tr>
+                    <td><code>{{ t.variable }}</code></td>
+                    <td>{{ t.tipo }}</td>
+                    <td class="text-end">{{ "{:,}".format(datos.unicos_por_variable[t.variable]).replace(",", ".") }}</td>
+                    <td>
+                        <div style="background:#e9eef5;border-radius:3px;height:12px;width:100%">
+                            <div style="background:#6f42c1;height:12px;border-radius:3px;
+                                        width:{{ (datos.unicos_por_variable[t.variable] / max_u * 100)|round(0)|int }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
 
 <!-- ============ DISTRIBUCION ============ -->
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
@@ -117,6 +152,37 @@
                     <td>{{ e.desv }}</td>
                     <td>{{ e.min }}</td>
                     <td>{{ e.max }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<!-- ============ ATIPICOS ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Valores atipicos o inconsistentes</h2>
+    <p class="small text-secondary">
+        Se aplica el criterio del rango intercuartilico de Tukey (Q1 &minus; 1,5&times;IQR,
+        Q3 + 1,5&times;IQR) a cada variable numerica: los valores fuera de ese rango se clasifican
+        como atipicos. Es el mismo criterio que sustenta la dimension <b>Exactitud</b> del punto 5 y
+        los problemas P17-P19 del inventario.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm small text-center">
+            <thead class="table-primary">
+                <tr><th>Variable</th><th>Rango esperado (Tukey)</th>
+                    <th>Fuera de rango</th><th>%</th>
+                    <th>Rango observado (min &ndash; max)</th></tr>
+            </thead>
+            <tbody>
+            {% for a in datos.atipicos %}
+                <tr>
+                    <td class="text-start"><code>{{ a.variable }}</code></td>
+                    <td>{{ a.li }} a {{ a.ls }}</td>
+                    <td>{{ "{:,}".format(a.conteo).replace(",", ".") }}</td>
+                    <td>{{ a.porcentaje }}%</td>
+                    <td>{{ a.min }} a {{ a.max }}</td>
                 </tr>
             {% endfor %}
             </tbody>

@@ -83,25 +83,25 @@ CONSISTENCIA - municipio mal escrito
 ==========================================================================
 municipio
 USA             7
-TOCANCIPA       6
 madrid          6
+TOCANCIPA       6
  Sopo           6
 cajica          5
-Mosquera        5
-CHIA            5
- Funza          5
 Soacha          5
+Mosquera        5
+ Funza          5
+CHIA            5
+Bogota D.C.     4
+M@drid          4
 Chi@            4
+SOPO            4
  Madrid         4
 sopo            4
 bogota d.c.     4
  Soacha         4
-Bogota D.C.     4
-M@drid          4
-SOPO            4
-Sopo            3
-FUNZA           3
-Funza           3
+CAJICA          3
+SOACHA          3
+tocancipa       3
 
 Valores unicos sin normalizar: 145
 Valores unicos tras normalizar:  49
@@ -137,9 +137,9 @@ ACTUALIDAD - vigencia de la informacion
 Fecha de analisis:            2026-09-09
 Ultima observacion registrada:2025-12-31
 Desfase:                      252 dias (8.3 meses)
-Ventana de vigencia adoptada: 12 meses (corte 2025-09-09)
-Registros vigentes:           565 (4.35%)
-Registros desactualizados:    12424 (95.65%)
+Ventana de vigencia adoptada: 60 meses (corte 2021-09-09)
+Registros vigentes:           7907 (60.87%)
+Registros desactualizados:    5082 (39.13%)
 
 Registros por año:
 anio

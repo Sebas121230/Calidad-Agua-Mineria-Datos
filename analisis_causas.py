@@ -276,9 +276,9 @@ CAUSAS = {
         "vuelto a alimentar. No existe un proceso programado de actualizacion ni un "
         "responsable asignado para refrescar las fuentes, de modo que el rezago "
         "crece un dia por cada dia que pasa.",
-        "max(fecha) = 2025-12-31 frente a la fecha de analisis: 252 dias de rezago. "
-        "Solo 565 registros (4,35%) caen dentro de la ventana de vigencia de 12 "
-        "meses adoptada por el equipo.",
+        "max(fecha) = 2025-12-31 frente a la fecha de analisis: 252 dias de rezago, "
+        "dentro de la ventana de vigencia de 60 meses (5 anos) adoptada por el "
+        "equipo. Solo 7907 registros (60,87%) caen dentro de esa ventana.",
     ),
     "P21": (
         DESACTUALIZACION, DUPLICIDAD,

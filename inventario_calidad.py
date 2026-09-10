@@ -34,10 +34,11 @@ ARCHIVO = "dataset_calidad_agua.csv"
 FECHA_ANALISIS = date.today()
 
 # Ventana de vigencia adoptada por el equipo para la dimension Actualidad.
-# Justificacion: el proyecto busca anticipar periodos de riesgo de
-# desabastecimiento, y una alerta se construye sobre el comportamiento del
-# ultimo año hidrologico. Un dato de hace mas de 12 meses ya no es operativo.
-VENTANA_VIGENCIA_MESES = 12
+# Justificacion: el proyecto analiza el periodo 2019-2025 y la decision de
+# racionamiento se toma sobre la serie historica completa, por lo que se
+# considera valida cualquier observacion dentro de los ultimos 5 anos.
+# Un dato anterior a esa ventana ya no describe el estado vigente del sistema.
+VENTANA_VIGENCIA_MESES = 60
 
 df = pd.read_csv(ARCHIVO, dtype=str, keep_default_na=False)
 N = len(df)
@@ -553,13 +554,12 @@ medir(
 
 registrar(
     "fecha (conjunto completo)",
-    f"El conjunto de datos esta desactualizado: la ultima observacion es del "
-    f"{ultima_obs} y el analisis se realiza el {FECHA_ANALISIS}, un rezago de "
-    f"{desfase_dias} dias ({round(desfase_dias / 30.44, 1)} meses). Para un "
-    f"proyecto cuyo proposito declarado es anticipar periodos de riesgo de "
-    f"desabastecimiento, un dato con ese rezago no permite emitir alertas "
-    f"operativas: describe una situacion que ya paso.",
-    desactualizados, "Actualidad", "Alto",
+    f"Con la ventana de vigencia adoptada ({VENTANA_VIGENCIA_MESES} meses), "
+    f"{desactualizados} registros de las escalas Nacional y Global quedan por "
+    f"fuera por ser anteriores a {corte.date()}. Es el grupo historico 2019-2021 "
+    f"del diseno, esperable para un estudio de serie larga, pero conviene "
+    f"separarlo explicitamente de la serie vigente al modelar.",
+    desactualizados, "Actualidad", "Medio",
     f"max(fecha) = {ultima_obs}; fecha de analisis = {FECHA_ANALISIS}; "
     f"desfase = {desfase_dias} dias. {desactualizados} registros "
     f"({pct(desactualizados)}%) quedan fuera de la ventana de vigencia de "

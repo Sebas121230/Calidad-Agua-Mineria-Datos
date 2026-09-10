@@ -227,11 +227,11 @@
 <div class="card shadow-sm border-0 mb-4"><div class="card-body">
     <h2 class="h6 text-primary">Sintesis del diagnostico</h2>
     <p class="small mb-2">
-        La dimension mas comprometida es <b>Actualidad</b>: la ultima observacion del dataset es del
-        31 de diciembre de 2025 y el analisis se ejecuta con {{ desfase_dias }} dias de rezago, de modo
-        que solo el {{ met['Actualidad'] }} de los registros cae dentro de la ventana de vigencia de
-        12 meses. Para un proyecto
-        cuyo proposito es anticipar periodos de riesgo de desabastecimiento, ese rezago es la
+        La ultima observacion del dataset es del
+        31 de diciembre de 2025 y el analisis se ejecuta con {{ desfase_dias }} dias de rezago. Con la
+        ventana de vigencia de 5 anos adoptada por el equipo, solo el {{ met['Actualidad'] }} de los
+        registros queda dentro de ella; la serie historica 2019-2021
+        queda por fuera de la ventana vigente. Esa es la
         limitacion estructural mas seria del conjunto.
     </p>
     <p class="small mb-2">

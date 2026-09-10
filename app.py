@@ -97,12 +97,12 @@ def proposito():
          "justificacion": "Requiere el nivel mas alto de confianza del analisis: los atipicos de IRCA y "
                           "las categorias mal escritas distorsionan agregaciones y el cruce con las "
                           "fuentes oficiales."},
-        {"id": "RC06", "dimension": "Actualidad", "umbral": "datos de los ultimos 5 anos",
+        {"id": "RC06", "dimension": "Actualidad", "umbral": "datos de los ultimos 5 años",
          "requerimiento": "El dataset debe contener datos dentro de una ventana de vigencia de 60 meses "
-                          "(5 anos) y su fecha maxima no debe ser anterior a 5 anos respecto a la fecha "
+                          "(5 años) y su fecha maxima no debe ser anterior a 5 años respecto a la fecha "
                           "de analisis.",
          "justificacion": "El proyecto analiza el periodo 2019-2025 y la decision de racionamiento se "
-                          "toma sobre la serie historica completa; un horizonte de 5 anos conserva esa "
+                          "toma sobre la serie historica completa; un horizonte de 5 años conserva esa "
                           "perspectiva sin exigir frescura diaria."},
     ]
     proposito_texto = {
@@ -310,7 +310,7 @@ def dimensiones():
     # Regla de cumplimiento de cada dimension frente a su requisito.
     # Todas las dimensiones porcentuales se comparan contra el umbral RC:
     # Completitud, Consistencia, Exactitud en 92%; Unicidad y Validez en 95%.
-    # Actualidad se evalua contra la ventana de vigencia de 5 anos (60 meses):
+    # Actualidad se evalua contra la ventana de vigencia de 5 años (60 meses):
     # el desfase de la ultima observacion no puede superar 1825 dias.
     cumplimiento = {}
     for m in metricas:
