@@ -135,6 +135,47 @@ def causas():
     )
 
 
+@app.route("/etapa2/integracion")
+def integracion():
+    """Punto 8: integracion y homologacion de los datos.
+
+    Documenta como se unificaron las 9 fuentes de la Etapa 1: las diferencias
+    de formato/granularidad/nomenclatura encontradas y la regla de
+    homologacion aplicada por variable. Lee integracion_diferencias.csv e
+    integracion_homologacion.csv, generados por
+    generar_integracion_tratamiento.py.
+    """
+    diferencias = leer_csv("integracion_diferencias.csv")
+    homologacion = leer_csv("integracion_homologacion.csv")
+    problemas = leer_csv("inventario_problemas.csv")
+
+    return render_template(
+        "etapa2/integracion.html",
+        diferencias=diferencias,
+        homologacion=homologacion,
+        n_registros="12.989",
+    )
+
+
+@app.route("/etapa2/tratamiento")
+def tratamiento():
+    """Punto 9: plan de tratamiento (solo planeacion, no se ejecuta el ETL).
+
+    Para cada problema del inventario (punto 6) se declara la accion que se
+    aplicaria en una etapa posterior. No se corre ningun script de limpieza
+    ni se muestra el dataset resultante. Lee plan_tratamiento.csv, generado
+    por generar_integracion_tratamiento.py.
+    """
+    tratamiento = leer_csv("plan_tratamiento.csv")
+    problemas = leer_csv("inventario_problemas.csv")
+
+    return render_template(
+        "etapa2/tratamiento.html",
+        tratamiento=tratamiento,
+        total_problemas=len(problemas),
+    )
+
+
 # Ejecutar el servidor en modo desarrollo
 if __name__ == "__main__":
     app.run(debug=True)
