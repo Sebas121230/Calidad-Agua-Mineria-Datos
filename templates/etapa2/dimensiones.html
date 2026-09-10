@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h4 mb-1">3. Dimensiones de calidad y metricas aplicadas</h1>
+<p class="text-secondary small mb-3">
+    Seccion Calidad de Datos &middot; puntos 4 y 5 del diagnostico: seis dimensiones,
+    cada una con su metrica calculada sobre el dataset y verificada contra RC01-RC06
+</p>
+
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+    <h2 class="h6 text-primary">Resumen de cumplimiento de requisitos</h2>
+    <div class="d-flex flex-wrap gap-2">
+    {% for m in metricas %}
+        {% set dim = m["dimension"] %}
+        {% set ok = cumplimiento.get(dim, false) %}
+        <span class="badge fw-semibold px-3 py-2 {% if ok %}bg-success-subtle text-success border border-success{% else %}bg-danger-subtle text-danger border border-danger{% endif %}">
+            {{ dim }}: {% if ok %}cumple{% else %}no cumple{% endif %}
+        </span>
+    {% endfor %}
+    </div>
+</div></div>
+
+{% for m in metricas %}
+{% set dim = m["dimension"] %}
+{% set ok = cumplimiento.get(dim, false) %}
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h5 mb-0">
+                {{ loop.index }}. {{ dim }}
+                <span class="small text-secondary fw-normal">
+                    - dinamica {{ m.get("dinamica", "evaluable") }}
+                </span>
+            </h2>
+            {% if ok %}
+                <span class="badge bg-success-subtle text-success border border-success">Cumple RC{{ "%02d"|format(loop.index) }}</span>
+            {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger">No cumple RC{{ "%02d"|format(loop.index) }}</span>
+            {% endif %}
+        </div>
+
+        <p class="small mb-1"><b>Definicion:</b> {{ m.definicion }}</p>
+        <p class="small mb-3 text-secondary">{{ m.interpretacion }}</p>
+
+        <div class="row g-3">
+            <div class="col-md-5"><div class="p-3 rounded" style="background:#f7f9fc">
+                <div class="small text-secondary mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em">Formula aplicada</div>
+                <code class="small">{{ m.formula }}</code>
+            </div></div>
+            <div class="col-md-4"><div class="p-3 rounded" style="background:#f7f9fc">
+                <div class="small text-secondary mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em">Calculo</div>
+                <code class="small">{{ m.calculo }}</code>
+            </div></div>
+            <div class="col-md-3"><div class="p-3 rounded text-center" style="background:#f7f9fc">
+                <div class="small text-secondary mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em">Resultado</div>
+                <div class="fw-bold" style="font-size:1.3rem;color:{% if ok %}#198754{% else %}#dc3545{% endif %}">{{ m.resultado }}</div>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
