@@ -1,26 +1,41 @@
 /* ===== Estilos propios del proyecto (complementan a Bootstrap) ===== */
-
+ 
 body {
   min-height: 100vh;
   background: #f4f6f9;
 }
-
+ 
 /* ---- Menu lateral ---- */
 .sidebar {
   width: 280px;
-  min-height: 100vh;
+  height: 100vh;
   background: #0d2137;
   position: fixed;
   top: 0;
   left: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .25) transparent;
 }
-
+ 
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+ 
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .25);
+  border-radius: 4px;
+}
+ 
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, .4);
+}
+ 
 .sidebar .brand {
   padding: 1.2rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, .1);
 }
-
+ 
 .sidebar .etiqueta {
   font-size: .72rem;
   letter-spacing: .12em;
@@ -28,7 +43,7 @@ body {
   padding: 1rem 1rem .4rem;
   text-transform: uppercase;
 }
-
+ 
 .sidebar a.nav-link {
   color: #c3d4e6;
   border-radius: .4rem;
@@ -38,17 +53,17 @@ body {
   display: flex;
   align-items: center;
 }
-
+ 
 .sidebar a.nav-link:hover {
   background: rgba(255, 255, 255, .08);
   color: #fff;
 }
-
+ 
 .sidebar a.nav-link.active {
   background: #1a73c1;
   color: #fff;
 }
-
+ 
 /* Numerito de cada submenu */
 .num {
   display: inline-flex;
@@ -62,35 +77,36 @@ body {
   margin-right: .6rem;
   flex-shrink: 0;
 }
-
+ 
 .nav-link.active .num {
   background: rgba(255, 255, 255, .25);
 }
-
+ 
 /* ---- Area de contenido ---- */
 .contenido {
   margin-left: 280px;
   padding: 2rem 2.5rem;
 }
-
+ 
 .stat-card h3 {
   font-size: 1.6rem;
   margin: 0;
   color: #0d6efd;
 }
-
+ 
 .cita {
   border-left: 4px solid #0d6efd;
   background: #eaf2fe;
   font-style: italic;
 }
-
+ 
 /* ---- Responsive: en pantallas pequenas el menu pasa arriba ---- */
 @media (max-width: 900px) {
   .sidebar {
     position: static;
     width: 100%;
-    min-height: auto;
+    height: auto;
+    max-height: none;
   }
   .contenido {
     margin-left: 0;
