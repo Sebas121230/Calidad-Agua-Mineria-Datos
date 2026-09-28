@@ -1,0 +1,5 @@
+iteracion,recibidos,aceptados,duplicados,revision,ya_cargados,observacion
+1,12989,1732,12,11245,0,"Iteracion 1: unificacion de nulos, N/A en sistema, trim y mayusculas en municipio, validacion de fecha ISO e IRCA 0-100"
+2,12989,12680,62,247,0,"Iteracion 2: LocaleID ingles en validacion, separacion de registros Global (P05), conversion de fechas alternas (P09), recalculo de clasificacion (P11/P16)"
+3,12989,12680,62,247,0,Iteracion 3: Lookup contra destino para evitar recargas del mismo lote
+3,12989,0,0,247,12742,Iteracion 3: Lookup contra destino para evitar recargas del mismo lote
