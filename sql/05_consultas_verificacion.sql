@@ -119,3 +119,36 @@ WHERE iteracion = 3;
 --     resultados_iteraciones.csv)
 SELECT iteracion, recibidos, aceptados, duplicados, revision, ya_cargados, observacion
 FROM etl_log ORDER BY log_id;
+
+-- -------------------------------------------------------------
+-- F. Conciliacion con el diagnostico de la Etapa 2
+-- -------------------------------------------------------------
+-- F1. IRCA negativos en los datos originales (resultado: 107)
+SELECT COUNT(*) AS irca_negativos_staging
+FROM stg_calidad_agua
+WHERE TRY_CAST(irca AS DECIMAL(6,2)) < 0;
+
+-- F2. Revision de la iteracion 2 por regla y tipo de region
+--     (resultado: P05 Global 141, P08 Nacional 40, P08 Regional 66)
+SELECT regla_id, tipo_region, COUNT(*) AS cantidad
+FROM rev_calidad_agua
+WHERE iteracion = 2 AND (regla_id = 'P05' OR TRY_CAST(irca AS DECIMAL(6,2)) < 0)
+GROUP BY regla_id, tipo_region;
+
+-- F3. Registros Global en la iteracion 1 por regla
+--     (resultado: NULL 139, P08 1, P09 1 = 141)
+--     Explica por que P08 da 106 y no 107: un IRCA negativo es de un registro Global
+SELECT regla_id, COUNT(*) AS cantidad
+FROM rev_calidad_agua
+WHERE iteracion = 1 AND tipo_region = 'Global'
+GROUP BY regla_id;
+
+-- F4. Error ortografico 'Inviabile' en los datos originales (resultado: 1073)
+SELECT COUNT(*) AS inviabile
+FROM stg_calidad_agua
+WHERE clasificacion_riesgo LIKE 'Inviabile%';
+
+-- F5. 'Inviabile' en el destino despues del recalculo (resultado: 0)
+SELECT COUNT(*) AS inviabile_en_destino
+FROM dst_calidad_agua
+WHERE iteracion = 3 AND clasificacion_riesgo LIKE 'Inviabile%';
