@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Componentes y tareas del paquete SSIS</h1>
+    <p class="text-secondary small mb-0">
+      Etapa 3 &middot; que cajas usa el paquete, cuantos Data Flow Task hay y que hace cada una
+    </p>
+  </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3') }}">Volver a Etapa 3</a>
+</div>
+
+<!-- ============ RESUMEN ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">El paquete en numeros</h2>
+  <p class="small mb-3">
+    El paquete <code>Package.dtsx</code> tiene cinco tareas en el Control Flow y
+    <b>22 componentes</b> repartidos en dos Data Flow Task. Los cinco contadores que se
+    publican como resultados salen de los componentes <i>Row Count</i> de este flujo y se
+    escriben en <code>etl_log</code> con la ultima tarea.
+  </p>
+  <div class="row g-2">
+    <div class="col-6 col-md-3"><div class="card border-0 h-100" style="background:#f4f7fb"><div class="card-body p-3">
+      <div class="small text-secondary text-uppercase" style="font-size:.68rem;letter-spacing:.08em">Tareas de Control Flow</div>
+      <div class="fw-bold" style="font-size:1.6rem;color:#0d2137">5</div>
+      <div class="small text-secondary">3 de SQL y 2 de Data Flow</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 h-100" style="background:#f4f7fb"><div class="card-body p-3">
+      <div class="small text-secondary text-uppercase" style="font-size:.68rem;letter-spacing:.08em">Data Flow Task</div>
+      <div class="fw-bold" style="font-size:1.6rem;color:#0d2137">2</div>
+      <div class="small text-secondary">2 y 20 componentes</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 h-100" style="background:#f4f7fb"><div class="card-body p-3">
+      <div class="small text-secondary text-uppercase" style="font-size:.68rem;letter-spacing:.08em">Componentes</div>
+      <div class="fw-bold" style="font-size:1.6rem;color:#0d2137">22</div>
+      <div class="small text-secondary">en total en el paquete</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 h-100" style="background:#f4f7fb"><div class="card-body p-3">
+      <div class="small text-secondary text-uppercase" style="font-size:.68rem;letter-spacing:.08em">Contadores</div>
+      <div class="fw-bold" style="font-size:1.6rem;color:#0d2137">5</div>
+      <div class="small text-secondary">Row Count hacia el log</div>
+    </div></div></div>
+  </div>
+</div></div>
+
+<!-- ============ CONEXIONES ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">1. Gestores de conexion</h2>
+  <p class="small mb-2">
+    El paquete declara dos gestores de conexion. Ninguno lleva contrasena: la de SQL Server
+    resuelve por la instancia local, que es lo que exige la entrega de no publicar
+    credenciales.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th>Nombre</th><th>Tipo</th><th>Configuracion relevante</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>CSV_CalidadAgua</code></td>
+          <td>Flat File</td>
+          <td>Delimitado, codificacion 1252, qualifier de texto comillas, encabezados en la
+              primera fila. El LocaleID del paquete es <b>9226</b> (es-CO), que es el ajuste
+              que corrigio la iteracion 2.</td>
+        </tr>
+        <tr>
+          <td><code>localhost.CalidadAgua_ETL</code></td>
+          <td>OLE DB</td>
+          <td>Instancia local de SQL Server. Se usa para staging, destino, revision y log.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div></div>
+
+<!-- ============ CONTROL FLOW ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">2. Control Flow: las cinco tareas</h2>
+  <p class="small mb-2">
+    Las cinco tareas estan encadenadas por cuatro restricciones de precedencia, es decir que
+    se ejecutan siempre en el mismo orden. No hay bifurcaciones ni bucles: el paquete es
+    lineal y por eso los conteos de una ejecucion son comparables con los de la anterior.
+  </p>
+
+  <pre class="flujo-ssis">  [1] SQL Limpiar Staging
+        |
+  [2] DFT Cargar Staging
+        |
+  [3] SQL Limpiar Revision Lote
+        |
+  [4] DFT Limpieza
+        |
+  [5] SQL Registrar Log</pre>
+
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th style="width:6%">#</th><th style="width:22%">Tarea</th><th style="width:16%">Clase</th>
+        <th>Que hace</th><th style="width:34%">Sentencia o configuracion</th></tr></thead>
+      <tbody>
+      {% for c in control_flow %}
+        <tr>
+          <td class="text-center fw-bold">{{ c.orden }}</td>
+          <td><code>{{ c.componente }}</code></td>
+          <td>{{ c.clase }}</td>
+          <td>{{ c.funcion }}</td>
+          <td>{% if c.clase == 'Execute SQL Task' %}<code class="small">{{ c.detalle }}</code>{% else %}{{ c.detalle }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert alert-light border small mt-3 mb-0">
+    <strong>Por que este orden importa.</strong> Truncar staging antes de cargar es lo que
+    permite repetir el lote sin duplicar. Borrar la revision de la iteracion actual es lo que
+    hace que el conteo de revision sea siempre de esta ejecucion y no la suma de todas. Y
+    registrar el log al final, cuando los cinco contadores ya estan calculados, es lo que
+    garantiza que lo publicado en esta aplicacion venga del paquete y no de un calculo aparte.
+  </div>
+</div></div>
+
+<!-- ============ DFT 1 ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">3. Data Flow Task 1 &mdash; DFT Cargar Staging</h2>
+  <p class="small mb-2">
+    Es el Data Flow mas simple del paquete: dos componentes y ninguna regla de negocio.
+    Existe por trazabilidad. Los datos originales quedan intactos en
+    <code>stg_calidad_agua</code>, de modo que siempre se puede comparar el antes y el despues
+    y repetir el tratamiento sin volver al CSV.
+  </p>
+  <pre class="flujo-ssis">  SRC CSV Calidad Agua   (Flat File Source)
+        |
+  DST Staging             (OLE DB Destination -> stg_calidad_agua)</pre>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th style="width:26%">Componente</th><th style="width:22%">Clase</th><th>Funcion</th></tr></thead>
+      <tbody>
+      {% for c in dft_staging %}
+        <tr><td><code>{{ c.componente }}</code></td><td>{{ c.clase }}</td><td>{{ c.funcion }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div></div>
+
+<!-- ============ DFT 2 ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">4. Data Flow Task 2 &mdash; DFT Limpieza</h2>
+  <p class="small mb-2">
+    Aqui ocurre todo el tratamiento, con <b>20 componentes</b>. La idea que ordena el flujo es
+    que <b>una fila nunca se descarta</b>: si no puede entrar al destino, sale hacia revision
+    con su motivo escrito. Ningun registro se pierde sin explicacion.
+  </p>
+
+  <h3 class="h6 text-secondary mt-3 mb-2">Flujo completo</h3>
+  <p class="small text-muted">
+    Capturas del Data Flow tal como se ven en SSIS. El diagrama esta partido en dos
+    imagenes, la mitad superior y la mitad inferior, porque el flujo completo no cabe
+    en el ancho de la pagina. Se muestran apiladas y en ese orden: leidas juntas
+    reproducen el recorrido completo de la fila.
+  </p>
+  <div class="row g-3">
+    <div class="col-12">
+      <figure class="mb-0">
+        <a href="{{ url_for('static', filename='img/etapa3/df_limpieza_1.png') }}"
+           target="_blank" rel="noopener">
+          <img src="{{ url_for('static', filename='img/etapa3/df_limpieza_1.png') }}"
+               alt="DFT Limpieza: mitad superior del flujo, desde la lectura de staging hasta la validacion y la conversion de tipos"
+               class="img-fluid rounded border bg-white"
+               style="max-height:460px; width:auto;">
+        </a>
+        <figcaption class="small text-muted mt-1">
+          <b>Mitad superior</b> (1 de 2) &mdash; de donde sale la fila y por que reglas
+          pasa antes de decidir su destino. Abrir imagen completa.
+        </figcaption>
+      </figure>
+    </div>
+    <div class="col-12">
+      <figure class="mb-0">
+        <a href="{{ url_for('static', filename='img/etapa3/df_limpieza_2.png') }}"
+           target="_blank" rel="noopener">
+          <img src="{{ url_for('static', filename='img/etapa3/df_limpieza_2.png') }}"
+               alt="DFT Limpieza: mitad inferior del flujo, con el lookup de idempotencia, los destinos de carga y la union de revision"
+               class="img-fluid rounded border bg-white"
+               style="max-height:460px; width:auto;">
+        </a>
+        <figcaption class="small text-muted mt-1">
+          <b>Mitad inferior</b> (2 de 2) &mdash; como se decide si la fila se escribe, se
+          cuenta como ya cargada o va a revision. Abrir imagen completa.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <details class="mt-3">
+    <summary class="small text-primary" style="cursor:pointer">
+      Leer el flujo paso a paso, en texto
+    </summary>
+    <p class="small mt-2 mb-1">
+      <b>Salida de la fuente.</b> <code>SRC Staging</code> alimenta dos ramas a la vez:
+      el contador <code>RC Recibidos</code>, que fija el total de la ejecucion, y
+      <code>DER Normalizar</code>, que limpia los textos y crea las columnas auxiliares
+      <code>*_l</code>.
+    </p>
+    <p class="small mb-1">
+      <b>Validacion.</b> <code>CSPL Validar</code> separa la fila en cuatro salidas segun
+      tres condiciones. <i>Fuera Alcance Global</i>, <i>Revision Fecha</i> y
+      <i>Revision IRCA</i> pasan por su <code>DER Motivo *</code> y van directas a revision.
+      <i>Validos</i> es la unica que sigue al tratamiento completo.
+    </p>
+    <p class="small mb-1">
+      <b>Conversion.</b> <code>DCONV Tipos</code> castea las 12 columnas de texto a numero.
+      Su salida de error no se ignora: se deriva a <code>DER Motivo Conversion</code> y
+      tambien va a revision, para que un dato no convertible no se pierda en silencio.
+    </p>
+    <p class="small mb-1">
+      <b>Decision de carga.</b> <code>DER Clasificacion</code> recalcula la clase de riesgo
+      a partir del IRCA y <code>LKP Ya Cargados</code> consulta si la fila ya existe en el
+      destino. Un <i>Match</i> se cuenta en <code>RC Ya Cargados</code> y no se escribe.
+      Un <i>No Match</i> pasa por <code>RC Aceptados</code> y llega a
+      <code>DST Destino</code>.
+    </p>
+    <p class="small mb-0">
+      <b>Cierre.</b> La salida de error de <code>DST Destino</code> detecta choques de llave
+      y alimenta <code>RC Duplicados</code>, <code>DER Motivo Duplicado</code> y
+      <code>DST Revision Duplicados</code>. Las cuatro rutas que llegan a revision se
+      combinan en <code>UNION Revision</code>, se cuentan en <code>RC Revision</code> y se
+      escriben en <code>DST Revision</code>.
+    </p>
+  </details>
+</div></div>
+
+<!-- ============ COMPONENTES DFT 2 ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">5. Los 20 componentes de DFT Limpieza, uno por uno</h2>
+  <p class="small mb-2">
+    La tabla sigue el orden del flujo de arriba hacia abajo. La columna de reglas indica a que
+    problemas de la etapa 2 responde cada componente.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th style="width:22%">Componente</th><th style="width:17%">Clase SSIS</th>
+        <th>Que hace</th><th style="width:13%">Reglas</th></tr></thead>
+      <tbody>
+      {% for c in dft_limpieza %}
+        <tr>
+          <td><code>{{ c.componente }}</code></td>
+          <td>{{ c.clase }}</td>
+          <td>{{ c.funcion }}</td>
+          <td>{% if c.detalle %}<span class="badge bg-light text-dark border">{{ c.detalle }}</span>{% else %}&mdash;{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div></div>
+
+<!-- ============ CONDITIONAL SPLIT ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">6. CSPL Validar: el componente que decide</h2>
+  <p class="small mb-2">
+    El Conditional Split es el corazon del paquete. Evalua sus condiciones en el orden en que
+    aparecen y manda cada fila a la <b>primera</b> condicion que se cumple; la que no cumple
+    ninguna va a la salida por defecto. Como las tres condiciones estan en el mismo grupo de
+    exclusion, ninguna fila puede recibir dos motivos.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th style="width:6%">Orden</th><th style="width:20%">Salida</th><th>Condicion (tal cual esta en el paquete)</th><th style="width:10%">Regla</th></tr></thead>
+      <tbody>
+        <tr><td class="text-center fw-bold">0</td><td><code>Fuera Alcance Global</code></td>
+            <td><code>TRIM(tipo_region) == "Global"</code></td><td>P05</td></tr>
+        <tr><td class="text-center fw-bold">1</td><td><code>Revision Fecha</code></td>
+            <td><code>!(LEN(fecha_l) == 10 &amp;&amp; SUBSTRING(fecha_l,5,1) == "-" &amp;&amp; SUBSTRING(fecha_l,8,1) == "-") ? TRUE : ((DT_I4)SUBSTRING(fecha_l,6,2) != (DT_I4)TRIM(mes))</code></td><td>P09</td></tr>
+        <tr><td class="text-center fw-bold">2</td><td><code>Revision IRCA</code></td>
+            <td><code>ISNULL(irca_l) ? FALSE : ((DT_R8)irca_l &lt; 0 || (DT_R8)irca_l &gt; 100)</code></td><td>P08</td></tr>
+        <tr><td class="text-center">&mdash;</td><td><code>Validos</code></td>
+            <td class="text-muted">Salida por defecto: la fila cumple las tres validaciones y
+                sigue el proceso de carga.</td><td>&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="alert alert-light border small mt-3 mb-0">
+    <strong>La condicion de fecha tiene dos partes</strong> y conviene leerla con cuidado: si la
+    fecha no tiene formato ISO de diez caracteres, la fila se rechaza; si la fecha si es ISO,
+    la condicion se reevalua y rechaza cuando el mes de la fecha no coincide con la columna
+    <code>mes</code>. Es decir, valida el formato y ademas la coherencia interna del registro.
+  </div>
+</div></div>
+
+<!-- ============ DATA CONVERSION ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">7. DCONV Tipos: la conversion que casi rompe el lote</h2>
+  <p class="small mb-2">
+    Este componente convierte doce columnas de texto a su tipo real. Lo relevante no es la
+    lista de columnas sino que <b>todas tienen la disposicion de error en
+    <code>RedirectRow</code></b>: una fila que no se puede convertir no detiene el paquete,
+    sale por la salida de error y la recibe <code>DER Motivo Conversion</code>. Ese detalle es
+    lo que evita perder datos por un problema de formato.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th style="width:34%">Columna de salida</th><th style="width:22%">Tipo destino</th>
+        <th style="width:22%">Origen</th><th>Si falla la conversion</th></tr></thead>
+      <tbody>
+        <tr><td><code>fecha_t</code></td><td>dbDate</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>anio_t</code></td><td>i2</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>mes_t</code></td><td>ui1</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>nivel_almacenamiento_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>afluencias_m3s_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>precipitacion_l_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>temperatura_l_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>consumo_m3s_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>irca_l_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>latitud_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>longitud_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+        <tr><td><code>cobertura_acueducto_pct_t</code></td><td>numeric</td><td>texto</td><td>RedirectRow</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small text-secondary mt-2 mb-0">
+    El componente tambien expone <code>ErrorCode</code> y <code>ErrorColumn</code> como enteros,
+    que son las columnas que necesita el flujo para saber que fallo y en que campo.
+  </p>
+</div></div>
+
+<!-- ============ LOOKUP ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">8. LKP Ya Cargados: la pieza que evita recargas</h2>
+  <p class="small mb-2">
+    El Lookup consulta la propia tabla de destino antes de escribir y separa lo nuevo de lo ya
+    cargado. Su consulta es exactamente:
+  </p>
+  <pre class="flujo-ssis">  SELECT iteracion, fecha, municipio, sistema_abastecimiento
+  FROM dst_calidad_agua</pre>
+  <p class="small mb-2">
+    Las cuatro columnas de la consulta son las que forman la llave del destino. La columna
+    <code>iteracion</code> es lo que hace que cada pase tenga su propio espacio: al reejecutar
+    el mismo lote, el Lookup encuentra las filas y las manda a <code>RC Ya Cargados</code> en
+    lugar de insertarlas otra vez. Por eso la reejecucion de la iteracion 3 termina con
+    <b>0 aceptados y 12.742 ya cargados</b>.
+  </p>
+  <div class="alert alert-light border small mb-0">
+    <strong>Nota sobre la unicidad.</strong> Ademas del Lookup, la tabla de destino declara una
+    llave unica. Los duplicados que se escapan del Lookup llegan a la <b>salida de error</b> de
+    <code>DST Destino</code>, que es la segunda red de seguridad: por eso los duplicados se
+    cuentan aparte y van a su propia tabla de revision.
+  </div>
+</div></div>
+
+<!-- ============ VARIABLES ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">9. De los contadores a la tabla de log</h2>
+  <p class="small mb-2">
+    Los cinco <i>Row Count</i> no cuentan nada por si solos: guardan su resultado en una
+    variable del paquete. La ultima tarea del Control Flow lee esas variables y las escribe en
+    <code>etl_log</code>. Esa cadena es la que hace que los conteos de esta aplicacion
+    salgan del paquete y no de un calculo por fuera.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th style="width:24%">Row Count</th><th style="width:22%">Variable</th>
+        <th>Que cuenta</th><th style="width:16%">Columna en etl_log</th></tr></thead>
+      <tbody>
+        <tr><td><code>RC Recibidos</code></td><td><code>User::vRecibidos</code></td>
+            <td>Filas leidas de staging, antes de tratar nada.</td><td><code>recibidos</code></td></tr>
+        <tr><td><code>RC Aceptados</code></td><td><code>User::vAceptadosNetos</code></td>
+            <td>Filas que el Lookup declaro nuevas y se escribieron en el destino.</td><td><code>aceptados</code></td></tr>
+        <tr><td><code>RC Revision</code></td><td><code>User::vRevision</code></td>
+            <td>Filas que el Union All junto hacia la tabla de revision.</td><td><code>revision</code></td></tr>
+        <tr><td><code>RC Duplicados</code></td><td><code>User::vDuplicados</code></td>
+            <td>Filas rechazadas por la llave unica del destino.</td><td><code>duplicados</code></td></tr>
+        <tr><td><code>RC Ya Cargados</code></td><td><code>User::vYaCargados</code></td>
+            <td>Filas que el Lookup encontro ya presentes en el destino.</td><td><code>ya_cargados</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small text-secondary mt-2 mb-0">
+    El paquete declara ademas las variables <code>vLote</code>, <code>vIteracion</code> y
+    <code>vObservacion</code>, que identifican la ejecucion y viajan a
+    <code>lote_id</code>, <code>iteracion</code> y <code>observacion</code>. La sentencia de
+    la ultima tarea es:
+  </p>
+  <pre class="flujo-ssis">  INSERT INTO etl_log (lote_id, iteracion, fecha_inicio, fecha_fin,
+      recibidos, aceptados, duplicados, revision, ya_cargados, estado, observacion)
+  VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, 'OK', ?);</pre>
+</div></div>
+
+<!-- ============ RESUMEN POR CLASE ============ -->
+<div class="card shadow-sm border-0 mb-3"><div class="card-body">
+  <h2 class="h6 text-primary">10. Quantos componentes hay de cada clase</h2>
+  <p class="small mb-2">
+    El reparto explica por que el paquete se ve largo en el lienzo: la mayoria del volumen son
+    <i>Derived Column</i> para los motivos de rechazo y <i>Row Count</i> para los contadores, no
+    logica de transformacion compleja.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm small mb-0">
+      <thead><tr><th>Clase de componente</th><th class="text-center" style="width:14%">Cantidad</th>
+        <th style="width:38%">Componentes</th></tr></thead>
+      <tbody>
+      {% for f in resumen_clases %}
+        <tr>
+          <td>{{ f.clase }}</td>
+          <td class="text-center fw-bold">{{ f.cantidad }}</td>
+          <td class="small text-muted">{{ f.componentes }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr class="fw-bold"><td>Total de componentes del paquete</td>
+        <td class="text-center">{{ resumen_total }}</td><td></td></tr></tfoot>
+    </table>
+  </div>
+</div></div>
+
+{% endblock %}

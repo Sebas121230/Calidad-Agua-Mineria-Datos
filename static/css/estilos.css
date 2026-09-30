@@ -113,3 +113,46 @@ body {
     padding: 1rem;
   }
 }
+
+/* =========================================================
+   DIAGRAMA DE FLUJO DEL PAQUETE SSIS
+   Se dibuja con <pre> para conservar la alineacion de las cajas
+   y las flechas. Tiene scroll horizontal propio para que no
+   desborde la tarjeta cuando el flujo es ancho.
+   ========================================================= */
+.flujo-ssis {
+  background: #0d2137;
+  color: #e8eef5;
+  border-radius: 8px;
+  padding: 16px 18px;
+  font-size: .76rem;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0 0 1rem 0;
+  border: 1px solid #1b3a5c;
+  font-family: "Cascadia Code", "Consolas", "SFMono-Regular", Menlo, monospace;
+}
+
+/* =========================================================
+   IMPRESION
+   Al imprimir cualquier pagina de la seccion se oculta la
+   interfaz (menu lateral y botones) para que el contenido
+   ocupe la hoja completa.
+   ========================================================= */
+@media print {
+  @page { size: A4; margin: 16mm 14mm; }
+
+  body { background: #fff !important; }
+  .sidebar { display: none !important; }
+  .contenido { margin-left: 0 !important; padding: 0 !important; }
+  .no-print { display: none !important; }
+
+  .flujo-ssis {
+    background: #fff !important;
+    color: #0d2137 !important;
+    border: 1px solid #0d2137 !important;
+    white-space: pre-wrap;
+  }
+  a { color: #0d2137 !important; text-decoration: none; }
+}

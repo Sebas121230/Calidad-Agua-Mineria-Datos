@@ -8,6 +8,14 @@
     valores unicos, nulos, duplicados, distribucion, estadisticas y atipicos
 </p>
 
+{% if datos is none %}
+<div class="alert alert-warning small" role="alert">
+    <strong>No se encontro <code>dataset_calidad_agua.csv</code>.</strong>
+    El perfil se calcula en tiempo de ejecucion sobre ese archivo. Ejecute
+    <code>python generar_dataset.py</code> para regenerarlo y recargue la pagina.
+</div>
+{% else %}
+
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Resultado del perfilamiento</h2>
     <p class="small mb-2">
@@ -189,5 +197,7 @@
         </table>
     </div>
 </div></div>
+
+{% endif %}
 
 {% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Video de demostracion del proceso ETL</h1>
+    <p class="small text-muted mb-0">
+      Presentacion del paquete SSIS, ejecucion del tratamiento y resultados de las
+      tres iteraciones.
+    </p>
+  </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3') }}">Volver a Etapa 3</a>
+</div>
+
+{% if video_url %}
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <div class="ratio ratio-16x9 mb-3">
+      <iframe src="{{ video_url }}"
+              title="Video de demostracion del proceso ETL con SSIS"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen style="border:0; border-radius:6px;"></iframe>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-primary btn-sm" href="{{ video_watch or video_url }}" target="_blank" rel="noopener">
+        Abrir el video en YouTube
+      </a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('etapa3_resultados') }}">
+        Ver los resultados citados en el video
+      </a>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <div class="alert alert-warning mb-0" role="alert">
+      <strong>El video aun no esta enlazado.</strong>
+      <div class="mt-2">
+        Para publicarlo no se modifica ningun HTML: basta con definir la variable de
+        entorno <code>ETAPA3_VIDEO_URL</code> (o editar <code>VIDEO_URL</code> en
+        <code>app.py</code>) con la direccion publica del video.
+      </div>
+      <div class="mt-2 small">
+        Ejemplo con YouTube:
+        <code>https://www.youtube-nocookie.com/embed/ID_DEL_VIDEO</code><br>
+        Ejemplo con Google Drive:
+        <code>https://drive.google.com/file/d/ID_DEL_ARCHIVO/preview</code>
+      </div>
+      <div class="mt-2 small">
+        El archivo de video no se versiona en el repositorio: se sube a un servicio
+        externo y se enlaza, para no engordar el historial de Git con un archivo de
+        varios megas.
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

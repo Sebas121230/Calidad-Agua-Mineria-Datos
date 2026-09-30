@@ -1,0 +1,28 @@
+ambito,orden,componente,clase,funcion,detalle
+Control Flow,1,SQL Limpiar Staging,Execute SQL Task,"Deja la zona de staging vacia antes de cargar, para que una reejecucion no duplique el lote anterior.",TRUNCATE TABLE stg_calidad_agua;
+Control Flow,2,DFT Cargar Staging,Data Flow Task,Carga el CSV crudo en la tabla de staging sin transformar ninguna columna. Es la garantia de que siempre se puede volver al dato original.,Flat File Source -> OLE DB Destination
+Control Flow,3,SQL Limpiar Revision Lote,Execute SQL Task,"Borra la revision del lote e iteracion que se va a procesar, de modo que el conteo de revision siempre sea el de la ejecucion actual.",DELETE FROM rev_calidad_agua WHERE lote_id = ? AND iteracion = ?;
+Control Flow,4,DFT Limpieza,Data Flow Task,"Aplica todo el tratamiento: normaliza, separa los registros que no pueden entrar al destino, convierte tipos, evita recargas y separa cada motivo.",20 componentes (ver seccion siguiente)
+Control Flow,5,SQL Registrar Log,Execute SQL Task,"Graba los cinco contadores del Data Flow en la tabla de log, que es la fuente de los conteos publicados en esta aplicacion.","INSERT INTO etl_log (...) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, 'OK', ?);"
+DFT Cargar Staging,,SRC CSV Calidad Agua,Flat File Source,Lee el archivo CSV de la etapa 2. Las columnas se dejan como texto a proposito: convertirlas aqui ocultaria justo los errores que se quieren tratar.,"Codificacion 1252, delimitador coma, qualifier comillas, encabezado en la primera fila."
+DFT Cargar Staging,,DST Staging,OLE DB Destination,Vuelca el CSV en stg_calidad_agua sin aplicar ninguna regla.,"Codificacion 1252, delimitador coma, qualifier comillas, encabezado en la primera fila."
+DFT Limpieza,,SRC Staging,OLE DB Source,Lee de stg_calidad_agua todo el lote a tratar.,
+DFT Limpieza,,RC Recibidos,Row Count,Cuenta las filas que entran al paquete y guarda el valor en la variable vRecibidos.,Es el denominador de todas las proporciones del log.
+DFT Limpieza,,DER Normalizar,Derived Column,Deja los valores en un estado comparable: recorta espacios y crea las columnas auxiliares que usan las reglas de validacion.,Produce las columnas terminadas en _l que valida el Conditional Split.
+DFT Limpieza,,CSPL Validar,Conditional Split,"Es la pieza central del paquete. Evalua tres condiciones en orden y dirige cada fila a una salida distinta, de modo que una fila solo puede tener un motivo de rechazo.",
+DFT Limpieza,,DER Motivo Global,Derived Column,Escribe el motivo de rechazo de las filas que son de alcance Global.,P05
+DFT Limpieza,,DER Motivo Fecha,Derived Column,Escribe el motivo de rechazo de las filas con fecha no ISO o cuyo mes no coincide con la fecha.,P09
+DFT Limpieza,,DER Motivo IRCA,Derived Column,Escribe el motivo de rechazo de las filas con IRCA fuera del dominio.,P08
+DFT Limpieza,,DCONV Tipos,Data Conversion,"Convierte las columnas de texto a su tipo real. Las doce columnas tienen la disposicion de error en RedirectRow: si una conversion falla, la fila sale por la salida de error en vez de romper el paquete.","P01, P02, P03, P04, P11"
+DFT Limpieza,,DER Motivo Conversion,Derived Column,Recibe las filas que fallaron al convertir y les asigna el motivo.,
+DFT Limpieza,,DER Clasificacion,Derived Column,"Deriva la clasificacion de riesgo a partir del IRCA numerico, en lugar de mantenerla como un campo que se puede desincronizar, y corrige la grafia de la categoria.","P11, P16"
+DFT Limpieza,,LKP Ya Cargados,Lookup,Consulta la tabla de destino y separa las filas que ya existen de las que son nuevas. Es el componente que hace idempotente el proceso.,
+DFT Limpieza,,RC Ya Cargados,Row Count,Cuenta las filas que el Lookup encontro como ya cargadas.,Variable vYaCargados
+DFT Limpieza,,RC Aceptados,Row Count,Cuenta las filas que si son nuevas y van a aceptarse.,Variable vAceptados
+DFT Limpieza,,DST Destino,OLE DB Destination,"Escribe las filas aceptadas. La tabla de destino tiene llave unica, y por eso su salida de error es la que detecta duplicados.",
+DFT Limpieza,,RC Duplicados,Row Count,Cuenta las filas que el destino rechazo por violar la llave unica.,Variable vDuplicados
+DFT Limpieza,,DER Motivo Duplicado,Derived Column,Asigna el motivo de duplicado a las filas que rebotaron contra la llave.,P07
+DFT Limpieza,,UNION Revision,Union All,"Junta en un solo flujo las cuatro salidas de rechazo, de modo que todos los registros a revisar lleguen al mismo destino conservando su motivo.",
+DFT Limpieza,,RC Revision,Row Count,Cuenta el total de registros enviados a revision.,Variable vRevision
+DFT Limpieza,,DST Revision,OLE DB Destination,Guarda los registros a revisar con su motivo y la regla asociada.,
+DFT Limpieza,,DST Revision Duplicados,OLE DB Destination,"Guarda aparte los duplicados, para poder distinguirlos de los rechazos de negocio.",P07

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Reglas de tratamiento del proceso ETL</h1>
+    <p class="small text-muted mb-0">
+      Para cada problema del inventario de la Etapa 2 se declara el campo afectado,
+      la accion aplicada en el paquete SSIS y su justificacion tecnica.
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inventario') }}">Ver inventario (Etapa 2)</a>
+    <a class="btn btn-outline-success btn-sm" href="{{ url_for('etapa3_informe') }}">Componentes del paquete</a>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body py-2">
+    <p class="small mb-0">
+      <strong>Principio rector:</strong> corregir cuando la correccion es determinable y
+      justificable; marcar y separar cuando el valor no es reconstruible; nunca descartar
+      informacion sin registrarla. Las reglas provienen de
+      <code>plan_tratamiento.csv</code>, cruzado con el impacto y la dimension de cada
+      hallazgo en <code>inventario_problemas.csv</code>.
+    </p>
+  </div>
+</div>
+
+{% if reglas %}
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0 align-middle">
+        <thead class="table-primary">
+          <tr>
+            <th style="width:60px">ID</th>
+            <th style="width:180px">Campo afectado</th>
+            <th>Problema</th>
+            <th>Accion aplicada</th>
+            <th style="width:120px">Tipo</th>
+            <th style="width:130px">Dimension</th>
+            <th style="width:80px">Impacto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reglas %}
+          <tr>
+            <td class="fw-semibold">{{ r.id }}</td>
+            <td><code>{{ r.variable_o_campo }}</code></td>
+            <td style="min-width:280px">{{ r.problema_resumen }}</td>
+            <td style="min-width:300px">{{ r.accion_planeada }}</td>
+            <td><span class="badge bg-light text-dark border">{{ r.tipo_accion }}</span></td>
+            <td>{{ r.dimension_que_mejora }}</td>
+            <td>
+              {% if r.impacto == 'Alto' %}<span class="badge bg-danger">Alto</span>
+              {% elif r.impacto == 'Medio' %}<span class="badge bg-warning text-dark">Medio</span>
+              {% elif r.impacto == 'Bajo' %}<span class="badge bg-success">Bajo</span>
+              {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<p class="small text-muted mt-2 mb-0">
+  {{ reglas|length }} reglas definidas en el plan de tratamiento. Se aplicaron
+  {{ aplicadas|length }} en el paquete SSIS; las instancias de cada problema que no
+  pudieron resolverse de forma determinable quedaron en
+  <code>rev_calidad_agua</code> con su valor original y su motivo.
+</p>
+{% else %}
+<div class="alert alert-warning small">
+  No se encontro <code>plan_tratamiento.csv</code>. Ejecute
+  <code>python generar_integracion_tratamiento.py</code> para regenerarlo.
+</div>
+{% endif %}
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Decisiones que conviene explicar en la defensa</h2>
+        <ul class="small mb-0 ps-3">
+          <li><strong>El IRCA no se imputa.</strong> Es la variable objetivo del analisis;
+              un valor estimado se veria como una medicion real de salud publica que nadie
+              realizo. Se excluye el registro y se marca <code>irca_reportado = No</code>.</li>
+          <li><strong>Los IRCA negativos no se recortan a 0.</strong> Convertir -4,95 en
+              0(false) en 0(bueno) fabricaria una lectura favorable del agua. Se conservan
+              en revision con el valor original.</li>
+          <li><strong>Los atipicos se marcan, no se eliminan.</strong> Con el criterio de
+              Tukey un valor extremo puede ser un evento hidrologico real. Se conserva la
+              fila con su marca para que el analista decida.</li>
+          <li><strong>La clasificacion se deriva del IRCA.</strong> Al calcularla en el
+              Derived Column, la etiqueta ya no puede contradecir al valor numerico.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Del plan de la Etapa 2 a la ejecucion real</h2>
+        <p class="small">
+          El plan de tratamiento de la Etapa 2 es <i>planeacion</i>: no se ejecuto ningun
+          script de limpieza. La Etapa 3 lo ejecuta en SSIS y agrega los ajustes que solo
+          aparecen al correr el paquete:
+        </p>
+        <ul class="small mb-0 ps-3">
+          <li>El <strong>LocaleID</strong> del administrador de archivos debia fijarse en
+              es-ES; con el valor por defecto en ingles se rechazaban los decimales con
+              coma y la iteracion 1 perdio el 86% del lote.</li>
+          <li>Los registros <code>tipo_region = 'Global'</code> debian separarse: comparten
+              columnas de aforo vacias con los regionales y provocaban rechazos por
+              conversion sin motivo.</li>
+          <li>Faltaba el <strong>Lookup</strong> contra el destino, sin el cual la
+              re-ejecucion del mismo lote duplicaba informacion.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

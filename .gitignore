@@ -14,3 +14,12 @@ __pycache__/
 # Sistema operativo
 Thumbs.db
 .DS_Store
+
+# Proyecto SSIS: archivos generados y configuracion local de Visual Studio
+.vs/
+bin/
+obj/
+*.dtproj.user
+
+# Copias de seguridad de la base de datos (se comparten aparte)
+*.bak

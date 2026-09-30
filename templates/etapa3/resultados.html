@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Resultados de las tres iteraciones</h1>
+    <p class="small text-muted mb-0">
+      Conteos exportados del log <code>etl_log</code> de la base de datos
+      <code>CalidadAgua_ETL</code> (consulta E1 del script de verificacion).
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3') }}">Volver a Etapa 3</a>
+    <a class="btn btn-outline-success btn-sm" href="{{ url_for('etapa3_informe') }}">Componentes del paquete</a>
+  </div>
+</div>
+
+{% if resultados %}
+
+<!-- ================= ECUACION DE CONTROL ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body py-2">
+    <p class="small mb-0">
+      <strong>Ecuacion de control.</strong> En todas las ejecuciones se cumple
+      <code>recibidos = aceptados + duplicados + revision + ya cargados</code>.
+      No hay perdidas de informacion sin explicacion: cada registro recibido queda
+      clasificado en exactamente una de las cuatro categorias.
+    </p>
+  </div>
+</div>
+
+<!-- ================= TABLA PRINCIPAL ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0 align-middle">
+        <thead class="table-primary">
+          <tr>
+            <th style="width:70px">Iter.</th>
+            <th style="width:100px">Recibidos</th>
+            <th style="width:100px">Aceptados</th>
+            <th style="width:95px">Duplicados</th>
+            <th style="width:95px">Revision</th>
+            <th style="width:105px">Ya cargados</th>
+            <th style="width:80px">Cuadra</th>
+            <th>Observacion</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in resultados %}
+          {% set suma = r.aceptados|int + r.duplicados|int + r.revision|int + r.ya_cargados|int %}
+          <tr class="{% if loop.index0 > 0 and r.iteracion == '3' %}table-warning{% endif %}">
+            <td class="fw-semibold">{{ r.iteracion }}</td>
+            <td>{{ "{:,}".format(r.recibidos|int).replace(",", ".") }}</td>
+            <td class="text-success fw-semibold">{{ "{:,}".format(r.aceptados|int).replace(",", ".") }}</td>
+            <td>{{ "{:,}".format(r.duplicados|int).replace(",", ".") }}</td>
+            <td class="text-danger fw-semibold">{{ "{:,}".format(r.revision|int).replace(",", ".") }}</td>
+            <td>{{ "{:,}".format(r.ya_cargados|int).replace(",", ".") }}</td>
+            <td>
+              {% if suma == r.recibidos|int %}<span class="badge bg-success">Si</span>
+              {% else %}<span class="badge bg-danger">No</span>{% endif %}
+            </td>
+            <td style="min-width:300px">{{ r.observacion }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<p class="small text-muted mt-2 mb-0">
+  La iteracion 3 aparece <strong>dos veces</strong> a proposito: la segunda fila es la
+  re-ejecucion del mismo lote, que sirve para demostrar la idempotencia del proceso.
+</p>
+
+<!-- ================= GRAFICA DE BARRAS ================= -->
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-3">Distribucion de cada iteracion</h2>
+    {% set maximo = resultados[0].recibidos|int %}
+    {% for r in resultados %}
+    {% set total = r.aceptados|int + r.duplicados|int + r.revision|int + r.ya_cargados|int %}
+    <div class="mb-3">
+      <div class="d-flex justify-content-between small mb-1">
+        <span>Iteracion {{ r.iteracion }}
+          {% if loop.index0 > 0 and r.iteracion == '3' %}<span class="badge bg-secondary ms-1">re-ejecucion</span>{% endif %}
+        </span>
+        <span class="text-muted">{{ "{:,}".format(total).replace(",", ".") }} de {{ "{:,}".format(maximo).replace(",", ".") }}</span>
+      </div>
+      <div style="background:#e9eef5; border-radius:3px; height:16px; overflow:hidden;">
+        {% set a = (r.aceptados|int / maximo * 100) %}
+        {% set d = (r.duplicados|int / maximo * 100) %}
+        {% set v = (r.revision|int / maximo * 100) %}
+        {% set y = (r.ya_cargados|int / maximo * 100) %}
+        <div style="display:flex; height:16px;">
+          <div style="width:{{ a }}%; background:#198754;" title="Aceptados: {{ r.aceptados }}"></div>
+          <div style="width:{{ d }}%; background:#fd7e14;" title="Duplicados: {{ r.duplicados }}"></div>
+          <div style="width:{{ v }}%; background:#c62828;" title="Revision: {{ r.revision }}"></div>
+          <div style="width:{{ y }}%; background:#6f42c1;" title="Ya cargados: {{ r.ya_cargados }}"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="small mt-2">
+      <span class="me-3"><span class="badge bg-success">&nbsp;</span> Aceptados</span>
+      <span class="me-3"><span class="badge text-bg-warning">&nbsp;</span> Duplicados</span>
+      <span class="me-3"><span class="badge bg-danger">&nbsp;</span> Revision</span>
+      <span class="me-3"><span class="badge text-bg-secondary" style="background:#6f42c1 !important;">&nbsp;</span> Ya cargados</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= AJUSTES POR ITERACION ================= -->
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-3">Ajustes aplicados y hallazgo que justifica cada iteracion</h2>
+
+    <div class="border-start border-4 border-danger ps-3 mb-4">
+      <h3 class="h6 mb-2">
+        <span class="badge bg-danger me-2">Iteracion 1</span>Lote de arranque
+      </h3>
+      <p class="small mb-2">
+        Se unifican los nulos, se sustituye <code>N/A</code> en el sistema de abastecimiento,
+        se aplica trim y mayusculas al municipio, se valida la fecha ISO y el IRCA contra
+        [0, 100].
+      </p>
+      <p class="small mb-1"><strong>Resultado:</strong>
+        <span class="text-danger fw-semibold">1.732 aceptados</span> y
+        <span class="text-danger fw-semibold">11.245 en revision</span> (86% del lote).</p>
+      <p class="small mb-0 text-muted">
+        <strong>Hallazgo:</strong> la revision masiva no era un problema de datos, era la
+        configuracion regional. Con LocaleID en ingles, los decimales con coma se rechazaban
+        en la conversion. Ademas, los 141 registros <code>Global</code> sin aforo caian
+        fuera por conversion y llegaban a revision <i>sin motivo</i>, lo que impedia saber
+        que regla se estaba violando.
+      </p>
+    </div>
+
+    <div class="border-start border-4 border-warning ps-3 mb-4">
+      <h3 class="h6 mb-2">
+        <span class="badge bg-warning text-dark me-2">Iteracion 2</span>Correccion de formatos y derivacion
+      </h3>
+      <p class="small mb-2">
+        Se fija el LocaleID es-ES, se separan los registros <code>Global</code> (P05), se
+        convierten los formatos de fecha alternos (P09) y se recalcula
+        <code>clasificacion_riesgo</code> desde el IRCA, incluida la correccion de la
+        grafia &laquo;Inviabile&raquo; (P11 / P16).
+      </p>
+      <p class="small mb-1"><strong>Resultado:</strong>
+        <span class="text-success fw-semibold">12.680 aceptados</span> y
+        <span class="text-danger fw-semibold">247 en revision</span> (1,9% del lote).</p>
+      <p class="small mb-0 text-muted">
+        <strong>Hallazgo:</strong> los 247 casos restantes son rechazos de negocio, no fallas
+        de carga, y se reparten entre solo dos reglas: 141 registros <code>Global</code> sin
+        aforo (P05) y 106 valores de IRCA negativos (P08). Los problemas P09 y P10 quedaron
+        resueltos en esta iteracion y por eso ya no aportan casos a revision. Son rechazos
+        correctos y deben quedarse en revision.
+      </p>
+    </div>
+
+    <div class="border-start border-4 border-success ps-3">
+      <h3 class="h6 mb-2">
+        <span class="badge bg-success me-2">Iteracion 3</span>Idempotencia del lote
+      </h3>
+      <p class="small mb-2">
+        Se agrega el <strong>Lookup</strong> contra <code>dst_calidad_agua</code> para que una
+        re-ejecucion no vuelva a cargar las filas que ya existen en el destino.
+      </p>
+      <p class="small mb-1"><strong>Resultado:</strong> primera ejecucion con
+        <span class="text-success fw-semibold">12.680 aceptados</span>; al repetir el mismo
+        lote, <span class="text-success fw-semibold">0 aceptados</span>,
+        <span class="text-success fw-semibold">0 duplicados</span> y
+        <span class="text-success fw-semibold">12.742 ya cargados</span>.</p>
+      <p class="small mb-0 text-muted">
+        <strong>Hallazgo:</strong> el proceso es idempotente. La revision se recalcula
+        identica (247) porque el <code>DELETE</code> por <code>lote_id</code> borra los
+        hallazgos del lote antes de regenerarlos, en lugar de acumular los de corridas
+        previas.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EVIDENCIA DE IDEMPOTENCIA ================= -->
+{% if comparacion %}
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">
+      Evidencia: repetir el mismo lote no genera duplicados
+    </h2>
+    <p class="small">
+      Comparacion de la primera ejecucion de la iteracion {{ comparacion[0].iteracion }}
+      contra su re-ejecucion inmediata, sin cambiar el CSV de origen.
+    </p>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Contador</th>
+            <th class="text-end">1a ejecucion</th>
+            <th class="text-end">Re-ejecucion</th>
+            <th class="text-end">Diferencia</th>
+            <th>Lectura</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Recibidos</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].primera.recibidos|int).replace(",", ".") }}</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].repetida.recibidos|int).replace(",", ".") }}</td>
+            <td class="text-end text-muted">0</td>
+            <td class="text-muted">El lote es identico en ambas ejecuciones.</td>
+          </tr>
+          <tr>
+            <td>Aceptados (insertados)</td>
+            <td class="text-end text-success fw-semibold">{{ "{:,}".format(comparacion[0].primera.aceptados|int).replace(",", ".") }}</td>
+            <td class="text-end text-success fw-semibold">{{ "{:,}".format(comparacion[0].repetida.aceptados|int).replace(",", ".") }}</td>
+            <td class="text-end text-danger">-{{ comparacion[0].delta_aceptados|abs }}</td>
+            <td class="text-muted">Ninguna fila se inserta dos veces.</td>
+          </tr>
+          <tr>
+            <td>Duplicados</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].primera.duplicados|int).replace(",", ".") }}</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].repetida.duplicados|int).replace(",", ".") }}</td>
+            <td class="text-end text-muted">0</td>
+            <td class="text-muted">La deteccion por llave no encuentra nada nuevo.</td>
+          </tr>
+          <tr>
+            <td>Ya cargados</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].primera.ya_cargados|int).replace(",", ".") }}</td>
+            <td class="text-end">{{ "{:,}".format(comparacion[0].repetida.ya_cargados|int).replace(",", ".") }}</td>
+            <td class="text-end text-success">+{{ "{:,}".format(comparacion[0].delta_ya_cargados).replace(",", ".") }}</td>
+            <td class="text-muted">El Lookup reconoce lo que ya esta en el destino.</td>
+          </tr>
+          <tr>
+            <td>Revision</td>
+            <td class="text-end text-danger">{{ "{:,}".format(comparacion[0].primera.revision|int).replace(",", ".") }}</td>
+            <td class="text-end text-danger">{{ "{:,}".format(comparacion[0].repetida.revision|int).replace(",", ".") }}</td>
+            <td class="text-end text-muted">0</td>
+            <td class="text-muted">Se recalcula identica: el DELETE por lote_id lo evita.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-success small mt-3 mb-0">
+      <strong>Como se garantiza.</strong> Tres mecanismos se refuerzan: (1) el
+      <strong>Lookup</strong> contra <code>dst_calidad_agua</code> detiene las filas cuya
+      llave ya existe antes de llegar al destino; (2) la restriccion
+      <code>UNIQUE (iteracion, fecha, municipio, sistema_abastecimiento)</code> en la base
+      de datos impide el duplicado incluso si el flujo fallara; (3) el
+      <code>TRUNCATE</code> de staging y el <code>DELETE</code> de revision por
+      <code>lote_id</code> hacen que cada ejecucion parta de un estado limpio.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================= VERIFICACION ================= -->
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Como verificar estos resultados</h2>
+    <p class="small mb-2">
+      Todo lo anterior es auditable ejecutando
+      <code>sql/05_consultas_verificacion.sql</code> sobre la base
+      <code>CalidadAgua_ETL</code>:
+    </p>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0">
+        <thead class="table-light">
+          <tr><th style="width:90px">Seccion</th><th style="width:330px">Consulta</th><th>Que comprueba</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A2</td><td><code>SELECT COUNT(*) FROM stg_calidad_agua</code></td>
+              <td>Que el staging cargo los 12.989 registros del CSV.</td></tr>
+          <tr><td>B2</td><td>Ecuacion de control sobre <code>etl_log</code></td>
+              <td>Que recibidos = aceptados + duplicados + revision + ya cargados en cada ejecucion.</td></tr>
+          <tr><td>B3 / B4</td><td>Conteos por iteracion en destino y revision</td>
+              <td>Que las filas realmente llegaron a cada tabla.</td></tr>
+          <tr><td>B5</td><td>Revision agrupada por <code>regla_id</code></td>
+              <td>Que reglas se incumplieron y cuantas veces en cada iteracion.</td></tr>
+          <tr><td>D1</td><td>Fecha original vs fecha corregida en destino</td>
+              <td>Un dato corregido de forma verificable.</td></tr>
+          <tr><td>D2</td><td>Registros en revision con motivo y <code>regla_id</code></td>
+              <td>Que se conserva el valor original y el motivo del rechazo.</td></tr>
+          <tr><td>F4 / F5</td><td>&laquo;Inviabile&raquo; en staging y en destino</td>
+              <td>Que la correccion del catalogo paso de 1.073 a 0 ocurrencias.</td></tr>
+          <tr><td>E1</td><td>Export del log a <code>resultados_iteraciones.csv</code></td>
+              <td>Que la tabla de esta pagina proviene de la base de datos.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= COMPARACION DE INDICADORES ================= -->
+{% if indicadores %}
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Comparacion de indicadores: antes y despues</h2>
+    <p class="small">
+      La columna <b>Antes</b> es la linea base medida en la etapa 2
+      (<code>metricas_calidad.csv</code>). La columna <b>Despues</b> se obtiene aplicando
+      al conjunto original las mismas reglas del paquete, mediante
+      <code>calcular_indicadores_etapa3.py</code>, que esta en el repositorio para que la
+      comparacion sea reproducible sin el servidor.
+    </p>
+    <div class="alert alert-warning small">
+      <strong>Como leer esta tabla.</strong> Los porcentajes de <b>Despues</b> son una
+      <i>estimacion por simulacion</i>, no una lectura de SQL Server. Las cifras
+      <b>autoritativas</b> son los conteos de ejecucion de la seccion anterior, que salen
+      de <code>etl_log</code>: 12.680 aceptados, 62 duplicados y 247 en revision
+      (141 casos P05 y 106 casos P08). La simulacion puede marcar algun caso adicional
+      porque aplica cada regla por separado, mientras que el paquete las evalua en el
+      orden de sus transformaciones.
+    </div>
+    <div class="alert alert-secondary small">
+      <strong>Universo de comparacion.</strong> La completitud antes y despues se mide
+      sobre las mismas 12.989 filas y las mismas 20 columnas del CSV de origen
+      (259.780 celdas), de modo que la diferencia refleja el tratamiento y no un cambio
+      de denominador. Medirla solo sobre las filas del destino daria 99,90 %, un valor
+      mas alto pero no comparable con la linea base, porque contaria menos celdas.
+      El script deja visibles las dos lecturas.
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Dimension</th>
+            <th class="text-end">Antes</th>
+            <th class="text-end">Despues</th>
+            <th class="text-end">Delta</th>
+            <th>Tratamiento aplicado</th>
+            <th>Cumplimiento</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for i in indicadores %}
+          <tr>
+            <td><strong>{{ i.dimension }}</strong></td>
+            <td class="text-end">{{ i.antes }}</td>
+            <td class="text-end fw-bold">{{ i.despues }}</td>
+            <td class="text-end">
+              {% if i.mejora == 'si' %}<span class="text-success fw-semibold">{{ i.delta }}</span>
+              {% elif i.delta == '+0.00 pp' %}<span class="text-secondary">{{ i.delta }}</span>
+              {% else %}<span class="text-warning fw-semibold">{{ i.delta }}</span>{% endif %}
+            </td>
+            <td class="small">{{ i.tratamiento }}</td>
+            <td class="small">
+              {% if 'No cumple' in i.cumplimiento %}<span class="text-danger">{{ i.cumplimiento }}</span>
+              {% else %}<span class="text-success">{{ i.cumplimiento }}</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="h6 text-secondary mt-3 mb-2">Definiciones y como se midio cada indicador</h3>
+    <div class="accordion" id="accDef">
+    {% for i in indicadores %}
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#def{{ loop.index }}">{{ i.dimension }}</button>
+        </h2>
+        <div id="def{{ loop.index }}" class="accordion-collapse collapse"
+             data-bs-parent="#accDef">
+          <div class="accordion-body small">
+            <p class="mb-1"><b>Definicion:</b> {{ i.definicion }}</p>
+            <p class="mb-1"><b>Formula:</b> <code>{{ i.formula }}</code></p>
+            <p class="mb-0"><b>Calculo en la etapa 2:</b> <code>{{ i.calculo_antes }}</code></p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+
+    <h3 class="h6 text-secondary mt-3 mb-2">Que mejora y que queda pendiente</h3>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <div class="card border-0 h-100" style="background:#f2f9f4">
+          <div class="card-body p-3">
+            <h4 class="h6 mb-2" style="color:#198754">Mejoras obtenidas</h4>
+            <ul class="small mb-0">
+              <li><b>Consistencia (+5,20 pp)</b> es la mayor ganancia y la mas solida: la
+                  clasificacion de riesgo deja de contradecir al IRCA porque se deriva de el,
+                  y quedan normalizadas las 136 fechas en formato alterno y los 24 municipios
+                  que tenian mas de una escritura.</li>
+              <li><b>Completitud (+2,54 pp)</b> sube menos de lo que sugiere el total de celdas
+                  vacias, porque la mayor parte de la mejora no viene de las 1.299 celdas
+                  imputadas (765 de precipitacion y 534 de temperatura) sino de las 5.279
+                  celdas de <code>sistema_abastecimiento</code> marcadas <code>N/A</code>, que
+                  P04 no se limita a rellenar: las convierten en la categoria explicita
+                  <i>Fuera de cobertura EAAB</i>, que es un dato valido y no una celda nula.
+                  Las 405 celdas de IRCA ausente siguen vacias a proposito, porque P03 decide
+                  no inventar un valor de riesgo.</li>
+              <li><b>Unicidad (+0,49 pp)</b> llega al 100 % porque la llave del destino
+                  descarta la fila repetida antes de escribirla.</li>
+              <li><b>Validez baja 0,01 pp.</b> No es una regresion del proceso: el IRCA
+                  negativo se excluye del denominador porque P08 lo manda a revision, y
+                  queda un vacio de 0,01 pp. Publicarlo asi es preferible a ocultarlo con un
+                  redondeo.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card border-0 h-100" style="background:#fffaf0">
+          <div class="card-body p-3">
+            <h4 class="h6 mb-2" style="color:#b26a00">Problemas pendientes</h4>
+            <ul class="small mb-0">
+              <li><b>Actualidad (0,00 pp) no cumple RC06</b> y ningun ETL lo puede resolver:
+                  depende de cada cuanto publica la fuente externa. La ultima observacion
+                  es del 2025-12-31 y el analisis se ejecuta el 2026-09-09, con 252 dias de
+                  rezago. Se documenta como limitacion, no como fallo del proceso.</li>
+              <li><b>Exactitud queda en 91,34 %</b> de forma deliberada: los atipicos se
+                  MARCAN, no se eliminan. Borrarlos mejoraria el numero y perderia
+                  informacion real, que es justo lo que evita P17-P19.</li>
+              <li><b>247 registros en revision (1,9 %)</b> son rechazos de negocio correctos:
+                  141 casos <code>Global</code> (P05) y 106 IRCA negativos (P08). No se
+                  resuelven porque el dato de origen no permite hacerlo.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================= EJEMPLOS ANTES / DESPUES ================= -->
+{% if ejemplos %}
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Ejemplos concretos de datos antes y despues</h2>
+    <p class="small">
+      Cada fila de esta tabla se extrajo del conjunto real aplicando las reglas del paquete,
+      no se escribio a mano. Sirven para ver, dato por dato, que cambio y por que.
+    </p>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:5%">Regla</th>
+            <th style="width:18%">Problema</th>
+            <th style="width:15%">Campo</th>
+            <th style="width:22%">Antes</th>
+            <th style="width:22%">Despues</th>
+            <th>Por que</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for e in ejemplos %}
+          <tr>
+            <td><span class="badge bg-primary">{{ e.regla }}</span></td>
+            <td>{{ e.problema }}</td>
+            <td><code>{{ e.campo }}</code></td>
+            <td><del class="text-danger">{{ e.antes }}</del></td>
+            <td><ins class="text-success text-decoration-none">{{ e.despues }}</ins></td>
+            <td class="small text-muted">{{ e.por_que }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+    <span class="small text-muted me-2">Continuar con:</span>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3_reglas') }}">Reglas de tratamiento</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3_informe') }}">Componentes del paquete</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('etapa3_video') }}">
+      Video de demostracion{% if not hay_video %} <span class="badge bg-secondary">pendiente</span>{% endif %}</a>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning small">
+  No se encontro <code>resultados_iteraciones.csv</code>. Ejecute el paquete SSIS y
+  exporte la consulta E1 de <code>sql/05_consultas_verificacion.sql</code> para
+  regenerar la bitacora.
+</div>
+{% endif %}
+{% endblock %}
