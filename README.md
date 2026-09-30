@@ -124,4 +124,12 @@ Requisitos: SQL Server 2025 (Developer), SSMS y Visual Studio con la extension
 En todas las ejecuciones: recibidos = aceptados + duplicados + revision + ya cargados.
 La re-ejecucion del mismo lote no genera duplicados.
 
+### Video de demostracion
+
+El video de la entrega se incrusta en la pagina `/etapa3/video` con un `<iframe>` a
+`https://www.youtube-nocookie.com/embed/wH8ADSF4i8c` (`youtube-nocookie` no guarda
+cookies de seguimiento). Para cambiarlo basta con definir la variable de entorno
+`ETAPA3_VIDEO_URL` o editar `VIDEO_URL` y `VIDEO_WATCH` en `app.py`; el archivo de
+video no se versiona en el repositorio.
+
 El desarrollo de la Etapa 3 se realiza en la rama `feature/limpieza_de_datos`.

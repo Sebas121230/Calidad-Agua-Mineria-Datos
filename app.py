@@ -155,7 +155,7 @@ def perfilamiento():
     """
     registros = leer_csv("dataset_calidad_agua.csv")
     if not registros:
-        return render_template("etapa2/perfilamiento.html", datos={})
+        return render_template("etapa2/perfilamiento.html", datos=None)
 
     variables = list(registros[0].keys())
     total_celdas = len(registros) * len(variables)
@@ -444,6 +444,169 @@ def tratamiento():
         "etapa2/tratamiento.html",
         tratamiento=tratamiento,
         total_problemas=len(problemas),
+    )
+
+
+# ---------- Etapa 3: proceso ETL con SSIS ----------
+# El video se referencia aqui porque la rúbrica exige que sea reproducible desde
+# la aplicacion. Debe estar publicado con permisos de visualizacion ("cualquier
+# persona con el enlace" o "publico").
+#
+# VIDEO_URL se incrusta en la pagina (etiqueta <iframe>), por eso se usa el
+# formato /embed/ de youtube-nocookie.com: no guarda cookies de seguimiento y no
+# expone el video fuera del reproductor. VIDEO_WATCH es el enlace normal de
+# YouTube, para el boton que abre el video en otra pestana.
+VIDEO_WATCH = "https://www.youtube.com/watch?v=wH8ADSF4i8c"
+VIDEO_URL = os.environ.get(
+    "ETAPA3_VIDEO_URL", "https://www.youtube-nocookie.com/embed/wH8ADSF4i8c"
+)
+
+
+@app.route("/etapa3")
+def etapa3():
+    """Portada de la Etapa 3: panorama del proceso ETL con SSIS."""
+    resultados = leer_csv("resultados_iteraciones.csv")
+
+    # La ultima iteracion aparece dos veces en el log: la carga real del lote y su
+    # re-ejecucion de control. Los indicadores del panorama deben describir la
+    # carga real, no la re-ejecucion (que por definicion deja 0 aceptados y todo
+    # lo demas en ya_cargados).
+    ejecuciones = {}
+    for r in resultados:
+        ejecuciones.setdefault(r["iteracion"], []).append(r)
+    ultima_iteracion = list(ejecuciones)[-1]
+    filas_ultima = ejecuciones[ultima_iteracion]
+    carga = next((f for f in filas_ultima if f["ya_cargados"].strip() in ("", "0")),
+                 filas_ultima[0])
+    repeticion = next((f for f in filas_ultima if f["ya_cargados"].strip() not in ("", "0")),
+                      None)
+
+    recibidos = int(carga["recibidos"])
+
+    return render_template(
+        "etapa3/inicio.html",
+        resultados=resultados,
+        ultima_iteracion=ultima_iteracion,
+        carga=carga,
+        repeticion=repeticion,
+        recibidos=recibidos,
+        pct_aceptados=round(int(carga["aceptados"]) / recibidos * 100, 2) if recibidos else 0,
+        reglas=leer_csv("plan_tratamiento.csv"),
+        video_url=VIDEO_URL,
+        hay_video=bool(VIDEO_URL),
+    )
+
+
+@app.route("/etapa3/reglas")
+def etapa3_reglas():
+    """Reglas de tratamiento derivadas del inventario de la Etapa 2.
+
+    Lee plan_tratamiento.csv, donde cada problema del inventario ya tiene una
+    accion planeada. La Etapa 3 documenta que reglas se aplicaron de verdad en
+    el paquete SSIS y cuales quedaron pendientes.
+    """
+    reglas = leer_csv("plan_tratamiento.csv")
+    problemas = leer_csv("inventario_problemas.csv")
+
+    # Cruce por id: el plan referencia los ids del inventario (P01, P08, ...).
+    por_id = {p["id"]: p for p in problemas}
+    for r in reglas:
+        p = por_id.get(r["id"], {})
+        r["impacto"] = p.get("nivel_impacto", "")
+        r["dimension"] = p.get("dimension_calidad", "")
+        r["porcentaje"] = p.get("porcentaje", "")
+
+    aplicadas = [r for r in reglas if r["id"] in por_id]
+    return render_template(
+        "etapa3/reglas.html",
+        reglas=reglas,
+        aplicadas=aplicadas,
+        problemas=problemas,
+        hay_video=bool(VIDEO_URL),
+    )
+
+
+@app.route("/etapa3/resultados")
+def etapa3_resultados():
+    """Resultados de las tres iteraciones y evidencia de la idempotencia.
+
+    Todo se lee de resultados_iteraciones.csv (export de la consulta E1 del
+    script de verificacion), de modo que la pagina nunca diverge del log real.
+    """
+    resultados = leer_csv("resultados_iteraciones.csv")
+
+    # Ultima ejecucion de cada iteracion, para comparar con su re-ejecucion.
+    por_iteracion = {}
+    for r in resultados:
+        por_iteracion.setdefault(r["iteracion"], []).append(r)
+
+    comparacion = []
+    for it, filas in por_iteracion.items():
+        if len(filas) >= 2:
+            primera, repetida = filas[0], filas[-1]
+            comparacion.append({
+                "iteracion": it,
+                "primera": primera,
+                "repetida": repetida,
+                "delta_aceptados": int(primera["aceptados"]) - int(repetida["aceptados"]),
+                "delta_ya_cargados": int(repetida["ya_cargados"]) - int(primera["ya_cargados"]),
+            })
+
+    return render_template(
+        "etapa3/resultados.html",
+        resultados=resultados,
+        comparacion=comparacion,
+        indicadores=leer_csv("indicadores_comparacion.csv"),
+        ejemplos=leer_csv("ejemplos_antes_despues.csv"),
+        plan=leer_csv("plan_tratamiento.csv"),
+        hay_video=bool(VIDEO_URL),
+    )
+
+
+@app.route("/etapa3/video")
+def etapa3_video():
+    """Video de demostracion del proceso ETL.
+
+    El enlace se configura en VIDEO_URL (arriba) o en la variable de entorno
+    ETAPA3_VIDEO_URL, para no tener que tocar el HTML.
+    """
+    return render_template(
+        "etapa3/video.html", video_url=VIDEO_URL, video_watch=VIDEO_WATCH
+    )
+
+
+@app.route("/etapa3/informe")
+def etapa3_informe():
+    """Descripcion de las tareas y componentes que usa el paquete SSIS.
+
+    Documenta que cajas hay en el Control Flow, cuantos Data Flow Task hay y
+    que hace cada una, componente por componente, con el flujo real del paquete
+    y la funcion que cumple cada regla de tratamiento.
+    """
+    componentes = leer_csv("componentes_paquete.csv")
+    por_ambito = {"Control Flow": [], "DFT Cargar Staging": [], "DFT Limpieza": []}
+    for c in componentes:
+        por_ambito.setdefault(c.get("ambito", ""), []).append(c)
+
+    # Resumen por clase de componente, para el conteo final.
+    clases = {}
+    for c in componentes:
+        if c.get("ambito") == "Control Flow":
+            continue  # las tareas no son componentes de un Data Flow
+        clases.setdefault(c["clase"], []).append(c["componente"])
+    resumen_clases = [
+        {"clase": k, "cantidad": len(v), "componentes": ", ".join(v)}
+        for k, v in sorted(clases.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    ]
+
+    return render_template(
+        "etapa3/informe.html",
+        control_flow=por_ambito["Control Flow"],
+        dft_staging=por_ambito["DFT Cargar Staging"],
+        dft_limpieza=por_ambito["DFT Limpieza"],
+        resumen_clases=resumen_clases,
+        resumen_total=sum(f["cantidad"] for f in resumen_clases),
+        video_url=VIDEO_URL,
     )
 
 

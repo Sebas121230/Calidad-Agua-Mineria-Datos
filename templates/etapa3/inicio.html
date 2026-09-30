@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Etapa 3 &middot; Limpieza de datos con SSIS</h1>
+    <p class="small text-muted mb-0">
+      Tratamiento de los problemas de calidad de la Etapa 2 mediante SQL Server
+      Integration Services, en tres iteraciones documentadas.
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary btn-sm" href="{{ url_for('etapa3_resultados') }}">Resultados</a>
+    <a class="btn btn-outline-success btn-sm" href="{{ url_for('etapa3_informe') }}">
+      <i class="bi bi-diagram-3"></i> Componentes del paquete
+    </a>
+  </div>
+</div>
+
+<!-- ================= OBJETIVO ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Objetivo</h2>
+    <p class="small mb-0">
+      Implementar y verificar un proceso ETL con SSIS para tratar los problemas de calidad
+      identificados en la Etapa 2, realizar tres iteraciones del tratamiento, documentar
+      los resultados y publicar el informe tecnico y el video de demostracion.
+    </p>
+  </div>
+</div>
+
+<!-- ================= INDICADORES ================= -->
+{% if resultados %}
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="small text-muted">Registros recibidos</div>
+        <div class="stat-card"><h3>{{ "{:,}".format(recibidos|int).replace(",", ".") }}</h3></div>
+        <div class="small text-muted">En cada ejecucion</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="small text-muted">Aceptados (iteracion {{ ultima_iteracion }})</div>
+        <div class="stat-card"><h3 class="text-success">{{ "{:,}".format(carga.aceptados|int).replace(",", ".") }}</h3></div>
+        <div class="small text-muted">{{ pct_aceptados }}% del lote</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="small text-muted">En revision</div>
+        <div class="stat-card"><h3 class="text-danger">{{ "{:,}".format(carga.revision|int).replace(",", ".") }}</h3></div>
+        <div class="small text-muted">Con valor original y motivo</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="small text-muted">Duplicados excluidos</div>
+        <div class="stat-card"><h3 class="text-warning">{{ "{:,}".format(carga.duplicados|int).replace(",", ".") }}</h3></div>
+        <div class="small text-muted">
+          {% if repeticion %}{{ "{:,}".format(repeticion.ya_cargados|int).replace(",", ".") }} ya cargados al repetir
+          {% else %}Por la llave del destino{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================= CONTENIDO ================= -->
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Arquitectura del proceso</h2>
+        <p class="small mb-2">
+          El paquete separa tres zonas para poder auditar cada decision y repetir el
+          tratamiento sin volver al archivo original.
+        </p>
+        <div class="small">
+          <div class="d-flex align-items-start mb-2">
+            <span class="badge text-bg-secondary me-2">1</span>
+            <div><strong>Staging</strong><br>
+              <code>stg_calidad_agua</code>: copia integra del CSV, 20 columnas como
+              texto mas <code>lote_id</code> y <code>fecha_carga</code>.
+            </div>
+          </div>
+          <div class="d-flex align-items-start mb-2">
+            <span class="badge text-bg-secondary me-2">2</span>
+            <div><strong>Transformacion</strong><br>
+              Derived Column, Data Conversion, Sort, Aggregate, Lookup y
+              Conditional Split dentro del Data Flow de limpieza.
+            </div>
+          </div>
+          <div class="d-flex align-items-start">
+            <span class="badge text-bg-secondary me-2">3</span>
+            <div><strong>Salidas</strong><br>
+              <code>dst_calidad_agua</code> (destino tipado con llave unica),
+              <code>rev_calidad_agua</code> (revision) y <code>etl_log</code> (bitacora).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Las tres iteraciones</h2>
+        <div class="small">
+          <p class="mb-2">
+            <span class="badge bg-danger me-1">Iteracion 1</span>
+            Normalizacion de nulos, <code>N/A</code>, trim y mayusculas en municipio,
+            fecha ISO e IRCA 0-100. Acepto <strong>1.732</strong> de 12.989.
+          </p>
+          <p class="mb-2">
+            <span class="badge bg-warning text-dark me-1">Iteracion 2</span>
+            LocaleID es-ES, separacion de registros Global (P05), conversion de
+            fechas alternas (P09) y recalculo de la clasificacion (P11/P16).
+            Acepto <strong>12.680</strong>.
+          </p>
+          <p class="mb-0">
+            <span class="badge bg-success me-1">Iteracion 3</span>
+            Lookup contra el destino para evitar recargas. Al repetir el mismo lote
+            se registran <strong>0 aceptados</strong> y
+            <strong>{{ "{:,}".format(12742).replace(",", ".") }} ya cargados</strong>:
+            no se generan duplicados.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Recursos de la entrega</h2>
+        <ul class="small list-unstyled mb-3">
+          <li class="mb-2">
+            <a href="{{ url_for('etapa3_reglas') }}"><strong>Reglas de tratamiento</strong></a>
+            <div class="text-muted">Campo afectado, accion aplicada y justificacion por problema.</div>
+          </li>
+          <li class="mb-2">
+            <a href="{{ url_for('etapa3_informe') }}"><strong>Componentes y tareas del paquete</strong></a>
+            <div class="text-muted">Que cajas usa el SSIS, cuantos Data Flow Task hay y que hace cada componente.</div>
+          </li>
+          <li class="mb-2">
+            <a href="{{ url_for('etapa3_resultados') }}"><strong>Resultados y comparacion</strong></a>
+            <div class="text-muted">Conteos por iteracion y evidencia de idempotencia.</div>
+          </li>
+          <li class="mb-0">
+            <a href="{{ url_for('etapa3_video') }}"><strong>Video de demostracion</strong></a>
+            {% if not hay_video %}<span class="badge bg-secondary ms-1">pendiente</span>{% endif %}
+            <div class="text-muted">Presentacion del paquete, ejecucion y resultados.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ESTRUCTURA ================= -->
+<div class="card shadow-sm border-0 mt-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Paquete SSIS y scripts SQL incluidos en el repositorio</h2>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0">
+        <thead class="table-light">
+          <tr><th style="width:300px">Archivo</th><th>Contenido</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>ETL_CalidadAgua/ETL_CalidadAgua.slnx</code></td>
+              <td>Solucion de Visual Studio, punto de entrada del proyecto SSIS.</td></tr>
+          <tr><td><code>ETL_CalidadAgua/ETL_CalidadAgua/Package.dtsx</code></td>
+              <td>Paquete con el Control Flow, los dos Data Flows y las nueve variables.</td></tr>
+          <tr><td><code>sql/01_crear_staging.sql</code></td>
+              <td>Zona de staging: 20 columnas VARCHAR mas lote_id y fecha_carga.</td></tr>
+          <tr><td><code>sql/02_crear_destino.sql</code></td>
+              <td>Destino con tipos reales, <code>irca_reportado</code> y llave
+                  <code>UNIQUE (iteracion, fecha, municipio, sistema_abastecimiento)</code>.</td></tr>
+          <tr><td><code>sql/03_crear_revision.sql</code></td>
+              <td>Registros rechazados con valor original, <code>campo_afectado</code>,
+                  <code>motivo</code> y <code>regla_id</code>.</td></tr>
+          <tr><td><code>sql/04_crear_log.sql</code></td>
+              <td>Bitacora <code>etl_log</code>: una fila por ejecucion con los conteos.</td></tr>
+          <tr><td><code>sql/05_consultas_verificacion.sql</code></td>
+              <td>Consultas de verificacion, hallazgos y conciliacion (secciones A a F).</td></tr>
+          <tr><td><code>sql/06_sql_del_paquete.sql</code></td>
+              <td>SQL que ejecuta el paquete internamente, documentado para reimplementacion.</td></tr>
+          <tr><td><code>resultados_iteraciones.csv</code></td>
+              <td>Bitacora exportada (consulta E1) con las cuatro ejecuciones registradas.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mt-2 mb-0">
+      El repositorio no contiene contrasenas ni credenciales: la conexion a
+      <code>localhost</code> usa autenticacion de Windows.
+    </p>
+  </div>
+</div>
+{% endblock %}

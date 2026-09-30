@@ -1,0 +1,11 @@
+regla,problema,campo,antes,despues,por_que
+P01,Precipitacion ausente,precipitacion_mm,N/A,"4.0 (mediana de mes 8, region Nacional)","Se imputa con la mediana estacional del mismo mes y region, no con un valor global fijo."
+P03,IRCA ausente,irca,405 celdas vacias,Se dejan vacias y se marcan con irca_reportado = No,No se imputa: inventar un valor de riesgo seria peor que dejar la celda vacia y señalarla.
+P04,Marcador N/A en el sistema de abastecimiento,sistema_abastecimiento,N/A,Fuera de cobertura EAAB,No se rellena con un valor inventado: se convierte en una categoria explicita que conserva el significado.
+P05,Registro fuera del alcance del analisis,tipo_region,Global,Va a rev_calidad_agua (regla P05),El Conditional Split separa los registros Global: no son comparables con el resto y no deben cargarse al destino.
+P07,Fila repetida,fecha + municipio + sistema_abastecimiento,2 filas identicas (2020-05-03 / CHIA / CHINGAZA),Solo 1 llega al destino; las demas van a revision con motivo duplicado,"La llave unica del destino es la segunda red de seguridad: ademas del Lookup, el rechazo por llave alimenta la tabla de duplicados."
+P08,IRCA negativo,irca,-4.38,Va a rev_calidad_agua (regla P08),"Un IRCA negativo no es un valor extremo: es un error de captura. Se rechaza, no se recorta a cero."
+P09,Fecha en formato alterno,fecha,15/08/2023,2023-08-15,Se normaliza a ISO 8601 (AAAA-MM-DD) para que la fecha sea comparable y ordenable.
+P10,Variantes de escritura del municipio,municipio,"""Funza""  (de entre 3 escrituras distintas)","""FUNZA""","Las 3 escrituras colapsan al mismo municipio. Se normalizan con TRIM y mayusculas en el Derived Column, sin un catalogo de equivalencias."
+P11,La clasificacion venia como campo independiente del IRCA,clasificacion_riesgo,"""Bajo riesgo (5-14)"" con irca = -4.38",Rechazo por P08 (IRCA fuera del dominio) en lugar de una etiqueta confiada,"Se detectaron 77 incoherencias de banda en el conjunto original, y ninguna sobrevive en el destino: al derivar la clase siempre del IRCA, el par ya no puede contradecirse. Si el IRCA es invalido, la fila se envia a revision en vez de publicar una etiqueta aparentemente correcta."
+P16,Grafia erronea en el catalogo,clasificacion_riesgo,Inviabile sanitariamente (>40),Inviable sanitariamente (>40),La quinta categoria del catalogo venia mal escrita en las 1.073 filas afectadas.
