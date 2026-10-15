@@ -133,3 +133,53 @@ cookies de seguimiento). Para cambiarlo basta con definir la variable de entorno
 video no se versiona en el repositorio.
 
 El desarrollo de la Etapa 3 se realiza en la rama `feature/limpieza_de_datos`.
+
+## Etapa 4 - Mineria para Descubrimiento de Conocimiento Evidente
+
+### Dimension territorial
+
+
+```
+Calidad-Agua-Mineria-Datos/
+├── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
+├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
+├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
+└── templates/etapa4/
+    └── territorial.html               # Tablero de la dimension territorial
+```
+
+**Por que un script en Python y no la tabla `dst_calidad_agua` de SQL Server:** el
+paquete SSIS de la Etapa 3 corre contra una base de datos local que no se exporta ni
+se versiona en el repositorio. `generar_dataset_limpio.py` aplica, en Python puro,
+las mismas reglas documentadas en `Informe_Etapa3_Calidad_Agua.pdf` (normalizacion,
+validacion P05/P09/P08, clasificacion de riesgo y llave unica fecha+municipio+sistema
+para los duplicados P07), para que el tablero de Flask tenga un dataset limpio sin
+depender de SQL Server. Se valido que coincide **exactamente** con la iteracion 2 del
+ETL real registrada en `resultados_iteraciones.csv`: 12.680 aceptados, 62 duplicados y
+247 en revision sobre 12.989 recibidos.
+
+Para regenerar los archivos limpios:
+
+```bash
+python generar_dataset_limpio.py
+```
+
+**Pregunta de analisis:** ¿la calidad (IRCA) y la disponibilidad del servicio de
+agua varian de forma real entre los municipios de la Sabana de Bogota, o la
+diferencia territorial que realmente importa es otra?
+
+**Hallazgo principal:** no hay una diferencia real entre los 9 municipios de la
+Sabana (rango de 0.2 puntos de IRCA frente a una desviacion estandar intra-municipio
+de ~4.1 a 4.3 puntos: la diferencia es ruido estadistico). La diferencia territorial
+real y grande esta entre **Regional (Sabana) vs Nacional**: 19.52 puntos de brecha en
+IRCA y 17.11 puntos porcentuales en cobertura de acueducto.
+
+**Limitacion conocida:** 8 de los 9 municipios de la Sabana llegan con una variante
+corrupta del nombre (la letra "A" aparece como "@", p. ej. "CHI@" junto a "CHIA").
+Esta corrupcion ya viene del dataset original y el ETL de la Etapa 3 no la corrige
+(su regla P10 solo hace `UPPER(TRIM(...))`). Se homologa unicamente dentro de la capa
+de agregacion del tablero (`app.py`), sin modificar `dataset_calidad_agua_limpio.csv`,
+para no alterar el resultado ya validado de la Etapa 3.
+
+El desarrollo de la Etapa 4 (dimension territorial) se realiza en la rama
+`feature/dim-territorial`.

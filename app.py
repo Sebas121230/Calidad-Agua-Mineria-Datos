@@ -1,8 +1,11 @@
 import csv
+import json
 import os
 from datetime import date
 
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
+
+from generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
 app = Flask(__name__)
@@ -608,6 +611,165 @@ def etapa3_informe():
         resumen_total=sum(f["cantidad"] for f in resumen_clases),
         video_url=VIDEO_URL,
     )
+
+# Etapa 4: dimension territorial
+
+MUNICIPIOS_DISPLAY = {
+    "BOGOTA D.C.": "Bogota D.C.",
+    "CAJICA": "Cajica",
+    "CHIA": "Chia",
+    "FUNZA": "Funza",
+    "MADRID": "Madrid",
+    "MOSQUERA": "Mosquera",
+    "SOACHA": "Soacha",
+    "SOPO": "Sopo",
+    "TOCANCIPA": "Tocancipa",
+}
+
+
+def _homologar_municipio(municipio):
+    return (municipio or "").strip().upper().replace("@", "A")
+
+
+def _promedio(regs, campo):
+    vals = [float(r[campo]) for r in regs if r.get(campo)]
+    return round(sum(vals) / len(vals), 2) if vals else None
+
+
+def _datos_territorial(anio="Todos", nivel_servicio="Todos"):
+    """Agrega el dataset limpio aplicando los filtros (anio, nivel_servicio).
+
+    Entre los 9 municipios de la Sabana el IRCA y la cobertura no tienen
+    diferencia real (0.2 puntos de rango, frente a +-4.1 de ruido dentro de
+    un mismo municipio - verificado sobre el dataset limpio). Por eso la
+    comparacion territorial que de verdad importa es Regional (Sabana/EAAB)
+    vs. Nacional (resto de Colombia), que si tiene una brecha grande y real
+    (cerca de 4x en IRCA, ~17 puntos en cobertura). Se mantienen las 9
+    barras por municipio para mostrar precisamente la ausencia de ese
+    patron, y la mezcla de nivel_servicio por municipio para la vista de
+    disponibilidad, que si varia un poco mas entre municipios.
+
+    Nunca se escribe un numero fijo aqui: todo se recalcula sobre el CSV
+    en cada llamada, para que los filtros siempre reflejen el dato real.
+    """
+    from collections import Counter, defaultdict
+
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    regional = [r for r in registros if r.get("tipo_region") == "Regional"]
+    nacional = [r for r in registros if r.get("tipo_region") == "Nacional"]
+
+    if anio and anio != "Todos":
+        regional = [r for r in regional if r.get("anio") == anio]
+        nacional = [r for r in nacional if r.get("anio") == anio]
+    if nivel_servicio and nivel_servicio != "Todos":
+        regional = [r for r in regional if r.get("nivel_servicio") == nivel_servicio]
+        nacional = [r for r in nacional if r.get("nivel_servicio") == nivel_servicio]
+
+    # Viz 1: IRCA promedio por municipio (solo Regional)
+    por_municipio = defaultdict(list)
+    for r in regional:
+        por_municipio[_homologar_municipio(r["municipio"])].append(r)
+
+    irca_por_municipio = []
+    servicio_por_municipio = []
+    for clave, regs in sorted(por_municipio.items()):
+        nombre = MUNICIPIOS_DISPLAY.get(clave, clave.title())
+        promedio_irca = _promedio(regs, "irca")
+        irca_por_municipio.append({
+            "municipio": nombre,
+            "irca_promedio": promedio_irca,
+            "clasificacion": clasificar_riesgo(promedio_irca) if promedio_irca is not None else "Sin dato",
+            "n": len(regs),
+        })
+
+        # Viz 3: mezcla de nivel_servicio por municipio (solo Regional)
+        conteo = Counter(r["nivel_servicio"] for r in regs if r.get("nivel_servicio"))
+        total = sum(conteo.values()) or 1
+        servicio_por_municipio.append({
+            "municipio": nombre,
+            "Continuo": round(conteo.get("Continuo", 0) / total * 100, 2),
+            "Intermitente": round(conteo.get("Intermitente", 0) / total * 100, 2),
+            "Racionado": round(conteo.get("Racionado", 0) / total * 100, 2),
+            "Sin servicio": round(conteo.get("Sin servicio", 0) / total * 100, 2),
+        })
+
+    # Viz 2: comparacion Regional vs Nacional (IRCA y cobertura)
+    comparacion_regional_nacional = [
+        {
+            "region": "Regional (Sabana)",
+            "irca_promedio": _promedio(regional, "irca"),
+            "cobertura_promedio": _promedio(regional, "cobertura_acueducto_pct"),
+            "n": len(regional),
+        },
+        {
+            "region": "Nacional",
+            "irca_promedio": _promedio(nacional, "irca"),
+            "cobertura_promedio": _promedio(nacional, "cobertura_acueducto_pct"),
+            "n": len(nacional),
+        },
+    ]
+
+    continuos = sum(1 for r in regional if r.get("nivel_servicio") == "Continuo")
+    irca_regional = _promedio(regional, "irca")
+    irca_nacional = _promedio(nacional, "irca")
+    cobertura_regional = _promedio(regional, "cobertura_acueducto_pct")
+    cobertura_nacional = _promedio(nacional, "cobertura_acueducto_pct")
+
+    indicadores = {
+        "irca_regional": irca_regional,
+        "irca_nacional": irca_nacional,
+        "brecha_irca": round(irca_nacional - irca_regional, 2) if irca_regional is not None and irca_nacional is not None else None,
+        "cobertura_regional": cobertura_regional,
+        "cobertura_nacional": cobertura_nacional,
+        "brecha_cobertura_pp": round(cobertura_regional - cobertura_nacional, 2) if cobertura_regional is not None and cobertura_nacional is not None else None,
+        "pct_continuo_regional": round(continuos / len(regional) * 100, 2) if regional else None,
+        "n_regional": len(regional),
+        "n_nacional": len(nacional),
+        "n_municipios": len(por_municipio),
+    }
+
+    return {
+        "indicadores": indicadores,
+        "irca_por_municipio": irca_por_municipio,
+        "servicio_por_municipio": servicio_por_municipio,
+        "comparacion_regional_nacional": comparacion_regional_nacional,
+    }
+
+
+@app.route("/etapa4/territorial")
+def etapa4_territorial():
+    """Tablero de la dimension territorial.
+
+    Pregunta de analisis: como varian la disponibilidad (continuidad del
+    servicio) y la calidad del agua (IRCA, cobertura) entre los municipios
+    de la Sabana y Bogota D.C.? Los filtros (anio, nivel de servicio) se
+    aplican en el cliente contra /etapa4/territorial/datos.
+    """
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    regional = [r for r in registros if r.get("tipo_region") == "Regional"]
+    if not regional:
+        return render_template("etapa4/territorial.html", hay_datos=False)
+
+    anios = sorted({r["anio"] for r in registros if r.get("tipo_region") in ("Regional", "Nacional")})
+    niveles = sorted({r["nivel_servicio"] for r in registros
+                       if r.get("tipo_region") in ("Regional", "Nacional") and r.get("nivel_servicio")})
+    datos_iniciales = _datos_territorial()
+
+    return render_template(
+        "etapa4/territorial.html",
+        hay_datos=True,
+        anios=anios,
+        niveles=niveles,
+        datos_json=json.dumps(datos_iniciales),
+    )
+
+
+@app.route("/etapa4/territorial/datos")
+def etapa4_territorial_datos():
+    """API en JSON que alimenta los filtros interactivos del tablero."""
+    anio = request.args.get("anio", "Todos")
+    nivel_servicio = request.args.get("nivel_servicio", "Todos")
+    return jsonify(_datos_territorial(anio=anio, nivel_servicio=nivel_servicio))
 
 
 # Ejecutar el servidor en modo desarrollo

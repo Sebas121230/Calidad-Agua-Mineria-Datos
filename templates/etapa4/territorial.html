@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --series-1:       #2a78d6; /* Regional (Sabana) */
+    --series-2:       #eb6834; /* Nacional */
+    --status-good:    #0ca30c; /* Continuo */
+    --status-warning: #fab219; /* Intermitente */
+    --status-serious: #ec835a; /* Racionado */
+    --status-critical:#d03b3b; /* Sin servicio */
+  }
+  .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
+  .viz-root .interpretacion {
+    font-size: .88rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--gridline);
+    padding: .5rem .9rem;
+    margin-top: .5rem;
+  }
+  .viz-root .stat-tile h3 { color: var(--text-primary); }
+  .viz-root .stat-tile .lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .conocimiento dt { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-top: .6rem; }
+  .conocimiento dd { margin-bottom: 0; }
+</style>
+
+<div class="viz-root">
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Etapa 4 &middot; Dimension territorial</h1>
+      </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+</div>
+
+{% if not hay_datos %}
+<div class="alert alert-warning">
+  No se encontro <code>dataset_calidad_agua_limpio.csv</code> en el proyecto. Genera primero
+  ese archivo (ver <code>generar_dataset_limpio.py</code>) y vuelve a cargar esta pagina.
+</div>
+{% else %}
+
+<!-- ================= TITULO Y PREGUNTA ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">Comparacion territorial de la calidad y disponibilidad del agua</h2>
+    <p class="mb-2">
+      <strong>Pregunta de analisis:</strong> ¿la calidad (IRCA) y la disponibilidad del
+      servicio de agua varian de forma real entre los municipios de la Sabana de Bogota,
+      o la diferencia territorial que realmente importa es otra?
+    </p>
+    <p class="small text-muted mb-0">
+      Se analizan los <strong>7.440</strong> registros <code>Regional</code> (los 9 municipios
+      de la Sabana: Bogota D.C., Cajica, Chia, Funza, Madrid, Mosquera, Soacha, Sopo y
+      Tocancipa) frente a los <strong>4.978</strong> registros <code>Nacional</code>, sobre el
+      dataset limpio de la Etapa 3 (12.680 registros validos de 12.989 recibidos).
+    </p>
+  </div>
+</div>
+
+<!-- ================= VARIABLES ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Variables usadas en esta dimension</h2>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0">
+        <thead><tr><th>Variable</th><th>Tipo</th><th>Descripcion</th></tr></thead>
+        <tbody>
+          <tr><td><code>tipo_region</code></td><td>Categorica</td><td>Regional (Sabana) o Nacional. Es la variable territorial de mayor efecto real en este dataset.</td></tr>
+          <tr><td><code>municipio</code></td><td>Categorica</td><td>Uno de los 9 municipios de la Sabana (solo para registros Regional). Homologado en mayusculas; se corrigio manualmente la variante con "@" en vez de "A".</td></tr>
+          <tr><td><code>irca</code></td><td>Numerica (0-100)</td><td>Indice de Riesgo de la Calidad del Agua. A menor valor, menor riesgo.</td></tr>
+          <tr><td><code>cobertura_acueducto_pct</code></td><td>Numerica (0-100)</td><td>Porcentaje de la poblacion del municipio/region con cobertura de acueducto.</td></tr>
+          <tr><td><code>nivel_servicio</code></td><td>Categorica</td><td>Continuo, Intermitente, Racionado o Sin servicio.</td></tr>
+          <tr><td><code>anio</code></td><td>Filtro</td><td>2019 a 2025. Filtro interactivo de esta pagina.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FILTROS ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <label for="filtroAnio" class="form-label small mb-1">Año</label>
+      <select id="filtroAnio" class="form-select form-select-sm">
+        <option value="Todos">Todos los años</option>
+        {% for a in anios %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtroNivel" class="form-label small mb-1">Nivel de servicio</label>
+      <select id="filtroNivel" class="form-select form-select-sm">
+        <option value="Todos">Todos los niveles</option>
+        {% for n in niveles %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="small text-muted">Los indicadores y las 3 graficas se recalculan con los filtros.</div>
+  </div>
+</div>
+
+<!-- ================= INDICADORES ================= -->
+<div class="row g-3 mb-3" id="indicadores">
+  <!-- Se llena por JS -->
+</div>
+
+<!-- ================= VISUALIZACION 1 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">1. IRCA promedio por municipio de la Sabana</h2>
+    <p class="small text-muted mb-2">
+      Barras por municipio con la banda gris de ±1 desviacion estandar intra-municipio
+      (ruido esperado), para distinguir diferencia real de variacion normal del dato.
+    </p>
+    <div id="chart-irca-municipio" class="plot-box" style="width:100%;height:380px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Con todos los filtros en "Todos", las medias por
+      municipio van de <strong>6.52 a 6.72</strong> (rango de 0.2 puntos), mientras que la
+      desviacion estandar dentro de cada municipio es de <strong>~4.1 a 4.3 puntos</strong>
+      (4.17 para el conjunto Regional completo). El rango entre municipios es casi 20 veces
+      menor que el ruido normal de la medicion: las barras caen dentro de la misma banda
+      gris, es decir, dentro de lo esperable por variacion aleatoria y no por una diferencia
+      real de riesgo sanitario entre municipios.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 2 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">2. Regional (Sabana) vs Nacional: IRCA y cobertura</h2>
+    <p class="small text-muted mb-2">
+      Dos graficas de barras (misma escala 0-100, sin eje doble) que comparan los
+      mismos dos grupos territoriales en IRCA y en cobertura de acueducto.
+    </p>
+    <div id="chart-regional-nacional" class="plot-box" style="width:100%;height:380px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Sin filtros, el IRCA promedio Regional es
+      <strong>6.61</strong> frente a <strong>26.13</strong> a nivel Nacional (brecha de
+      <strong>19.52</strong> puntos), y la cobertura de acueducto Regional es
+      <strong>94.88%</strong> frente a <strong>77.77%</strong> Nacional (brecha de
+      <strong>17.11</strong> puntos porcentuales). A diferencia de la comparacion entre
+      municipios de la Sabana (grafica 1), esta si es una diferencia territorial real y
+      grande.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 3 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">3. Mezcla de niveles de servicio por municipio</h2>
+    <p class="small text-muted mb-2">
+      Barras 100% apiladas por municipio. Los colores de estado (verde/amarillo/
+      naranja/rojo) son fijos y nunca se reutilizan como colores de serie.
+    </p>
+    <div id="chart-servicio-municipio" class="plot-box" style="width:100%;height:420px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Sin filtros, el porcentaje de registros en
+      "Continuo" va de <strong>78.6%</strong> (Sopo) a <strong>83.9%</strong> (Funza) entre
+      los 9 municipios, un rango de apenas 5.3 puntos porcentuales, con Intermitente,
+      Racionado y Sin servicio repartidos de forma similar (entre 4% y 8%) en todos. Ningun
+      municipio de la Sabana tiene una disponibilidad de servicio claramente mejor o peor
+      que los demas.
+    </div>
+  </div>
+</div>
+
+<!-- ================= CONOCIMIENTOS EVIDENTES ================= -->
+<h2 class="h5 mt-4 mb-3">Conocimientos evidentes</h2>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 1</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿El IRCA promedio varia de forma real entre los 9 municipios de la Sabana de Bogota?</dd>
+      <dt>Variables</dt>
+      <dd><code>municipio</code>, <code>irca</code> (solo registros <code>tipo_region = Regional</code>).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el IRCA promedio y la desviacion estandar por municipio homologado
+        (mayusculas, corrigiendo la variante con "@"), y se comparo el rango entre las
+        9 medias contra la desviacion estandar intra-municipio.</dd>
+      <dt>Evidencia</dt>
+      <dd>Medias por municipio entre 6.52 (Sopo) y 6.72 (Mosquera); desviacion estandar
+        intra-municipio entre 4.01 y 4.27; desviacion estandar del conjunto Regional
+        completo (7.440 registros): 4.17.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El rango entre municipios (0.2 puntos) es aproximadamente 20 veces menor que la
+        variacion normal dentro de un mismo municipio (4.17 puntos).</dd>
+      <dt>Interpretacion</dt>
+      <dd>La diferencia entre municipios de la Sabana es ruido estadistico, no una
+        diferencia real de riesgo sanitario: los 9 municipios comparten el mismo nivel
+        base de IRCA.</dd>
+      <dt>Utilidad</dt>
+      <dd>Evita que se prioricen o se vigile con mayor rigor a un municipio de la Sabana
+        sobre otro con base solo en el IRCA; los recursos deberian repartirse de forma
+        uniforme entre los 9.</dd>
+      <dt>Limitacion</dt>
+      <dd>El dataset combina datos reales con generacion sintetica y puede no capturar
+        diferencias reales de infraestructura; ademas, 8 de los 9 municipios llegan con una
+        variante corrupta del nombre ("@" en vez de "A") que se corrigio manualmente fuera
+        del dataset limpio oficial de la Etapa 3.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 2</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Hay una diferencia territorial real entre la zona Regional (Sabana) y el nivel
+        Nacional, en calidad y en cobertura de agua?</dd>
+      <dt>Variables</dt>
+      <dd><code>tipo_region</code>, <code>irca</code>, <code>cobertura_acueducto_pct</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el promedio de IRCA y de cobertura de acueducto para cada valor de
+        <code>tipo_region</code> (Regional, n=7.440; Nacional, n=4.978) y se comparo la
+        diferencia absoluta entre ambos.</dd>
+      <dt>Evidencia</dt>
+      <dd>IRCA: 6.61 Regional vs 26.13 Nacional (brecha 19.52 puntos). Cobertura: 94.88%
+        Regional vs 77.77% Nacional (brecha 17.11 puntos porcentuales).</dd>
+      <dt>Hallazgo</dt>
+      <dd>La brecha Regional-Nacional es casi 100 veces mayor que la brecha encontrada
+        entre municipios de la Sabana (conocimiento 1).</dd>
+      <dt>Interpretacion</dt>
+      <dd>La Sabana de Bogota tiene condiciones de agua sustancialmente mejores que el
+        promedio nacional; la clasificacion territorial que realmente discrimina el riesgo
+        en este dataset es Regional vs Nacional, no el municipio especifico dentro de la
+        Sabana.</dd>
+      <dt>Utilidad</dt>
+      <dd>Orienta la priorizacion de inversion e intervencion a la brecha regional-nacional,
+        en vez de a comparaciones intra-Sabana que no tienen soporte en los datos.</dd>
+      <dt>Limitacion</dt>
+      <dd>"Nacional" agrega muchos municipios heterogeneos fuera de la Sabana en un solo
+        grupo; esta comparacion no permite saber cuales municipios nacionales especificos
+        estan mejor o peor.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 3</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿La disponibilidad del servicio (continuo, intermitente, racionado, sin servicio)
+        varia entre los municipios de la Sabana?</dd>
+      <dt>Variables</dt>
+      <dd><code>municipio</code>, <code>nivel_servicio</code> (solo registros Regional).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el porcentaje de registros en cada nivel de servicio, por municipio
+        homologado, sobre el total de registros Regional de cada municipio.</dd>
+      <dt>Evidencia</dt>
+      <dd>% Continuo entre 78.6% (Sopo) y 83.9% (Funza); Intermitente, Racionado y Sin
+        servicio entre 4% y 8% en los 9 municipios, sin un patron de municipio con peor
+        disponibilidad.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El rango de continuidad entre municipios (5.3 puntos porcentuales) es pequeño
+        frente a la variacion que si existe entre años (ver limitacion).</dd>
+      <dt>Interpretacion</dt>
+      <dd>Confirma el conocimiento 1: el municipio especifico de la Sabana no explica
+        diferencias de disponibilidad del servicio; el factor territorial relevante sigue
+        siendo Regional vs Nacional.</dd>
+      <dt>Utilidad</dt>
+      <dd>Refuerza que las politicas de disponibilidad del servicio deben aplicarse de
+        forma uniforme a toda la Sabana, sin focalizarse en un municipio particular.</dd>
+      <dt>Limitacion</dt>
+      <dd>Este porcentaje agrega los 7 años del dataset (2019-2025) y oculta que la
+        interrupcion del servicio esta concentrada en 2024-2025 (continuidad regional cae
+        de 100% en 2019-2023 a 43.91% en 2024); esa variacion es temporal, no territorial, y
+        queda fuera del alcance de esta dimension. Puede explorarse con el filtro de año de
+        esta misma pagina.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= LIMITACION Y DECISION ================= -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Limitacion general de la dimension</h2>
+        <p class="small mb-0">
+          El dataset limpio usado aqui reproduce en Python el resultado del paquete SSIS de
+          la Etapa 3 (validado exactamente contra <code>resultados_iteraciones.csv</code>:
+          12.680 aceptados, 62 duplicados, 247 en revision sobre 12.989 recibidos), pero no
+          corrige una inconsistencia de origen: 8 de los 9 municipios de la Sabana llegan
+          con una variante donde la letra "A" aparece como "@" (p. ej. "CHI@" junto a
+          "CHIA"). Esa correccion solo se aplica en la capa de agregacion de esta pagina, no
+          en el archivo limpio oficial, para no alterar el resultado validado de la Etapa 3.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Decision sustentada en datos</h2>
+        <p class="small mb-0">
+          No se recomienda priorizar ningun municipio de la Sabana sobre otro en
+          vigilancia o inversion territorial basada en IRCA o en nivel de servicio, porque
+          la diferencia entre ellos (0.2 puntos de IRCA; 5.3 puntos porcentuales de
+          continuidad) esta dentro del ruido normal del dato. La comparacion territorial que
+          si debe guiar decisiones es Regional vs Nacional, donde la brecha es real y grande
+          (19.52 puntos de IRCA; 17.11 puntos porcentuales de cobertura).
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /viz-root -->
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+(function () {
+  var datosIniciales = {{ datos_json|safe }};
+  var COLOR = {
+    regional: "#2a78d6",
+    nacional: "#eb6834",
+    good: "#0ca30c",
+    warning: "#fab219",
+    serious: "#ec835a",
+    critical: "#d03b3b",
+    muted: "#898781",
+    secondary: "#52514e",
+    grid: "#e1e0d9"
+  };
+  var LAYOUT_BASE = {
+    paper_bgcolor: "#fcfcfb",
+    plot_bgcolor: "#fcfcfb",
+    font: { family: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#52514e", size: 12 },
+    margin: { t: 30, r: 20, b: 60, l: 60 }
+  };
+
+  function fmt(n) {
+    if (n === null || n === undefined) return "s/d";
+    return n.toLocaleString("es-CO", { maximumFractionDigits: 2 });
+  }
+
+  function renderIndicadores(ind) {
+    var cont = document.getElementById("indicadores");
+    var tiles = [
+      { lbl: "IRCA Regional (Sabana)", val: fmt(ind.irca_regional), sub: "n=" + fmt(ind.n_regional) },
+      { lbl: "IRCA Nacional", val: fmt(ind.irca_nacional), sub: "n=" + fmt(ind.n_nacional) },
+      { lbl: "Brecha IRCA (Nacional - Regional)", val: fmt(ind.brecha_irca), sub: "puntos" },
+      { lbl: "Cobertura Regional", val: ind.cobertura_regional !== null ? fmt(ind.cobertura_regional) + "%" : "s/d", sub: "acueducto" },
+      { lbl: "Brecha de cobertura", val: ind.brecha_cobertura_pp !== null ? fmt(ind.brecha_cobertura_pp) + " pp" : "s/d", sub: "Regional - Nacional" },
+      { lbl: "% Continuo (Regional)", val: ind.pct_continuo_regional !== null ? fmt(ind.pct_continuo_regional) + "%" : "s/d", sub: "nivel de servicio" }
+    ];
+    cont.innerHTML = tiles.map(function (t) {
+      return '<div class="col-6 col-md-4 col-lg-2">' +
+        '<div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body py-3 text-center">' +
+        '<h3 class="mb-1">' + t.val + '</h3>' +
+        '<div class="lbl">' + t.lbl + '</div>' +
+        '<div class="small text-muted">' + t.sub + '</div>' +
+        '</div></div></div>';
+    }).join("");
+  }
+
+  function renderChartIrcaMunicipio(lista) {
+    var municipios = lista.map(function (d) { return d.municipio; });
+    var medias = lista.map(function (d) { return d.irca_promedio; });
+    var valores = medias.filter(function (v) { return v !== null; });
+    var media_global = valores.length ? valores.reduce(function (a, b) { return a + b; }, 0) / valores.length : null;
+    var sd = 4.17; // desviacion estandar intra-municipio verificada sobre el conjunto Regional completo
+
+    var traces = [{
+      type: "bar",
+      x: municipios,
+      y: medias,
+      marker: { color: COLOR.regional },
+      hovertemplate: "%{x}<br>IRCA promedio: %{y:.2f}<extra></extra>",
+      name: "IRCA promedio"
+    }];
+
+    var shapes = [];
+    var annotations = [];
+    if (media_global !== null) {
+      shapes.push({
+        type: "rect", xref: "paper", x0: 0, x1: 1,
+        y0: media_global - sd, y1: media_global + sd,
+        fillcolor: "rgba(137,135,129,0.15)", line: { width: 0 }, layer: "below"
+      });
+      shapes.push({
+        type: "line", xref: "paper", x0: 0, x1: 1,
+        y0: media_global, y1: media_global,
+        line: { color: COLOR.muted, width: 1, dash: "dash" }
+      });
+      annotations.push({
+        xref: "paper", x: 1, y: media_global + sd, xanchor: "right", yanchor: "bottom",
+        text: "banda de ±1 SD intra-municipio (ruido esperado)",
+        showarrow: false, font: { size: 10, color: COLOR.muted }
+      });
+    }
+
+    Plotly.newPlot("chart-irca-municipio", traces, Object.assign({}, LAYOUT_BASE, {
+      yaxis: { title: "IRCA promedio", gridcolor: COLOR.grid, zeroline: false, range: [0, Math.max(15, media_global ? media_global + sd + 2 : 15)] },
+      xaxis: { tickangle: -25 },
+      shapes: shapes,
+      annotations: annotations,
+      showlegend: false
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function renderChartRegionalNacional(lista) {
+    var porRegion = {};
+    lista.forEach(function (d) { porRegion[d.region] = d; });
+    var regional = porRegion["Regional (Sabana)"] || {};
+    var nacional = porRegion["Nacional"] || {};
+
+    var traceIrca = {
+      type: "bar", x: ["Regional (Sabana)", "Nacional"],
+      y: [regional.irca_promedio, nacional.irca_promedio],
+      marker: { color: [COLOR.regional, COLOR.nacional] },
+      hovertemplate: "%{x}<br>IRCA promedio: %{y:.2f}<extra></extra>",
+      xaxis: "x", yaxis: "y", showlegend: false
+    };
+    var traceCobertura = {
+      type: "bar", x: ["Regional (Sabana)", "Nacional"],
+      y: [regional.cobertura_promedio, nacional.cobertura_promedio],
+      marker: { color: [COLOR.regional, COLOR.nacional] },
+      hovertemplate: "%{x}<br>Cobertura: %{y:.2f}%<extra></extra>",
+      xaxis: "x2", yaxis: "y2", showlegend: false
+    };
+
+    Plotly.newPlot("chart-regional-nacional", [traceIrca, traceCobertura], Object.assign({}, LAYOUT_BASE, {
+      xaxis: { domain: [0, 0.46] },
+      yaxis: { title: "IRCA promedio (0-100)", gridcolor: COLOR.grid, range: [0, 100] },
+      xaxis2: { domain: [0.54, 1] },
+      yaxis2: { title: "Cobertura acueducto (%)", gridcolor: COLOR.grid, range: [0, 100] },
+      annotations: [
+        { text: "IRCA promedio", x: 0.23, y: 1.12, xref: "paper", yref: "paper", showarrow: false, font: { size: 12, color: "#52514e" } },
+        { text: "Cobertura de acueducto", x: 0.77, y: 1.12, xref: "paper", yref: "paper", showarrow: false, font: { size: 12, color: "#52514e" } }
+      ]
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function renderChartServicioMunicipio(lista) {
+    var municipios = lista.map(function (d) { return d.municipio; });
+    var categorias = [
+      { key: "Continuo", name: "✔ Continuo", color: COLOR.good },
+      { key: "Intermitente", name: "➜ Intermitente", color: COLOR.warning },
+      { key: "Racionado", name: "⚠ Racionado", color: COLOR.serious },
+      { key: "Sin servicio", name: "✕ Sin servicio", color: COLOR.critical }
+    ];
+    var traces = categorias.map(function (c) {
+      return {
+        type: "bar", orientation: "h",
+        y: municipios,
+        x: lista.map(function (d) { return d[c.key] || 0; }),
+        name: c.name,
+        marker: { color: c.color },
+        hovertemplate: "%{y}<br>" + c.name + ": %{x:.1f}%<extra></extra>"
+      };
+    });
+
+    Plotly.newPlot("chart-servicio-municipio", traces, Object.assign({}, LAYOUT_BASE, {
+      barmode: "stack",
+      xaxis: { title: "% de registros", range: [0, 100], gridcolor: COLOR.grid },
+      yaxis: { automargin: true },
+      legend: { orientation: "h", y: -0.2 }
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function render(data) {
+    renderIndicadores(data.indicadores);
+    renderChartIrcaMunicipio(data.irca_por_municipio);
+    renderChartRegionalNacional(data.comparacion_regional_nacional);
+    renderChartServicioMunicipio(data.servicio_por_municipio);
+  }
+
+  function aplicarFiltros() {
+    var anio = document.getElementById("filtroAnio").value;
+    var nivel = document.getElementById("filtroNivel").value;
+    fetch("{{ url_for('etapa4_territorial_datos') }}?anio=" + encodeURIComponent(anio) + "&nivel_servicio=" + encodeURIComponent(nivel))
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function (err) { console.error("No se pudieron cargar los datos filtrados:", err); });
+  }
+
+  document.getElementById("filtroAnio").addEventListener("change", aplicarFiltros);
+  document.getElementById("filtroNivel").addEventListener("change", aplicarFiltros);
+
+  render(datosIniciales);
+})();
+</script>
+{% endif %}
+{% endblock %}
