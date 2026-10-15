@@ -4,15 +4,23 @@ El dataset de calidad del agua no trae ninguna variable de poblacion, por eso
 se usa una fuente externa: DANE, Serie municipal de poblacion por area,
 periodo 2018-2042 (CNPV 2018, publicada el 8 de agosto de 2025).
 Archivo original sin modificar: fuentes/PPED-AreaMun-2018-2042_VP.xlsx
+
+Se usa openpyxl (Python puro) en lugar de pandas, igual que app.py usa el
+modulo csv, para no depender de librerias compiladas.
 """
-import pandas as pd
+import csv
+
+from openpyxl import load_workbook
 
 ARCHIVO = "fuentes/PPED-AreaMun-2018-2042_VP.xlsx"
+HOJA = "PobMunicipalxÁrea"
 SALIDA = "poblacion_municipios.csv"
+ANIO_INICIO, ANIO_FIN = 2019, 2025
 
 # Nombre como aparece en nuestro dataset -> codigo DIVIPOLA del DANE.
 # Se cruza por codigo y no por nombre porque el DANE escribe con tildes
-# ("Cajicá", "Bogotá, D.C.") y nuestro dataset no (y a veces trae "CHI@").
+# ("Cajicá", "Bogotá, D.C.", "San José de Cúcuta") y nuestro dataset no
+# (y a veces trae "CHI@").
 CODIGOS = {
     # Sabana (Regional)
     "BOGOTA D.C.": "11001",
@@ -46,30 +54,42 @@ CODIGOS = {
     "IBAGUE": "73001",
     "CALI": "76001",
 }
+NOMBRE_POR_CODIGO = {codigo: nombre for nombre, codigo in CODIGOS.items()}
 
-# Los encabezados estan en la fila 8 de Excel -> header=7 (pandas cuenta desde 0).
-# MPIO se lee como texto para no perder el cero inicial (05001, no 5001).
-df = pd.read_excel(ARCHIVO, sheet_name="PobMunicipalxÁrea", header=7, dtype={"MPIO": str})
+hoja = load_workbook(ARCHIVO, read_only=True)[HOJA]
 
-# Solo el total del municipio (no cabecera ni rural) y los anios del dataset.
-df = df[df["ÁREA GEOGRÁFICA"] == "Total"]
-df = df[(df["AÑO"] >= 2019) & (df["AÑO"] <= 2025)]
-df = df[df["MPIO"].isin(CODIGOS.values())]
+# Los encabezados estan en la fila 8 de Excel; los datos empiezan despues.
+filas = hoja.iter_rows(min_row=8, values_only=True)
+encabezados = next(filas)
+col = {nombre: i for i, nombre in enumerate(encabezados)}
 
-# Renombrar al formato del proyecto y agregar el nombre como esta en el dataset.
-nombre_por_codigo = {codigo: nombre for nombre, codigo in CODIGOS.items()}
-salida = pd.DataFrame({
-    "codigo_divipola": df["MPIO"],
-    "municipio": df["MPIO"].map(nombre_por_codigo),
-    "departamento": df["DPNOM"],
-    "anio": df["AÑO"].astype(int),
-    "poblacion": df["TOTAL"].astype(int),
-}).sort_values(["municipio", "anio"])
+resultado = []
+for fila in filas:
+    codigo = fila[col["MPIO"]]  # el codigo viene como texto: "05001"
+    anio = fila[col["AÑO"]]
+    if fila[col["ÁREA GEOGRÁFICA"]] != "Total":
+        continue  # solo el total del municipio, no cabecera ni rural
+    if anio is None or not (ANIO_INICIO <= anio <= ANIO_FIN):
+        continue
+    if codigo not in NOMBRE_POR_CODIGO:
+        continue
+    resultado.append({
+        "codigo_divipola": codigo,
+        "municipio": NOMBRE_POR_CODIGO[codigo],
+        "departamento": fila[col["DPNOM"]],
+        "anio": int(anio),
+        "poblacion": int(fila[col["TOTAL"]]),
+    })
+
+resultado.sort(key=lambda r: (r["municipio"], r["anio"]))
 
 # Verificacion: 29 municipios x 7 anios = 203 filas.
-esperado = len(CODIGOS) * 7
-print(f"Filas generadas: {len(salida)} (esperado {esperado})")
-assert len(salida) == esperado, "Falta o sobra algun municipio/anio"
+esperado = len(CODIGOS) * (ANIO_FIN - ANIO_INICIO + 1)
+print(f"Filas generadas: {len(resultado)} (esperado {esperado})")
+assert len(resultado) == esperado, "Falta o sobra algun municipio/anio"
 
-salida.to_csv(SALIDA, index=False, encoding="utf-8")
+with open(SALIDA, "w", newline="", encoding="utf-8") as f:
+    escritor = csv.DictWriter(f, fieldnames=list(resultado[0].keys()))
+    escritor.writeheader()
+    escritor.writerows(resultado)
 print(f"Archivo guardado: {SALIDA}")
