@@ -736,19 +736,105 @@ def _datos_territorial(anio="Todos", nivel_servicio="Todos"):
     }
 
 
-@app.route("/etapa4/territorial")
-def etapa4_territorial():
-    """Tablero de la dimension territorial.
+def _datos_multivariable(anio="Todos", tipo_region="Todos"):
+    """Resume relaciones y cruces de variables del dataset limpio para la Etapa 4."""
+    from collections import Counter, defaultdict
+    from math import sqrt
 
-    Pregunta de analisis: como varian la disponibilidad (continuidad del
-    servicio) y la calidad del agua (IRCA, cobertura) entre los municipios
-    de la Sabana y Bogota D.C.? Los filtros (anio, nivel de servicio) se
-    aplican en el cliente contra /etapa4/territorial/datos.
-    """
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if anio and anio != "Todos":
+        registros = [r for r in registros if r.get("anio") == anio]
+    if tipo_region and tipo_region != "Todos":
+        registros = [r for r in registros if r.get("tipo_region") == tipo_region]
+
+    def numero(registro, campo):
+        valor = registro.get(campo, "")
+        try:
+            return float(valor) if valor else None
+        except (TypeError, ValueError):
+            return None
+
+    pares = []
+    por_grupo = defaultdict(list)
+    combinaciones = Counter()
+    dispersion = []
+    for registro in registros:
+        irca = numero(registro, "irca")
+        cobertura = numero(registro, "cobertura_acueducto_pct")
+        if irca is not None and cobertura is not None:
+            pares.append((irca, cobertura))
+            dispersion.append({
+                "irca": irca,
+                "cobertura": cobertura,
+                "nivel_servicio": registro.get("nivel_servicio", "Sin dato"),
+                "tipo_region": registro.get("tipo_region", "Sin dato"),
+                "municipio": registro.get("municipio", "Sin dato"),
+                "anio": registro.get("anio", "Sin dato"),
+            })
+        grupo = (registro.get("tipo_region", ""), registro.get("nivel_servicio", ""))
+        por_grupo[grupo].append(registro)
+        combinaciones[(
+            registro.get("tipo_region", ""),
+            registro.get("periodo", ""),
+            registro.get("nivel_servicio", ""),
+        )] += 1
+
+    ircas = [par[0] for par in pares]
+    coberturas = [par[1] for par in pares]
+    media_irca = sum(ircas) / len(ircas) if ircas else None
+    media_cobertura = sum(coberturas) / len(coberturas) if coberturas else None
+    covarianza = sum((x - media_irca) * (y - media_cobertura)
+                     for x, y in pares) if pares else 0
+    suma_irca = sum((x - media_irca) ** 2 for x in ircas) if ircas else 0
+    suma_cobertura = sum((y - media_cobertura) ** 2 for y in coberturas) if coberturas else 0
+    correlacion = (covarianza / sqrt(suma_irca * suma_cobertura)
+                   if suma_irca and suma_cobertura else None)
+
+    grupos = []
+    for (region, nivel), filas in sorted(por_grupo.items()):
+        valores_irca = [numero(fila, "irca") for fila in filas]
+        valores_cobertura = [numero(fila, "cobertura_acueducto_pct") for fila in filas]
+        valores_irca = [valor for valor in valores_irca if valor is not None]
+        valores_cobertura = [valor for valor in valores_cobertura if valor is not None]
+        grupos.append({
+            "region": region,
+            "nivel_servicio": nivel,
+            "n": len(filas),
+            "irca_promedio": round(sum(valores_irca) / len(valores_irca), 2) if valores_irca else None,
+            "cobertura_promedio": round(sum(valores_cobertura) / len(valores_cobertura), 2) if valores_cobertura else None,
+        })
+
+    casos_irca_alto_continuo = sum(
+        1 for registro in registros
+        if registro.get("nivel_servicio") == "Continuo"
+        and (numero(registro, "irca") or 0) > 40
+    )
+    combinaciones_top = [
+        {"region": region, "periodo": periodo, "nivel_servicio": nivel, "n": cantidad}
+        for (region, periodo, nivel), cantidad in
+        sorted(combinaciones.items(), key=lambda item: (-item[1], item[0]))[:12]
+    ]
+
+    return {
+        "indicadores": {
+            "n_registros": len(registros),
+            "irca_promedio": round(media_irca, 2) if media_irca is not None else None,
+            "cobertura_promedio": round(media_cobertura, 2) if media_cobertura is not None else None,
+            "correlacion_irca_cobertura": round(correlacion, 3) if correlacion is not None else None,
+            "n_pares_irca_cobertura": len(pares),
+            "casos_irca_alto_continuo": casos_irca_alto_continuo,
+        },
+        "dispersion": dispersion,
+        "grupos": grupos,
+        "combinaciones_top": combinaciones_top,
+    }
+
+
+def _render_tablero_etapa4(plantilla):
     registros = leer_csv("dataset_calidad_agua_limpio.csv")
     regional = [r for r in registros if r.get("tipo_region") == "Regional"]
     if not regional:
-        return render_template("etapa4/territorial.html", hay_datos=False)
+        return render_template(plantilla, hay_datos=False)
 
     anios = sorted({r["anio"] for r in registros if r.get("tipo_region") in ("Regional", "Nacional")})
     niveles = sorted({r["nivel_servicio"] for r in registros
@@ -756,12 +842,44 @@ def etapa4_territorial():
     datos_iniciales = _datos_territorial()
 
     return render_template(
-        "etapa4/territorial.html",
+        plantilla,
         hay_datos=True,
         anios=anios,
         niveles=niveles,
         datos_json=json.dumps(datos_iniciales),
     )
+
+
+@app.route("/etapa4/territorial")
+def etapa4_territorial():
+    """Tablero de la dimension territorial."""
+    return _render_tablero_etapa4("etapa4/territorial.html")
+
+
+@app.route("/etapa4/multivariable")
+def etapa4_multivariable():
+    """Tablero de analisis multivariable de calidad y disponibilidad del agua."""
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if not registros:
+        return render_template("etapa4/Multivariada.html", hay_datos=False)
+
+    anios = sorted({r["anio"] for r in registros if r.get("anio")})
+    regiones = sorted({r["tipo_region"] for r in registros if r.get("tipo_region")})
+    return render_template(
+        "etapa4/Multivariada.html",
+        hay_datos=True,
+        anios=anios,
+        regiones=regiones,
+        datos_json=json.dumps(_datos_multivariable()),
+    )
+
+
+@app.route("/etapa4/multivariable/datos")
+def etapa4_multivariable_datos():
+    """API para recalcular el tablero multivariable con sus filtros."""
+    anio = request.args.get("anio", "Todos")
+    tipo_region = request.args.get("tipo_region", "Todos")
+    return jsonify(_datos_multivariable(anio=anio, tipo_region=tipo_region))
 
 
 @app.route("/etapa4/territorial/datos")

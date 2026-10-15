@@ -136,8 +136,15 @@ El desarrollo de la Etapa 3 se realiza en la rama `feature/limpieza_de_datos`.
 
 ## Etapa 4 - Mineria para Descubrimiento de Conocimiento Evidente
 
-### Dimension territorial
+### Tableros
 
+El menu de la Etapa 4 incluye dos tableros: la **Dimension territorial** en
+`/etapa4/territorial` y el **Analisis multivariable** en `/etapa4/multivariable`.
+El tablero multivariable relaciona IRCA, cobertura de acueducto, nivel de servicio,
+municipio, region y periodo. Incluye indicadores, dispersion por registro, comparacion
+de grupos y las combinaciones trimestrales mas frecuentes, con filtros interactivos de
+año y region. Sus agregaciones se calculan sobre el dataset limpio; las relaciones son
+descriptivas y no implican causalidad.
 
 ```
 Calidad-Agua-Mineria-Datos/
@@ -145,7 +152,8 @@ Calidad-Agua-Mineria-Datos/
 ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
 ├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
 └── templates/etapa4/
-    └── territorial.html               # Tablero de la dimension territorial
+    ├── territorial.html               # Tablero de la dimension territorial
+    └── Multivariada.html               # Tablero de analisis multivariable
 ```
 
 **Por que un script en Python y no la tabla `dst_calidad_agua` de SQL Server:** el

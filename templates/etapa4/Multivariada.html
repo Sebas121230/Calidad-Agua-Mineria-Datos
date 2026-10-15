@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .multivariable .plot-box { background: #fcfcfb; border-radius: .5rem; }
+  .multivariable .interpretacion {
+    border-left: 3px solid #cbd5e1;
+    color: #52514e;
+    font-size: .9rem;
+    margin-top: .75rem;
+    padding: .5rem .9rem;
+  }
+  .multivariable .stat-tile .lbl {
+    color: #6c757d;
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .conocimiento dt {
+    color: #6c757d;
+    font-size: .74rem;
+    letter-spacing: .04em;
+    margin-top: .6rem;
+    text-transform: uppercase;
+  }
+  .conocimiento dd { margin-bottom: 0; }
+</style>
+
+<div class="multivariable">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="h4 mb-1">Etapa 4 &middot; Dimensión relacional y multivariada</h1>
+      <p class="text-muted mb-0">Relaciones, diferencias entre grupos y cruces de variables</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+  </div>
+
+  {% if not hay_datos %}
+  <div class="alert alert-warning">
+    No se encontró <code>dataset_calidad_agua_limpio.csv</code>. Genera primero ese archivo
+ con <code>generar_dataset_limpio.py</code> y vuelve a cargar esta página.
+  </div>
+  {% else %}
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <h2 class="h5">Pregunta de análisis</h2>
+      <p class="mb-2">
+        <strong>¿Qué diferencias o relaciones evidentes se identifican al analizar conjuntamente
+        tres o más variables de calidad, disponibilidad, territorio y periodo?</strong>
+      </p>
+      <p class="small text-muted mb-0">
+        El tablero cruza el IRCA y la cobertura de acueducto con el nivel de servicio,
+        la región, el municipio y el periodo. Los patrones son descriptivos: una relación
+        observada no demuestra causalidad.
+      </p>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <h2 class="h6 text-primary">Variables utilizadas</h2>
+      <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>Variable</th><th>Tipo</th><th>Uso en el análisis</th></tr></thead>
+          <tbody>
+            <tr><td><code>irca</code></td><td>Numérica (0-100)</td><td>Riesgo de calidad del agua; se compara con cobertura, servicio y región.</td></tr>
+            <tr><td><code>cobertura_acueducto_pct</code></td><td>Numérica (0-100)</td><td>Porcentaje de cobertura; se cruza con IRCA en el diagrama de dispersión.</td></tr>
+            <tr><td><code>nivel_servicio</code></td><td>Categórica</td><td>Continuo, Intermitente, Racionado o Sin servicio; color y grupo comparativo.</td></tr>
+            <tr><td><code>tipo_region</code>, <code>municipio</code></td><td>Territorial</td><td>Contrasta Regional y Nacional e identifica el municipio de cada registro.</td></tr>
+            <tr><td><code>anio</code>, <code>periodo</code></td><td>Temporal</td><td>Permite observar cambios anuales y combinaciones trimestrales frecuentes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+      <div>
+        <label for="filtroAnio" class="form-label small mb-1">Año</label>
+        <select id="filtroAnio" class="form-select form-select-sm">
+          <option value="Todos">Todos los años</option>
+          {% for anio in anios %}<option value="{{ anio }}">{{ anio }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="filtroRegion" class="form-label small mb-1">Territorio</label>
+        <select id="filtroRegion" class="form-select form-select-sm">
+          <option value="Todos">Todas las regiones</option>
+          {% for region in regiones %}<option value="{{ region }}">{{ region }}</option>{% endfor %}
+        </select>
+      </div>
+      <p class="small text-muted mb-1">Los indicadores y las tres visualizaciones se actualizan con ambos filtros.</p>
+    </div>
+  </section>
+  <div id="errorDatos" class="alert alert-danger d-none" role="alert"></div>
+
+  <section class="row g-3 mb-3" id="indicadores" aria-live="polite"></section>
+
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <h2 class="h6 text-primary">1. Relación entre IRCA y cobertura, por servicio y región</h2>
+      <p class="small text-muted">Cada punto representa un registro. El color distingue nivel de servicio y la forma distingue región; el detalle incluye municipio y año.</p>
+      <div id="chart-dispersion" class="plot-box" style="width:100%;height:440px;"></div>
+      <div id="interpretacion-dispersion" class="interpretacion" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <h2 class="h6 text-primary">2. Cruce de región × nivel de servicio × IRCA</h2>
+      <p class="small text-muted">El color muestra el IRCA promedio de cada grupo; al pasar el cursor también se consultan cobertura promedio y cantidad de registros.</p>
+      <div id="chart-grupos" class="plot-box" style="width:100%;height:350px;"></div>
+      <div id="interpretacion-grupos" class="interpretacion" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <h2 class="h6 text-primary">3. Combinaciones más frecuentes: región × periodo × servicio</h2>
+      <p class="small text-muted">Se muestran las 12 combinaciones trimestrales con más registros dentro de los filtros seleccionados.</p>
+      <div id="chart-combinaciones" class="plot-box" style="width:100%;height:440px;"></div>
+      <div id="interpretacion-combinaciones" class="interpretacion" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <h2 class="h5 mt-4 mb-3">Tres conocimientos evidentes</h2>
+  <div class="card shadow-sm border-0 mb-3 conocimiento">
+    <div class="card-body">
+      <h3 class="h6 text-primary">1. La continuidad del servicio cambia con el periodo</h3>
+      <dl class="mb-0">
+        <dt>Variables y cruce</dt>
+        <dd><code>tipo_region</code> × <code>anio</code> × <code>nivel_servicio</code>, con conteo de registros.</dd>
+        <dt>Evidencia</dt>
+        <dd>En la región Regional, todos los registros de 2019 a 2023 indican servicio continuo. En 2025, solo 24 de cada 100 indican servicio continuo; 26 de cada 100 dicen “sin servicio”.</dd>
+        <dt>Hallazgo e interpretación</dt>
+        <dd>En 2024, 192 de 1.084 registros Regional (17,7%) indican “Sin servicio”. En 2025, son 279 de 1.086 (25,7%). Es un aumento de aproximadamente 8 puntos porcentuales; los registros se reparten entre continuo, intermitente, racionado y sin servicio.</dd>
+        <dt>Utilidad</dt>
+        <dd>Priorizar la revisión del servicio en 2025. En palabras sencillas: de cada 100 registros, alrededor de 18 dicen “Sin servicio” en 2024 y 26 en 2025. Son registros del conjunto de datos, no personas ni días sin agua.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-3 conocimiento">
+    <div class="card-body">
+      <h3 class="h6 text-primary">2. La región se relaciona con diferencias de calidad y cobertura</h3>
+      <dl class="mb-0">
+        <dt>Variables y cruce</dt>
+        <dd><code>tipo_region</code> × <code>irca</code> × <code>cobertura_acueducto_pct</code>.</dd>
+        <dt>Evidencia</dt>
+        <dd>En el conjunto completo, el IRCA promedio es 7 en Regional y 26 en Nacional. La cobertura es 95 de cada 100 en Regional y 78 de cada 100 en Nacional.</dd>
+        <dt>Hallazgo e interpretación</dt>
+        <dd>En estos datos, el grupo Nacional tiene mayor riesgo promedio y menor cobertura. Son promedios: no quiere decir que todos los lugares sean iguales.</dd>
+        <dt>Utilidad</dt>
+        <dd>Revisar primero la región Nacional: su IRCA promedio es 26 y su cobertura es 78 de cada 100, frente a 7 y 95 de cada 100 en la región Regional.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-3 conocimiento">
+    <div class="card-body">
+      <h3 class="h6 text-primary">3. La continuidad no garantiza por sí sola menor riesgo sanitario</h3>
+      <dl class="mb-0">
+        <dt>Variables y cruce</dt>
+        <dd><code>tipo_region</code> × <code>nivel_servicio</code> × <code>irca</code>.</dd>
+        <dt>Evidencia</dt>
+        <dd>Hay 521 registros Nacionales que indican servicio Continuo, pero tienen IRCA mayor que 40, clasificado en este estudio como “inviable sanitariamente”.</dd>
+        <dt>Hallazgo e interpretación</dt>
+        <dd>Que el agua llegue todos los días no garantiza que su calidad sea adecuada.</dd>
+        <dt>Utilidad</dt>
+        <dd>Revisar la calidad del agua aunque el servicio sea continuo: 521 registros Nacionales, cerca de 20 de cada 100 con servicio continuo, tienen IRCA mayor que 40.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <section class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h2 class="h6 text-primary">Limitación del análisis</h2>
+          <p class="small mb-0">
+            El conjunto combina datos reales y sintéticos; además, la categoría Nacional agrupa
+            territorios heterogéneos. Los patrones y la correlación son descriptivos, el número
+            de registros varía entre grupos y no se controlan posibles factores de confusión.
+            Por tanto, los resultados no prueban causalidad ni representan necesariamente cada
+            territorio real.
+          </p>
+        </div>
+      </section>
+    </div>
+    <div class="col-md-6">
+      <section class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h2 class="h6 text-primary">Conclusión y decisión sustentada en los datos</h2>
+          <p class="small mb-0">
+            Los registros “Sin servicio” aumentaron de 192 de 1.084 (17,7%) en 2024 a
+            279 de 1.086 (25,7%) en 2025: aproximadamente 8 puntos porcentuales más.
+            Esto equivale a pasar de 18 a 26 de cada 100 registros; no significa que
+            26 de cada 100 personas se quedaran sin agua. Se recomienda revisar los
+            reportes de 2025 y confirmar los datos con fuentes oficiales antes de tomar
+            decisiones. También se debe comprobar la calidad del agua aunque el servicio
+            figure como continuo.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if hay_datos %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var datosIniciales = {{ datos_json|safe }};
+  var colores = {
+    "Continuo": "#138a43",
+    "Intermitente": "#e6a700",
+    "Racionado": "#e87532",
+    "Sin servicio": "#c73e3a",
+    "Regional": "#2878c8",
+    "Nacional": "#7a5195"
+  };
+  var layoutBase = {
+    paper_bgcolor: "#fcfcfb",
+    plot_bgcolor: "#fcfcfb",
+    font: { family: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#52514e", size: 12 },
+    margin: { t: 35, r: 25, b: 65, l: 70 }
+  };
+  var niveles = ["Continuo", "Intermitente", "Racionado", "Sin servicio"];
+
+  function formato(valor, decimales) {
+    return valor === null || valor === undefined
+      ? "s/d"
+      : Number(valor).toLocaleString("es-CO", { maximumFractionDigits: decimales === undefined ? 2 : decimales });
+  }
+
+  function renderIndicadores(ind) {
+    var tiles = [
+      { etiqueta: "Registros en el cruce", valor: formato(ind.n_registros), detalle: "según filtros" },
+      { etiqueta: "IRCA promedio", valor: formato(ind.irca_promedio), detalle: "escala de 0 a 100" },
+      { etiqueta: "Cobertura promedio", valor: formato(ind.cobertura_promedio) + "%", detalle: "acueducto" },
+      { etiqueta: "Correlación IRCA-cobertura", valor: formato(ind.correlacion_irca_cobertura, 3), detalle: "Pearson (r), n=" + formato(ind.n_pares_irca_cobertura, 0) }
+    ];
+    document.getElementById("indicadores").innerHTML = tiles.map(function (tile) {
+      return '<div class="col-6 col-lg-3"><div class="card shadow-sm border-0 h-100 stat-tile">' +
+        '<div class="card-body text-center"><h3 class="mb-1">' + tile.valor + '</h3>' +
+        '<div class="lbl">' + tile.etiqueta + '</div><div class="small text-muted">' + tile.detalle + '</div>' +
+        '</div></div></div>';
+    }).join("");
+  }
+
+  function renderDispersion(lista, indicadores) {
+    var grupos = {};
+    lista.forEach(function (punto) {
+      var clave = punto.tipo_region + "|" + punto.nivel_servicio;
+      if (!grupos[clave]) {
+        grupos[clave] = {
+          region: punto.tipo_region,
+          nivel: punto.nivel_servicio,
+          x: [], y: [], customdata: []
+        };
+      }
+      grupos[clave].x.push(punto.cobertura);
+      grupos[clave].y.push(punto.irca);
+      grupos[clave].customdata.push([punto.municipio, punto.anio, punto.tipo_region, punto.nivel_servicio]);
+    });
+    var simbolos = { "Regional": "circle", "Nacional": "diamond" };
+    var traces = Object.keys(grupos).map(function (clave) {
+      var grupo = grupos[clave];
+      return {
+        type: "scattergl",
+        mode: "markers",
+        name: grupo.region + " · " + grupo.nivel,
+        x: grupo.x,
+        y: grupo.y,
+        customdata: grupo.customdata,
+        marker: { color: colores[grupo.nivel] || "#64748b", symbol: simbolos[grupo.region] || "circle", size: 7, opacity: .55 },
+        hovertemplate: "Cobertura: %{x:.1f}%<br>IRCA: %{y:.2f}<br>Municipio: %{customdata[0]}<br>Año: %{customdata[1]}<br>Región: %{customdata[2]}<br>Servicio: %{customdata[3]}<extra></extra>"
+      };
+    });
+    Plotly.react("chart-dispersion", traces, Object.assign({}, layoutBase, {
+      xaxis: { title: "Cobertura de acueducto (%)", range: [0, 100], gridcolor: "#e1e0d9" },
+      yaxis: { title: "IRCA", range: [0, 100], gridcolor: "#e1e0d9" },
+      legend: { orientation: "h", y: -0.28 }
+    }), { displayModeBar: false, responsive: true });
+    document.getElementById("interpretacion-dispersion").textContent =
+      "Interpretación: cada punto cruza calidad y cobertura con servicio, región, municipio y año. " +
+      "La correlación lineal de Pearson para los registros filtrados es r = " +
+      formato(indicadores.correlacion_irca_cobertura, 3) +
+      " (n = " + formato(indicadores.n_pares_irca_cobertura, 0) +
+      " pares completos); resume asociación lineal y no implica causalidad.";
+  }
+
+  function renderGrupos(lista) {
+    var regiones = Array.from(new Set(lista.map(function (grupo) { return grupo.region; }))).sort();
+    var valores = niveles.map(function (nivel) {
+      return regiones.map(function (region) {
+        var grupo = lista.find(function (fila) {
+          return fila.region === region && fila.nivel_servicio === nivel;
+        });
+        return grupo && grupo.irca_promedio !== null ? grupo.irca_promedio : null;
+      });
+    });
+    var cobertura = niveles.map(function (nivel) {
+      return regiones.map(function (region) {
+        var grupo = lista.find(function (fila) {
+          return fila.region === region && fila.nivel_servicio === nivel;
+        });
+        return grupo ? [grupo.cobertura_promedio, grupo.n] : [null, 0];
+      });
+    });
+    Plotly.react("chart-grupos", [{
+      type: "heatmap",
+      x: regiones,
+      y: niveles,
+      z: valores,
+      customdata: cobertura,
+      colorscale: [[0, "#d9f0e2"], [.5, "#f7d774"], [1, "#c73e3a"]],
+      zmin: 0,
+      zmax: 100,
+      colorbar: { title: "IRCA medio" },
+      hovertemplate: "Región: %{x}<br>Servicio: %{y}<br>IRCA promedio: %{z:.2f}<br>Cobertura promedio: %{customdata[0]:.2f}%<br>Registros: %{customdata[1]}<extra></extra>"
+    }], Object.assign({}, layoutBase, {
+      xaxis: { title: "Territorio" },
+      yaxis: { title: "Nivel de servicio" }
+    }), { displayModeBar: false, responsive: true });
+
+    var conDato = lista.filter(function (grupo) { return grupo.irca_promedio !== null; });
+    var menor = conDato.reduce(function (a, b) { return a.irca_promedio < b.irca_promedio ? a : b; }, conDato[0]);
+    var mayor = conDato.reduce(function (a, b) { return a.irca_promedio > b.irca_promedio ? a : b; }, conDato[0]);
+    document.getElementById("interpretacion-grupos").textContent = conDato.length
+      ? "Interpretación: el cruce compara IRCA y cobertura promedio para cada combinación de territorio y servicio; el tamaño del grupo se muestra al pasar el cursor. En estos filtros, el IRCA promedio menor aparece en " +
+        menor.region + " · " + menor.nivel_servicio + " (" + formato(menor.irca_promedio) +
+        ") y el mayor en " + mayor.region + " · " + mayor.nivel_servicio + " (" +
+        formato(mayor.irca_promedio) + ")."
+      : "Interpretación: no hay grupos con IRCA disponible para los filtros seleccionados.";
+  }
+
+  function renderCombinaciones(lista) {
+    var etiquetas = lista.map(function (fila) {
+      return fila.region + " · " + fila.periodo + " · " + fila.nivel_servicio;
+    });
+    Plotly.react("chart-combinaciones", [{
+      type: "bar",
+      orientation: "h",
+      y: etiquetas.slice().reverse(),
+      x: lista.map(function (fila) { return fila.n; }).reverse(),
+      marker: { color: "#2878c8" },
+      customdata: lista.map(function (fila) { return [fila.region, fila.periodo, fila.nivel_servicio]; }).reverse(),
+      hovertemplate: "%{customdata[0]}<br>%{customdata[1]}<br>%{customdata[2]}<br>Registros: %{x}<extra></extra>"
+    }], Object.assign({}, layoutBase, {
+      margin: { t: 25, r: 20, b: 45, l: 265 },
+      xaxis: { title: "Cantidad de registros", gridcolor: "#e1e0d9" },
+      yaxis: { automargin: true }
+    }), { displayModeBar: false, responsive: true });
+
+    var texto = lista.length
+      ? "Interpretación: la combinación más frecuente es " + etiquetas[0] + " con " +
+        formato(lista[0].n, 0) + " registros. El orden y los conteos se recalculan al cambiar año o territorio."
+      : "Interpretación: no hay combinaciones disponibles para los filtros seleccionados.";
+    document.getElementById("interpretacion-combinaciones").textContent = texto;
+  }
+
+  function render(data) {
+    renderIndicadores(data.indicadores);
+    renderDispersion(data.dispersion, data.indicadores);
+    renderGrupos(data.grupos);
+    renderCombinaciones(data.combinaciones_top);
+  }
+
+  function aplicarFiltros() {
+    var anio = document.getElementById("filtroAnio").value;
+    var region = document.getElementById("filtroRegion").value;
+    var error = document.getElementById("errorDatos");
+    error.classList.add("d-none");
+    fetch("{{ url_for('etapa4_multivariable_datos') }}?anio=" +
+      encodeURIComponent(anio) + "&tipo_region=" + encodeURIComponent(region))
+      .then(function (respuesta) {
+        if (!respuesta.ok) throw new Error("El servidor respondió HTTP " + respuesta.status);
+        return respuesta.json();
+      })
+      .then(render)
+      .catch(function (err) {
+        console.error("No se pudieron actualizar los datos multivariables:", err);
+        error.textContent = "No se pudieron actualizar las visualizaciones. Recarga la página o intenta de nuevo.";
+        error.classList.remove("d-none");
+      });
+  }
+
+  document.getElementById("filtroAnio").addEventListener("change", aplicarFiltros);
+  document.getElementById("filtroRegion").addEventListener("change", aplicarFiltros);
+  render(datosIniciales);
+})();
+</script>
+{% endif %}
+{% endblock %}
