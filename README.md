@@ -191,3 +191,51 @@ para no alterar el resultado ya validado de la Etapa 3.
 
 El desarrollo de la Etapa 4 (dimension territorial) se realiza en la rama
 `feature/dim-territorial`.
+
+### Dimension poblacional
+
+Tablero en `/etapa4/poblacional`.
+
+**Pregunta de analisis:** ¿cuantas personas estan expuestas a riesgo en la calidad del
+agua o viven sin cobertura de acueducto, y cambia la conclusion cuando cada municipio
+pesa segun su poblacion y no segun su numero de registros?
+
+**Fuente externa (decision sustentada):** el dataset no trae ninguna variable de
+poblacion, y cada municipio tiene una cantidad parecida de registros sin importar su
+tamaño (Bogota y Sopo pesan casi igual en un promedio por registro). Por eso se
+incorporo la *Serie municipal de poblacion por area, periodo 2018-2042* del DANE
+(CNPV 2018, publicada el 8 de agosto de 2025):
+<https://www.dane.gov.co/index.php/estadisticas-por-tema/demografia-y-poblacion/proyecciones-de-poblacion>
+
+```
+Calidad-Agua-Mineria-Datos/
+├── fuentes/PPED-AreaMun-2018-2042_VP.xlsx   # Archivo original del DANE, sin modificar
+├── generar_poblacion.py                     # Filtra area "Total", años 2019-2025 y los 29 municipios
+├── poblacion_municipios.csv                 # Salida: 203 filas (29 municipios x 7 años)
+└── templates/etapa4/poblacional.html        # Tablero de la dimension poblacional
+```
+
+El cruce se hace por codigo DIVIPOLA y no por nombre, porque el DANE escribe con tildes
+("Cajicá", "Bogotá, D.C.", "San José de Cúcuta") y el dataset no. El script usa
+`openpyxl` (Python puro) en lugar de pandas. Para regenerar el CSV:
+
+```bash
+python generar_poblacion.py
+```
+
+**Hallazgos principales:**
+
+- Ponderado por poblacion, el IRCA total sube de 14,43 a 18,46 y pasa de "Bajo riesgo" a
+  "Riesgo medio": la Sabana tiene el 59,98% de los registros pero solo el 38,96% de la
+  poblacion.
+- Cerca de 3,74 millones de personas por año viven sin cobertura de acueducto (87% en
+  ciudades del nivel Nacional). Bogota, con 94,82% de cobertura, es el tercer municipio
+  con mas personas sin acueducto (404.014).
+- El tamaño del municipio no explica el IRCA; lo que separa el riesgo es la region.
+
+**Limitacion:** el IRCA del dataset es sintetico y se genera por region
+(`generar_dataset.py`), por lo que los patrones dentro de cada region no deben leerse
+como evidencia sobre municipios reales. La poblacion es una proyeccion anual que se
+asigna a registros diarios.
+
+El desarrollo de la dimension poblacional se realiza en la rama `feature/dim-poblacional`.
