@@ -1016,6 +1016,24 @@ def etapa4_territorial_datos():
     return jsonify(_datos_territorial(anio=anio, nivel_servicio=nivel_servicio))
 
 
+@app.route("/etapa4/poblacional")
+def etapa4_poblacional():
+    """Tablero de la dimension poblacional."""
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if not registros or not leer_csv("poblacion_municipios.csv"):
+        return render_template("etapa4/poblacional.html", hay_datos=False)
+
+    anios = sorted({r["anio"] for r in registros if r.get("anio")})
+    regiones = sorted({r["tipo_region"] for r in registros if r.get("tipo_region")})
+    return render_template(
+        "etapa4/poblacional.html",
+        hay_datos=True,
+        anios=anios,
+        regiones=regiones,
+        datos_json=json.dumps(_datos_poblacional()),
+    )
+
+
 @app.route("/etapa4/poblacional/datos")
 def etapa4_poblacional_datos():
     """API en JSON con los indicadores de la dimension poblacional filtrados."""
