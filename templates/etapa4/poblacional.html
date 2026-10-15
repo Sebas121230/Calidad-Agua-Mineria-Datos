@@ -173,7 +173,164 @@
   </div>
 </div>
 
-<!-- CONOCIMIENTOS -->
+<!-- ================= CONOCIMIENTOS EVIDENTES ================= -->
+<h2 class="h5 mt-4 mb-3">Conocimientos evidentes</h2>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 1</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Cambia el nivel de riesgo del agua cuando cada municipio pesa segun su poblacion
+        y no segun su numero de registros?</dd>
+      <dt>Variables</dt>
+      <dd><code>irca</code>, <code>tipo_region</code>, <code>municipio</code>,
+        <code>anio</code> y <code>poblacion</code> (DANE).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se promedio el IRCA por municipio y año (203 combinaciones), se le asigno a cada
+        una la poblacion proyectada del DANE y se calculo el promedio ponderado por
+        poblacion. Se comparo con el promedio simple por registro y con la participacion
+        de cada region en registros y en poblacion.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 1. IRCA por registro: 14,43; ponderado por poblacion: 18,46. La Sabana
+        tiene el 59,98% de los registros pero el 38,96% de la poblacion. Dentro de cada
+        region el cambio es minimo (Regional 6,61 &rarr; 6,55; Nacional 26,13 &rarr; 26,06).</dd>
+      <dt>Hallazgo</dt>
+      <dd>Al ponderar por poblacion el IRCA total sube 4,03 puntos y cambia de categoria:
+        de "Bajo riesgo" (5-14) a "Riesgo medio" (14-28).</dd>
+      <dt>Interpretacion</dt>
+      <dd>El dataset sobrerrepresenta a la Sabana, que tiene el agua de mejor calidad. Un
+        promedio por registro hace ver la situacion mejor de lo que la vive la poblacion:
+        medido en personas, el habitante promedio de estos 29 municipios consume agua con
+        riesgo medio.</dd>
+      <dt>Utilidad</dt>
+      <dd>Cualquier reporte sobre cuantas personas estan expuestas (salud publica,
+        priorizacion de inversion) debe usar promedios ponderados por poblacion; el
+        promedio por registro solo describe el dataset, no a la gente.</dd>
+      <dt>Limitacion</dt>
+      <dd>La poblacion del DANE es una proyeccion anual y se aplica igual a todos los
+        registros diarios de ese año. Ademas, el efecto viene solo del peso de cada region,
+        porque dentro de una region el IRCA no varia con el municipio (ver conocimiento 3).</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 2</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Donde se concentran las personas que viven sin cobertura de acueducto?</dd>
+      <dt>Variables</dt>
+      <dd><code>cobertura_acueducto_pct</code>, <code>municipio</code>,
+        <code>tipo_region</code> y <code>poblacion</code> (DANE).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Para cada municipio y año se calculo poblacion &times; (1 &minus; cobertura/100) y
+        se promedio por año. Se ordenaron los 29 municipios de mayor a menor.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 2. Cerca de 3.744.699 personas por año sin cobertura; 3.261.019 (87,08%)
+        en ciudades del nivel Nacional. Los tres primeros: Medellin (572.577), Cali
+        (513.765) y Bogota (404.014, con 94,82% de cobertura). Los otros 8 municipios de la
+        Sabana suman 79.666.</dd>
+      <dt>Hallazgo</dt>
+      <dd>Bogota, con la cobertura mas alta del grupo, es el tercer municipio con mas
+        personas sin acueducto y concentra 5 de cada 6 personas sin cobertura de la Sabana.</dd>
+      <dt>Interpretacion</dt>
+      <dd>El porcentaje de cobertura y el numero de personas sin servicio cuentan historias
+        distintas: un 5% de una ciudad de casi 8 millones son mas personas que todo el
+        deficit de municipios mas pequeños con menor cobertura.</dd>
+      <dt>Utilidad</dt>
+      <dd>Medellin, Cali y Bogota reunen 1.490.356 personas sin cobertura (39,80% del
+        total): ampliar redes en esas tres ciudades atiende a mas gente que hacerlo en los
+        otros 26 municipios juntos.</dd>
+      <dt>Limitacion</dt>
+      <dd>Se asume que la cobertura del dataset aplica a toda la poblacion del municipio
+        (urbana y rural), cuando en la practica la cobertura rural suele ser menor; la cifra
+        real de personas sin acueducto podria ser mayor.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 3</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Los municipios mas grandes tienen mejor o peor calidad de agua que los pequeños?</dd>
+      <dt>Variables</dt>
+      <dd><code>poblacion</code> (DANE), <code>irca</code>, <code>tipo_region</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se ubico cada municipio por poblacion (escala logaritmica) e IRCA promedio, y se
+        calculo la correlacion entre el logaritmo de la poblacion y el IRCA dentro de cada
+        region.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 3. Sabana: IRCA entre 6,52 y 6,72 desde Sopo (~32 mil) hasta Bogota
+        (~7,8 millones), correlacion &minus;0,24. Nacional: IRCA entre 24,32 y 27,58 desde
+        Tunja (~184 mil) hasta Medellin (~2,5 millones), correlacion &minus;0,09. El 61,04%
+        de la poblacion vive en municipios con IRCA mayor a 14, que son exactamente los 20
+        del nivel Nacional.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El tamaño del municipio no explica el IRCA: las correlaciones son debiles y los
+        puntos forman dos franjas planas separadas por la region.</dd>
+      <dt>Interpretacion</dt>
+      <dd>En estos datos el riesgo del agua depende de pertenecer o no al sistema de la
+        Sabana (EAAB), no de cuantas personas viven en el municipio. Ser una ciudad grande
+        no garantiza mejor agua.</dd>
+      <dt>Utilidad</dt>
+      <dd>La vigilancia de calidad del agua debe focalizarse por region: fuera de la Sabana
+        incluso las ciudades mas grandes y con mas recursos superan el umbral de riesgo
+        medio.</dd>
+      <dt>Limitacion</dt>
+      <dd>Los 29 municipios son ciudades medianas y grandes (el menor es Sopo); el dataset no
+        incluye municipios pequeños o rurales, donde el riesgo real suele ser mayor. Ademas,
+        el IRCA del dataset se genero por region (ver limitacion general), lo que explica
+        las franjas planas.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= LIMITACION Y DECISION ================= -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Limitacion general de la dimension</h2>
+        <p class="small mb-2">
+          El dataset del proyecto es sintetico: <code>generar_dataset.py</code> asigna el
+          IRCA al azar dentro de un rango por region (1-12 para la Sabana, 2-50 para el
+          resto, mas ruido). Por eso, dentro de cada region, el IRCA no puede tener relacion
+          con la poblacion, y los patrones intra-region de esta pagina no deben leerse como
+          evidencia sobre municipios reales.
+        </p>
+        <p class="small mb-0">
+          La poblacion si es real (DANE), pero es una proyeccion anual que se asigna a
+          registros diarios, y la cobertura del dataset se aplica a toda la poblacion del
+          municipio.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Decision sustentada en datos</h2>
+        <p class="small mb-2">
+          <strong>Fuente externa:</strong> como el dataset no trae ninguna variable de
+          poblacion, se incorporo la serie municipal del DANE (por area, 2018-2042,
+          CNPV 2018, publicada el 8 de agosto de 2025), area "Total", años 2019-2025, cruzada
+          por codigo DIVIPOLA. Sin ella no es posible medir en personas.
+        </p>
+        <p class="small mb-0">
+          <strong>Decision:</strong> priorizar la ampliacion de cobertura por numero de
+          personas y no por porcentaje. Medellin, Cali y Bogota concentran 1.490.356 personas
+          sin acueducto (39,80% del total), y Bogota debe incluirse aunque su cobertura sea
+          94,82%. Para calidad del agua, la prioridad son las ciudades del nivel Nacional,
+          donde vive el 61,04% de la poblacion analizada con IRCA promedio por encima de 14.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div> <!-- /viz-root -->
 
