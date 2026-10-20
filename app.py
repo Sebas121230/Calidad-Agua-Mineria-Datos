@@ -830,6 +830,132 @@ def _datos_multivariable(anio="Todos", tipo_region="Todos"):
     }
 
 
+# Etapa 4: dimension poblacional
+
+# Umbral de riesgo: IRCA mayor a 14 corresponde a "Riesgo medio" o superior
+# en la clasificacion usada en el proyecto (clasificar_riesgo).
+UMBRAL_IRCA_RIESGO = 14
+
+
+def _datos_poblacional(anio="Todos", tipo_region="Todos"):
+    """Cruza el dataset limpio con la poblacion del DANE (poblacion_municipios.csv).
+
+    El dataset no trae poblacion, y cada municipio tiene una cantidad parecida
+    de registros sin importar su tamaño: Bogota (~7.9 millones de habitantes)
+    y Sopo (~33 mil) pesan casi igual en un promedio por registro. Aqui cada
+    municipio pesa segun su poblacion.
+
+    Procedimiento:
+      1. Se agrupan los registros por municipio y año, y se promedian IRCA y
+         cobertura (un valor por municipio-año).
+      2. A cada municipio-año se le asigna la poblacion proyectada del DANE
+         para ese año (la proyeccion es anual; los registros son diarios).
+      3. Con eso se calculan promedios ponderados por poblacion y conteos
+         de personas (no de registros).
+    """
+    from collections import defaultdict
+
+    poblacion = {
+        (p["municipio"], p["anio"]): int(p["poblacion"])
+        for p in leer_csv("poblacion_municipios.csv")
+    }
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if anio and anio != "Todos":
+        registros = [r for r in registros if r.get("anio") == anio]
+    if tipo_region and tipo_region != "Todos":
+        registros = [r for r in registros if r.get("tipo_region") == tipo_region]
+
+    # Paso 1: un grupo por municipio-año
+    grupos = defaultdict(list)
+    for r in registros:
+        clave = (_homologar_municipio(r["municipio"]), r["anio"])
+        if clave in poblacion:
+            grupos[clave].append(r)
+
+    municipio_anio = []
+    for (municipio, anio_g), regs in grupos.items():
+        irca = _promedio(regs, "irca")
+        cobertura = _promedio(regs, "cobertura_acueducto_pct")
+        if irca is None or cobertura is None:
+            continue
+        pob = poblacion[(municipio, anio_g)]
+        municipio_anio.append({
+            "municipio": municipio,
+            "anio": anio_g,
+            "region": regs[0]["tipo_region"],
+            "poblacion": pob,
+            "irca": irca,
+            "cobertura": cobertura,
+            "sin_cobertura": pob * (1 - cobertura / 100),
+            "n": len(regs),
+        })
+
+    anios_incluidos = {g["anio"] for g in municipio_anio}
+    n_anios = len(anios_incluidos) or 1
+
+    def resumen(filas, regs):
+        """Indicadores para un conjunto de municipio-año y sus registros."""
+        pob_total = sum(f["poblacion"] for f in filas)
+        if not pob_total:
+            return None
+        irca_ponderado = sum(f["irca"] * f["poblacion"] for f in filas) / pob_total
+        pob_riesgo = sum(f["poblacion"] for f in filas if f["irca"] > UMBRAL_IRCA_RIESGO)
+        return {
+            "irca_simple": _promedio(regs, "irca"),
+            "irca_ponderado": round(irca_ponderado, 2),
+            # Las personas se reportan como promedio por año para no sumar
+            # la misma poblacion 7 veces cuando el filtro es "Todos".
+            "poblacion": round(pob_total / n_anios),
+            "sin_cobertura": round(sum(f["sin_cobertura"] for f in filas) / n_anios),
+            "poblacion_riesgo": round(pob_riesgo / n_anios),
+            "pct_poblacion_riesgo": round(pob_riesgo / pob_total * 100, 2),
+            "n_registros": len(regs),
+        }
+
+    total = resumen(municipio_anio, registros)
+
+    # Viz 1: registros vs personas, e IRCA simple vs ponderado, por region
+    por_region = []
+    for region in ("Regional", "Nacional"):
+        filas = [f for f in municipio_anio if f["region"] == region]
+        regs = [r for r in registros if r.get("tipo_region") == region]
+        res = resumen(filas, regs)
+        if res:
+            res["region"] = region
+            res["pct_registros"] = round(len(regs) / len(registros) * 100, 2)
+            res["pct_poblacion"] = round(res["poblacion"] / total["poblacion"] * 100, 2)
+            por_region.append(res)
+
+    # Viz 2 y 3: un punto por municipio (promedio de sus años en el filtro)
+    por_municipio = defaultdict(list)
+    for f in municipio_anio:
+        por_municipio[f["municipio"]].append(f)
+
+    municipios = []
+    for municipio, filas in por_municipio.items():
+        k = len(filas)
+        municipios.append({
+            "municipio": MUNICIPIOS_DISPLAY.get(municipio, municipio.title()),
+            "region": filas[0]["region"],
+            "poblacion": round(sum(f["poblacion"] for f in filas) / k),
+            "irca": round(sum(f["irca"] for f in filas) / k, 2),
+            "cobertura": round(sum(f["cobertura"] for f in filas) / k, 2),
+            "sin_cobertura": round(sum(f["sin_cobertura"] for f in filas) / k),
+        })
+    municipios.sort(key=lambda m: m["sin_cobertura"], reverse=True)
+
+    indicadores = dict(total or {})
+    indicadores["n_municipios"] = len(municipios)
+    indicadores["n_anios"] = len(anios_incluidos)
+
+    return {
+        "indicadores": indicadores,
+        "por_region": por_region,
+        "municipios": municipios,
+        "umbral_riesgo": UMBRAL_IRCA_RIESGO,
+    }
+
+
 def _render_tablero_etapa4(plantilla):
     registros = leer_csv("dataset_calidad_agua_limpio.csv")
     regional = [r for r in registros if r.get("tipo_region") == "Regional"]
@@ -888,6 +1014,32 @@ def etapa4_territorial_datos():
     anio = request.args.get("anio", "Todos")
     nivel_servicio = request.args.get("nivel_servicio", "Todos")
     return jsonify(_datos_territorial(anio=anio, nivel_servicio=nivel_servicio))
+
+
+@app.route("/etapa4/poblacional")
+def etapa4_poblacional():
+    """Tablero de la dimension poblacional."""
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if not registros or not leer_csv("poblacion_municipios.csv"):
+        return render_template("etapa4/poblacional.html", hay_datos=False)
+
+    anios = sorted({r["anio"] for r in registros if r.get("anio")})
+    regiones = sorted({r["tipo_region"] for r in registros if r.get("tipo_region")})
+    return render_template(
+        "etapa4/poblacional.html",
+        hay_datos=True,
+        anios=anios,
+        regiones=regiones,
+        datos_json=json.dumps(_datos_poblacional()),
+    )
+
+
+@app.route("/etapa4/poblacional/datos")
+def etapa4_poblacional_datos():
+    """API en JSON con los indicadores de la dimension poblacional filtrados."""
+    anio = request.args.get("anio", "Todos")
+    tipo_region = request.args.get("tipo_region", "Todos")
+    return jsonify(_datos_poblacional(anio=anio, tipo_region=tipo_region))
 
 
 # Ejecutar el servidor en modo desarrollo

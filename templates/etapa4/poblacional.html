@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --series-1:       #2a78d6; /* Regional (Sabana) */
+    --series-2:       #eb6834; /* Nacional */
+  }
+  .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
+  .viz-root .interpretacion {
+    font-size: .88rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--gridline);
+    padding: .5rem .9rem;
+    margin-top: .5rem;
+  }
+  .viz-root .stat-tile h3 { color: var(--text-primary); }
+  .viz-root .stat-tile .lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .conocimiento dt { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-top: .6rem; }
+  .conocimiento dd { margin-bottom: 0; }
+</style>
+
+<div class="viz-root">
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Etapa 4 &middot; Dimension poblacional</h1>
+  </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+</div>
+
+{% if not hay_datos %}
+<div class="alert alert-warning">
+  Faltan <code>dataset_calidad_agua_limpio.csv</code> o <code>poblacion_municipios.csv</code>.
+  Genera el segundo con <code>python generar_poblacion.py</code> y vuelve a cargar esta pagina.
+</div>
+{% else %}
+
+<!-- ================= TITULO Y PREGUNTA ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">Calidad y cobertura del agua medidas en personas</h2>
+    <p class="mb-2">
+      <strong>Pregunta de analisis:</strong> ¿cuantas personas estan expuestas a riesgo en
+      la calidad del agua o viven sin cobertura de acueducto, y cambia la conclusion cuando
+      cada municipio pesa segun su poblacion y no segun su numero de registros?
+    </p>
+    <p class="small text-muted mb-0">
+      El dataset limpio de la Etapa 3 (12.680 registros) no trae ninguna variable de
+      poblacion, y cada municipio tiene una cantidad parecida de registros sin importar su
+      tamaño: Bogota (~7,8 millones de habitantes) y Sopo (~32 mil) pesan casi igual en un
+      promedio por registro. Por eso se cruzo con las proyecciones municipales del
+      <strong>DANE</strong> (serie por area 2018-2042, CNPV 2018, publicada el 8 de agosto de
+      2025) para los 29 municipios del dataset.
+    </p>
+  </div>
+</div>
+
+<!-- ================= VARIABLES ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Variables usadas en esta dimension</h2>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0">
+        <thead><tr><th>Variable</th><th>Tipo</th><th>Descripcion</th></tr></thead>
+        <tbody>
+          <tr><td><code>poblacion</code></td><td>Numerica (externa)</td><td>Poblacion proyectada del municipio para el año, area "Total" (DANE). Archivo <code>poblacion_municipios.csv</code>, generado con <code>generar_poblacion.py</code>.</td></tr>
+          <tr><td><code>municipio</code></td><td>Categorica</td><td>Uno de los 29 municipios del dataset. Se cruza con el DANE por codigo DIVIPOLA, porque los nombres no coinciden (tildes, "San José de Cúcuta", variantes con "@").</td></tr>
+          <tr><td><code>irca</code></td><td>Numerica (0-100)</td><td>Indice de Riesgo de la Calidad del Agua. Se promedia por municipio y año antes de ponderar.</td></tr>
+          <tr><td><code>cobertura_acueducto_pct</code></td><td>Numerica (0-100)</td><td>Porcentaje de cobertura de acueducto. Personas sin cobertura = poblacion &times; (1 &minus; cobertura/100).</td></tr>
+          <tr><td><code>anio</code></td><td>Filtro</td><td>2019 a 2025. Une cada registro con la poblacion de su año.</td></tr>
+          <tr><td><code>tipo_region</code></td><td>Filtro</td><td>Regional (9 municipios de la Sabana) o Nacional (20 ciudades del resto del pais).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FILTROS ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <label for="filtroAnio" class="form-label small mb-1">Año</label>
+      <select id="filtroAnio" class="form-select form-select-sm">
+        <option value="Todos">Todos los años</option>
+        {% for a in anios %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtroRegion" class="form-label small mb-1">Tipo de region</label>
+      <select id="filtroRegion" class="form-select form-select-sm">
+        <option value="Todos">Todas las regiones</option>
+        {% for r in regiones %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="small text-muted">Los indicadores y las 3 graficas se recalculan con los filtros.
+      Con "Todos los años", las personas se muestran como promedio por año.</div>
+  </div>
+</div>
+
+<!-- ================= INDICADORES ================= -->
+<div class="row g-3 mb-3" id="indicadores">
+  <!-- Se llena por JS -->
+</div>
+
+<!-- ================= VISUALIZACION 1 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">1. Registros vs. personas: ¿cuanto pesa cada region?</h2>
+    <p class="small text-muted mb-2">
+      Izquierda: participacion de cada region en los registros del dataset y en la
+      poblacion real. Derecha: IRCA promedio por registro frente a IRCA ponderado por
+      poblacion, por region y para el total de los 29 municipios.
+    </p>
+    <div id="chart-registros-personas" class="plot-box" style="width:100%;height:380px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Sin filtros, la Sabana aporta el
+      <strong>59,98%</strong> de los registros pero solo el <strong>38,96%</strong> de la
+      poblacion de los 29 municipios. Esa sobrerrepresentacion arrastra el promedio general
+      hacia abajo: por registro el IRCA es <strong>14,43</strong> (bajo riesgo), y
+      ponderado por poblacion sube a <strong>18,46</strong> (riesgo medio). Dentro de cada
+      region ponderar casi no cambia el valor (Regional 6,61 &rarr; 6,55; Nacional 26,13
+      &rarr; 26,06): el cambio viene de cuanto pesa cada region, no de los municipios.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 2 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">2. Personas sin cobertura de acueducto por municipio</h2>
+    <p class="small text-muted mb-2">
+      Barras horizontales ordenadas de mayor a menor (promedio por año). El color indica la
+      region; al pasar el mouse se ve el porcentaje de cobertura.
+    </p>
+    <div id="chart-sin-cobertura" class="plot-box" style="width:100%;height:640px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Sin filtros, cerca de <strong>3,74 millones</strong>
+      de personas por año viven sin cobertura de acueducto, el <strong>87%</strong> en
+      municipios del nivel Nacional. Medellin (572.577) y Cali (513.765) encabezan la
+      lista, pero el tercer lugar es <strong>Bogota (404.014)</strong>, aun con 94,82% de
+      cobertura: por su tamaño, tiene mas personas sin acueducto que los otros 8
+      municipios de la Sabana juntos (79.666). Un porcentaje alto de cobertura no significa
+      pocas personas sin servicio.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 3 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">3. Tamaño del municipio vs. IRCA</h2>
+    <p class="small text-muted mb-2">
+      Cada burbuja es un municipio: eje X = poblacion (escala logaritmica), eje Y = IRCA
+      promedio, tamaño = personas sin cobertura. La linea punteada marca IRCA = 14 (inicio
+      de "Riesgo medio").
+    </p>
+    <div id="chart-tamano-irca" class="plot-box" style="width:100%;height:420px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> Las burbujas forman dos franjas horizontales que no
+      dependen del tamaño: los municipios de la Sabana estan entre <strong>6,52 y
+      6,72</strong> de IRCA, desde Sopo (~32 mil habitantes) hasta Bogota (~7,8 millones),
+      y las ciudades nacionales entre <strong>24,32 y 27,58</strong>, desde Tunja (~184 mil)
+      hasta Medellin (~2,5 millones). Lo que separa el riesgo es la region, no cuantas
+      personas viven en el municipio.
+    </div>
+  </div>
+</div>
+
+<!-- ================= CONOCIMIENTOS EVIDENTES ================= -->
+<h2 class="h5 mt-4 mb-3">Conocimientos evidentes</h2>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 1</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Cambia el nivel de riesgo del agua cuando cada municipio pesa segun su poblacion
+        y no segun su numero de registros?</dd>
+      <dt>Variables</dt>
+      <dd><code>irca</code>, <code>tipo_region</code>, <code>municipio</code>,
+        <code>anio</code> y <code>poblacion</code> (DANE).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se promedio el IRCA por municipio y año (203 combinaciones), se le asigno a cada
+        una la poblacion proyectada del DANE y se calculo el promedio ponderado por
+        poblacion. Se comparo con el promedio simple por registro y con la participacion
+        de cada region en registros y en poblacion.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 1. IRCA por registro: 14,43; ponderado por poblacion: 18,46. La Sabana
+        tiene el 59,98% de los registros pero el 38,96% de la poblacion. Dentro de cada
+        region el cambio es minimo (Regional 6,61 &rarr; 6,55; Nacional 26,13 &rarr; 26,06).</dd>
+      <dt>Hallazgo</dt>
+      <dd>Al ponderar por poblacion el IRCA total sube 4,03 puntos y cambia de categoria:
+        de "Bajo riesgo" (5-14) a "Riesgo medio" (14-28).</dd>
+      <dt>Interpretacion</dt>
+      <dd>El dataset sobrerrepresenta a la Sabana, que tiene el agua de mejor calidad. Un
+        promedio por registro hace ver la situacion mejor de lo que la vive la poblacion:
+        medido en personas, el habitante promedio de estos 29 municipios consume agua con
+        riesgo medio.</dd>
+      <dt>Utilidad</dt>
+      <dd>Cualquier reporte sobre cuantas personas estan expuestas (salud publica,
+        priorizacion de inversion) debe usar promedios ponderados por poblacion; el
+        promedio por registro solo describe el dataset, no a la gente.</dd>
+      <dt>Limitacion</dt>
+      <dd>La poblacion del DANE es una proyeccion anual y se aplica igual a todos los
+        registros diarios de ese año. Ademas, el efecto viene solo del peso de cada region,
+        porque dentro de una region el IRCA no varia con el municipio (ver conocimiento 3).</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 2</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Donde se concentran las personas que viven sin cobertura de acueducto?</dd>
+      <dt>Variables</dt>
+      <dd><code>cobertura_acueducto_pct</code>, <code>municipio</code>,
+        <code>tipo_region</code> y <code>poblacion</code> (DANE).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Para cada municipio y año se calculo poblacion &times; (1 &minus; cobertura/100) y
+        se promedio por año. Se ordenaron los 29 municipios de mayor a menor.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 2. Cerca de 3.744.699 personas por año sin cobertura; 3.261.019 (87,08%)
+        en ciudades del nivel Nacional. Los tres primeros: Medellin (572.577), Cali
+        (513.765) y Bogota (404.014, con 94,82% de cobertura). Los otros 8 municipios de la
+        Sabana suman 79.666.</dd>
+      <dt>Hallazgo</dt>
+      <dd>Bogota, con la cobertura mas alta del grupo, es el tercer municipio con mas
+        personas sin acueducto y concentra 5 de cada 6 personas sin cobertura de la Sabana.</dd>
+      <dt>Interpretacion</dt>
+      <dd>El porcentaje de cobertura y el numero de personas sin servicio cuentan historias
+        distintas: un 5% de una ciudad de casi 8 millones son mas personas que todo el
+        deficit de municipios mas pequeños con menor cobertura.</dd>
+      <dt>Utilidad</dt>
+      <dd>Medellin, Cali y Bogota reunen 1.490.356 personas sin cobertura (39,80% del
+        total): ampliar redes en esas tres ciudades atiende a mas gente que hacerlo en los
+        otros 26 municipios juntos.</dd>
+      <dt>Limitacion</dt>
+      <dd>Se asume que la cobertura del dataset aplica a toda la poblacion del municipio
+        (urbana y rural), cuando en la practica la cobertura rural suele ser menor; la cifra
+        real de personas sin acueducto podria ser mayor.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 3</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Los municipios mas grandes tienen mejor o peor calidad de agua que los pequeños?</dd>
+      <dt>Variables</dt>
+      <dd><code>poblacion</code> (DANE), <code>irca</code>, <code>tipo_region</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se ubico cada municipio por poblacion (escala logaritmica) e IRCA promedio, y se
+        calculo la correlacion entre el logaritmo de la poblacion y el IRCA dentro de cada
+        region.</dd>
+      <dt>Evidencia</dt>
+      <dd>Grafica 3. Sabana: IRCA entre 6,52 y 6,72 desde Sopo (~32 mil) hasta Bogota
+        (~7,8 millones), correlacion &minus;0,24. Nacional: IRCA entre 24,32 y 27,58 desde
+        Tunja (~184 mil) hasta Medellin (~2,5 millones), correlacion &minus;0,09. El 61,04%
+        de la poblacion vive en municipios con IRCA mayor a 14, que son exactamente los 20
+        del nivel Nacional.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El tamaño del municipio no explica el IRCA: las correlaciones son debiles y los
+        puntos forman dos franjas planas separadas por la region.</dd>
+      <dt>Interpretacion</dt>
+      <dd>En estos datos el riesgo del agua depende de pertenecer o no al sistema de la
+        Sabana (EAAB), no de cuantas personas viven en el municipio. Ser una ciudad grande
+        no garantiza mejor agua.</dd>
+      <dt>Utilidad</dt>
+      <dd>La vigilancia de calidad del agua debe focalizarse por region: fuera de la Sabana
+        incluso las ciudades mas grandes y con mas recursos superan el umbral de riesgo
+        medio.</dd>
+      <dt>Limitacion</dt>
+      <dd>Los 29 municipios son ciudades medianas y grandes (el menor es Sopo); el dataset no
+        incluye municipios pequeños o rurales, donde el riesgo real suele ser mayor. Ademas,
+        el IRCA del dataset se genero por region (ver limitacion general), lo que explica
+        las franjas planas.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= LIMITACION Y DECISION ================= -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Limitacion general de la dimension</h2>
+        <p class="small mb-2">
+          El dataset del proyecto es sintetico: <code>generar_dataset.py</code> asigna el
+          IRCA al azar dentro de un rango por region (1-12 para la Sabana, 2-50 para el
+          resto, mas ruido). Por eso, dentro de cada region, el IRCA no puede tener relacion
+          con la poblacion, y los patrones intra-region de esta pagina no deben leerse como
+          evidencia sobre municipios reales.
+        </p>
+        <p class="small mb-0">
+          La poblacion si es real (DANE), pero es una proyeccion anual que se asigna a
+          registros diarios, y la cobertura del dataset se aplica a toda la poblacion del
+          municipio.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Decision sustentada en datos</h2>
+        <p class="small mb-2">
+          <strong>Fuente externa:</strong> como el dataset no trae ninguna variable de
+          poblacion, se incorporo la serie municipal del DANE (por area, 2018-2042,
+          CNPV 2018, publicada el 8 de agosto de 2025), area "Total", años 2019-2025, cruzada
+          por codigo DIVIPOLA. Sin ella no es posible medir en personas.
+        </p>
+        <p class="small mb-0">
+          <strong>Decision:</strong> priorizar la ampliacion de cobertura por numero de
+          personas y no por porcentaje. Medellin, Cali y Bogota concentran 1.490.356 personas
+          sin acueducto (39,80% del total), y Bogota debe incluirse aunque su cobertura sea
+          94,82%. Para calidad del agua, la prioridad son las ciudades del nivel Nacional,
+          donde vive el 61,04% de la poblacion analizada con IRCA promedio por encima de 14.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /viz-root -->
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+(function () {
+  var datosIniciales = {{ datos_json|safe }};
+  var COLOR = {
+    Regional: "#2a78d6",
+    Nacional: "#eb6834",
+    muted: "#898781",
+    secondary: "#52514e",
+    grid: "#e1e0d9",
+    critical: "#d03b3b"
+  };
+  var NOMBRE_REGION = { Regional: "Regional (Sabana)", Nacional: "Nacional" };
+  var LAYOUT_BASE = {
+    paper_bgcolor: "#fcfcfb",
+    plot_bgcolor: "#fcfcfb",
+    font: { family: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#52514e", size: 12 },
+    margin: { t: 30, r: 20, b: 60, l: 60 }
+  };
+  var CONFIG = { displayModeBar: false, responsive: true };
+
+  function fmt(n, dec) {
+    if (n === null || n === undefined) return "s/d";
+    return n.toLocaleString("es-CO", { maximumFractionDigits: dec === undefined ? 2 : dec });
+  }
+
+  function renderIndicadores(ind) {
+    var tiles = [
+      { lbl: "IRCA ponderado por poblacion", val: fmt(ind.irca_ponderado), sub: "por registro: " + fmt(ind.irca_simple) },
+      { lbl: "Personas sin cobertura", val: fmt(ind.sin_cobertura, 0), sub: "promedio por año" },
+      { lbl: "% poblacion en riesgo", val: ind.pct_poblacion_riesgo !== undefined ? fmt(ind.pct_poblacion_riesgo) + "%" : "s/d", sub: "municipios con IRCA > 14" },
+      { lbl: "Personas en riesgo", val: fmt(ind.poblacion_riesgo, 0), sub: "promedio por año" },
+      { lbl: "Poblacion analizada", val: fmt(ind.poblacion, 0), sub: fmt(ind.n_municipios, 0) + " municipios" },
+      { lbl: "Registros usados", val: fmt(ind.n_registros, 0), sub: fmt(ind.n_anios, 0) + " año(s)" }
+    ];
+    document.getElementById("indicadores").innerHTML = tiles.map(function (t) {
+      return '<div class="col-6 col-md-4 col-xl-2"><div class="card shadow-sm border-0 h-100 stat-tile">' +
+        '<div class="card-body"><div class="lbl">' + t.lbl + '</div>' +
+        '<h3 class="h4 mb-0">' + t.val + '</h3>' +
+        '<div class="small text-muted">' + t.sub + '</div></div></div></div>';
+    }).join("");
+  }
+
+  function renderChartRegistrosPersonas(lista, ind) {
+    var regiones = lista.map(function (d) { return NOMBRE_REGION[d.region]; });
+    var colores = lista.map(function (d) { return COLOR[d.region]; });
+    // El "Total" solo tiene sentido si hay mas de una region en el filtro.
+    var conTotal = lista.length > 1;
+    var regionesIrca = regiones.concat(conTotal ? ["Total"] : []);
+    var coloresIrca = colores.concat(conTotal ? [COLOR.secondary] : []);
+    var traces = [
+      {
+        type: "bar", name: "% de registros", x: regiones,
+        y: lista.map(function (d) { return d.pct_registros; }),
+        marker: { color: colores, opacity: 0.45 },
+        hovertemplate: "%{x}<br>% de registros: %{y:.2f}%<extra></extra>",
+        xaxis: "x", yaxis: "y"
+      },
+      {
+        type: "bar", name: "% de poblacion", x: regiones,
+        y: lista.map(function (d) { return d.pct_poblacion; }),
+        marker: { color: colores },
+        hovertemplate: "%{x}<br>% de poblacion: %{y:.2f}%<extra></extra>",
+        xaxis: "x", yaxis: "y"
+      },
+      {
+        type: "bar", name: "IRCA por registro", x: regionesIrca,
+        y: lista.map(function (d) { return d.irca_simple; }).concat(conTotal ? [ind.irca_simple] : []),
+        marker: { color: coloresIrca, opacity: 0.45 },
+        hovertemplate: "%{x}<br>IRCA por registro: %{y:.2f}<extra></extra>",
+        xaxis: "x2", yaxis: "y2", showlegend: false
+      },
+      {
+        type: "bar", name: "IRCA ponderado", x: regionesIrca,
+        y: lista.map(function (d) { return d.irca_ponderado; }).concat(conTotal ? [ind.irca_ponderado] : []),
+        marker: { color: coloresIrca },
+        hovertemplate: "%{x}<br>IRCA ponderado: %{y:.2f}<extra></extra>",
+        xaxis: "x2", yaxis: "y2", showlegend: false
+      }
+    ];
+    Plotly.newPlot("chart-registros-personas", traces, Object.assign({}, LAYOUT_BASE, {
+      barmode: "group",
+      margin: { t: 60, r: 20, b: 60, l: 60 },
+      xaxis: { domain: [0, 0.44], anchor: "y" },
+      yaxis: { title: "% del total", gridcolor: COLOR.grid, range: [0, 100], anchor: "x" },
+      xaxis2: { domain: [0.56, 1], anchor: "y2" },
+      yaxis2: { title: "IRCA (0-100)", gridcolor: COLOR.grid, range: [0, 40], anchor: "x2" },
+      legend: { orientation: "h", y: -0.18 },
+      annotations: [
+        { text: "Participacion<br>clara = registros · solida = personas", x: 0.22, y: 1.14, xref: "paper", yref: "paper", showarrow: false, font: { size: 11, color: COLOR.secondary } },
+        { text: "IRCA promedio<br>clara = por registro · solida = ponderado", x: 0.78, y: 1.14, xref: "paper", yref: "paper", showarrow: false, font: { size: 11, color: COLOR.secondary } }
+      ]
+    }), CONFIG);
+  }
+
+  function renderChartSinCobertura(lista) {
+    var orden = lista.slice().reverse(); // la barra mas grande queda arriba
+    var trace = {
+      type: "bar", orientation: "h",
+      y: orden.map(function (d) { return d.municipio; }),
+      x: orden.map(function (d) { return d.sin_cobertura; }),
+      marker: { color: orden.map(function (d) { return COLOR[d.region]; }) },
+      customdata: orden.map(function (d) { return [NOMBRE_REGION[d.region], d.cobertura, d.poblacion]; }),
+      hovertemplate: "%{y} (%{customdata[0]})<br>Sin cobertura: %{x:,.0f} personas" +
+        "<br>Cobertura: %{customdata[1]:.2f}%<br>Poblacion: %{customdata[2]:,.0f}<extra></extra>"
+    };
+    Plotly.newPlot("chart-sin-cobertura", [trace], Object.assign({}, LAYOUT_BASE, {
+      margin: { t: 20, r: 20, b: 50, l: 110 },
+      xaxis: { title: "Personas sin cobertura (promedio por año)", gridcolor: COLOR.grid, separatethousands: true },
+      yaxis: { automargin: true, dtick: 1 },
+      showlegend: false
+    }), CONFIG);
+  }
+
+  function renderChartTamanoIrca(lista, umbral) {
+    var maxSin = Math.max.apply(null, lista.map(function (d) { return d.sin_cobertura; }).concat([1]));
+    var traces = ["Regional", "Nacional"].map(function (region) {
+      var datos = lista.filter(function (d) { return d.region === region; });
+      return {
+        type: "scatter", mode: "markers", name: NOMBRE_REGION[region],
+        x: datos.map(function (d) { return d.poblacion; }),
+        y: datos.map(function (d) { return d.irca; }),
+        text: datos.map(function (d) { return d.municipio; }),
+        customdata: datos.map(function (d) { return d.sin_cobertura; }),
+        marker: {
+          color: COLOR[region], opacity: 0.75, line: { color: "#ffffff", width: 1 },
+          size: datos.map(function (d) { return 8 + 40 * Math.sqrt(d.sin_cobertura / maxSin); })
+        },
+        hovertemplate: "%{text}<br>Poblacion: %{x:,.0f}<br>IRCA: %{y:.2f}" +
+          "<br>Sin cobertura: %{customdata:,.0f}<extra></extra>"
+      };
+    });
+    Plotly.newPlot("chart-tamano-irca", traces, Object.assign({}, LAYOUT_BASE, {
+      xaxis: { title: "Poblacion (escala logaritmica)", type: "log", gridcolor: COLOR.grid },
+      yaxis: { title: "IRCA promedio", gridcolor: COLOR.grid, range: [0, 35] },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: umbral, y1: umbral,
+                 line: { color: COLOR.critical, width: 1, dash: "dot" } }],
+      annotations: [{ xref: "paper", x: 1, y: umbral, xanchor: "right", yanchor: "bottom",
+                      text: "IRCA = " + umbral + " (riesgo medio)", showarrow: false,
+                      font: { size: 10, color: COLOR.critical } }],
+      legend: { orientation: "h", y: -0.2 }
+    }), CONFIG);
+  }
+
+  function render(data) {
+    renderIndicadores(data.indicadores);
+    renderChartRegistrosPersonas(data.por_region, data.indicadores);
+    renderChartSinCobertura(data.municipios);
+    renderChartTamanoIrca(data.municipios, data.umbral_riesgo);
+  }
+
+  function aplicarFiltros() {
+    var anio = document.getElementById("filtroAnio").value;
+    var region = document.getElementById("filtroRegion").value;
+    fetch("{{ url_for('etapa4_poblacional_datos') }}?anio=" + encodeURIComponent(anio) + "&tipo_region=" + encodeURIComponent(region))
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function (err) { console.error("No se pudieron cargar los datos filtrados:", err); });
+  }
+
+  document.getElementById("filtroAnio").addEventListener("change", aplicarFiltros);
+  document.getElementById("filtroRegion").addEventListener("change", aplicarFiltros);
+
+  render(datosIniciales);
+})();
+</script>
+{% endif %}
+{% endblock %}
