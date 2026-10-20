@@ -1,4 +1,4 @@
-# Etapa 4 - Pagina 2: comparacion de territorios (especificacion)
+# Etapa 4 - Pagina 2: comparacion de territorios
 
 ## 1. Pregunta de analisis
 
