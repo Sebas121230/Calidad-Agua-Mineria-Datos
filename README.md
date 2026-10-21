@@ -191,3 +191,67 @@ para no alterar el resultado ya validado de la Etapa 3.
 
 El desarrollo de la Etapa 4 (dimension territorial) se realiza en la rama
 `feature/dim-territorial`.
+
+
+## Etapa 4 - Conocimiento evidente en Power BI
+
+La Etapa 4 se entrega como un informe de Power BI con cuatro paginas (una por integrante) y una
+seccion de la aplicacion Flask que lo presenta. Esta parte documenta la **pagina 2: comparacion de
+territorios**.
+
+Responsable: John Sebastian Rodriguez Dominguez.
+
+**Pregunta de la pagina:** ¿hay diferencias reales en la calidad del agua, la cobertura de
+acueducto y la continuidad del servicio entre los municipios, o la diferencia esta solo entre los
+de la Sabana de Bogota (Regional) y los del resto del pais (Nacional)?
+
+**Resultados principales** (todo el periodo 2019-2025, sin filtros):
+
+- El IRCA promedio de Nacional (26,13) es casi cuatro veces el de Regional (6,61).
+- En Regional no hay mediciones de riesgo alto ni inviable; en Nacional son el 46,42 %.
+- Dentro de cada grupo los municipios son casi iguales: la diferencia esta entre los dos grupos.
+
+### Contenido
+
+```
+Calidad-Agua-Mineria-Datos/
+├── powerbi/
+│   ├── conocimiento_evidente.pbix        # Archivo base del equipo
+│   └── territorial.pbix                  # Pagina "2. Comparacion territorial"
+├── docs/etapa4/
+│   ├── territorial_especificacion.md     # Pregunta, unidad de analisis, tratamientos y problemas pendientes
+│   ├── territorial_datos.md              # Pasos de Power Query y modelo de datos
+│   ├── territorial_medidas_dax.md        # Medidas DAX con sus valores esperados
+│   └── territorial_conocimientos.md      # Tres conocimientos evidentes, limitacion y decision
+└── templates/etapa4/
+    └── conocimiento_evidente.html        # Seccion "Conocimiento evidente" de la aplicacion
+```
+
+### Como abrir el informe
+
+Requiere **Power BI Desktop** (solo Windows).
+
+1. Abrir `powerbi/territorial.pbix`.
+2. Si aparece el error `DataSource.NotFound`, la ruta del archivo de datos es la del computador de
+   quien lo creo. Se corrige en **Inicio > Transformar datos > Configuracion de origen de datos >
+   Cambiar origen**, eligiendo `dataset_calidad_agua_limpio.csv` de este repositorio.
+3. **Cerrar y aplicar**.
+4. Comprobar las cifras de `docs/etapa4/territorial_datos.md` (12.680 filas, 29 municipios).
+
+### Datos y periodo
+
+Fuente: `dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
+mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico.
+
+### Seccion en la aplicacion
+
+Con la aplicacion en marcha, el menu lateral tiene la entrada **Conocimiento evidente (Power BI)**
+(`/etapa4/conocimiento-evidente`), con el proposito, las cuatro preguntas, el informe y la fuente
+de los datos.
+
+Para mostrar el informe dentro de la pagina, hay que publicarlo en Power BI (Archivo > Insertar
+informe) y definir su direccion en la variable de entorno `CONOCIMIENTO_EVIDENTE_URL`. Mientras no
+este definida, la pagina muestra el enlace a la carpeta `powerbi` del repositorio.
+
+El desarrollo de la pagina territorial en Power BI se realiza en la rama
+`feature/conocimiento-territorial`.
