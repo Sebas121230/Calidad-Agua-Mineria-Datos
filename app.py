@@ -889,6 +889,71 @@ def etapa4_territorial_datos():
     nivel_servicio = request.args.get("nivel_servicio", "Todos")
     return jsonify(_datos_territorial(anio=anio, nivel_servicio=nivel_servicio))
 
+# Etapa 4: seccion "Conocimiento evidente" (informe de Power BI)
+REPO_URL = "https://github.com/Sebas121230/Calidad-Agua-Mineria-Datos"
+
+# Direccion del informe publicado en Power BI (Archivo > Insertar informe). Si no esta
+# definida, la pagina muestra el enlace al archivo .pbix del repositorio en su lugar.
+# Se puede cambiar con la variable de entorno CONOCIMIENTO_EVIDENTE_URL.
+CONOCIMIENTO_EVIDENTE_URL = os.environ.get("CONOCIMIENTO_EVIDENTE_URL", "")
+
+# Las 4 paginas del informe. Cada integrante completa la suya.
+PAGINAS_CONOCIMIENTO = [
+    {
+        "numero": 1,
+        "titulo": "Composición y distribución",
+        "pregunta": None,
+    },
+    {
+        "numero": 2,
+        "titulo": "Comparación de territorios",
+        "pregunta": (
+            "¿Hay diferencias reales en la calidad del agua, la cobertura de acueducto y la "
+            "continuidad del servicio entre los municipios, o la diferencia está solo entre "
+            "los de la Sabana de Bogotá (Regional) y los del resto del país (Nacional)?"
+        ),
+        "hallazgos": [
+            "El IRCA de Nacional (26,13) es casi cuatro veces el de Regional (6,61).",
+            "En Regional no hay riesgo alto ni inviable; en Nacional es el 46,42 % de las "
+            "mediciones con IRCA.",
+            "Dentro de cada grupo los municipios son casi iguales: la diferencia está entre "
+            "los dos grupos.",
+        ],
+        "archivo": "powerbi/territorial.pbix",
+        "documento": "docs/etapa4/territorial_conocimientos.md",
+    },
+    {
+        "numero": 3,
+        "titulo": "Evolución en el tiempo",
+        "pregunta": None,
+    },
+    {
+        "numero": 4,
+        "titulo": "Análisis multivariado",
+        "pregunta": None,
+    },
+]
+
+
+def _miles(n):
+    """12680 -> '12.680' (punto como separador de miles)."""
+    return f"{n:,}".replace(",", ".")
+
+
+@app.route("/etapa4/conocimiento-evidente")
+def etapa4_conocimiento_evidente():
+    """Portada de la Etapa 4: informe de Power BI con el conocimiento evidente."""
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    fechas = sorted(r["fecha"] for r in registros if r.get("fecha"))
+    return render_template(
+        "etapa4/conocimiento_evidente.html",
+        paginas=PAGINAS_CONOCIMIENTO,
+        informe_url=CONOCIMIENTO_EVIDENTE_URL,
+        repo_url=REPO_URL,
+        total_registros=_miles(len(registros)) if registros else None,
+        fecha_inicio=fechas[0] if fechas else None,
+        fecha_fin=fechas[-1] if fechas else None,
+    )
 
 # Ejecutar el servidor en modo desarrollo
 if __name__ == "__main__":
