@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<h1 class="h3 mb-1" style="color:#0d2137;">Conocimiento evidente</h1>
+<p class="text-secondary">Etapa 4 &middot; Informe de Power BI</p>
+
+<!-- ===== Propósito ===== -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h2 class="h5">¿Para qué sirve esta sección?</h2>
+        <p class="mb-2">
+            Reúne lo que los datos ya muestran de forma clara sobre la calidad y la
+            disponibilidad del agua, sin modelos complicados. Cada integrante del equipo
+            respondió una pregunta en una página de un mismo informe de Power BI, con
+            indicadores, gráficos y filtros, y dejó por escrito qué se descubrió, para qué
+            sirve y qué límites tiene.
+        </p>
+        <p class="mb-0 text-secondary small">
+            Cada hallazgo se calcula con una cantidad conocida de mediciones y se compara
+            entre periodos equivalentes. Lo que se muestra son diferencias entre grupos, no
+            las causas de esas diferencias.
+        </p>
+    </div>
+</div>
+
+<!-- ===== Las cuatro páginas ===== -->
+<h2 class="h5 mb-3">Las cuatro páginas del informe</h2>
+<div class="row g-3 mb-4">
+    {% for p in paginas %}
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="small text-uppercase text-secondary" style="letter-spacing:.08em;">
+                    Página {{ p.numero }}
+                </div>
+                <h3 class="h6 mb-2">{{ p.titulo }}</h3>
+
+                {% if p.pregunta %}
+                <p class="mb-2"><strong>Pregunta:</strong> {{ p.pregunta }}</p>
+                <ul class="small mb-2">
+                    {% for h in p.hallazgos %}<li>{{ h }}</li>{% endfor %}
+                </ul>
+                <div class="small text-secondary">
+                    <a href="{{ repo_url }}/blob/main/{{ p.documento }}" target="_blank" rel="noopener">Conocimientos evidentes</a>
+                    &middot;
+                    <a href="{{ repo_url }}/blob/main/{{ p.archivo }}" target="_blank" rel="noopener">Archivo de Power BI</a>
+                </div>
+                {% else %}
+                <p class="text-secondary small mb-0">Pregunta pendiente: la completa quien tiene esta página.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ===== Informe de Power BI ===== -->
+<h2 class="h5 mb-3">Informe de Power BI</h2>
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        {% if informe_url %}
+        <div class="ratio" style="--bs-aspect-ratio: 62%;">
+            <iframe title="Informe de Power BI: conocimiento evidente"
+                    src="{{ informe_url }}" allowfullscreen="true" style="border:0;"></iframe>
+        </div>
+        <p class="small mt-2 mb-0">
+            <a href="{{ informe_url }}" target="_blank" rel="noopener">Abrir el informe en Power BI</a>
+            (si no se ve aquí, hay que iniciar sesión con la cuenta de la universidad).
+        </p>
+        {% else %}
+        <p class="mb-2">
+            El informe todavía no está publicado en Power BI. Mientras tanto, se puede abrir el archivo
+            desde el repositorio:
+        </p>
+        <ul class="mb-2">
+            <li><a href="{{ repo_url }}/tree/main/powerbi" target="_blank" rel="noopener">Carpeta powerbi del repositorio</a></li>
+            <li>Se abre con <strong>Power BI Desktop</strong> (Windows). Al abrirlo, si pide la ruta del archivo de datos, se cambia a la ubicación de
+                <code>dataset_calidad_agua_limpio.csv</code> en el computador.</li>
+        </ul>
+        <p class="small text-secondary mb-0">
+            Cuando el informe esté publicado, basta con definir la variable de entorno
+            <code>CONOCIMIENTO_EVIDENTE_URL</code> con su dirección para que aparezca aquí.
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ===== Fuente y periodo ===== -->
+<h2 class="h5 mb-3">Fuente de los datos y periodo</h2>
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <table class="table table-sm mb-0">
+            <tbody>
+                <tr><th style="width:30%;">Archivo</th><td><code>dataset_calidad_agua_limpio.csv</code> (resultado de la limpieza de la Etapa 3)</td></tr>
+                {% if total_registros %}
+                <tr><th>Mediciones</th><td>{{ total_registros }} (una medición diaria de un municipio)</td></tr>
+                <tr><th>Periodo</th><td>del {{ fecha_inicio }} al {{ fecha_fin }}</td></tr>
+                {% endif %}
+                <tr><th>Origen</th><td>Conjunto de datos <strong>sintético</strong> creado para el proyecto a partir de las fuentes documentadas en la Etapa 1</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
