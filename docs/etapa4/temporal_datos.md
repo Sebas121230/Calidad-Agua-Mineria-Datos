@@ -64,8 +64,21 @@ Es un cambio de presentación: no altera ni los valores ni las medidas.
 | Eje del gráfico 2 | `Agua[periodo]` | 28 periodos (7 años × 4 trimestres) |
 
 Se usan las columnas de `Agua` y no las de `Calendario` para que el eje no dependa de la
-relación con el calendario y para que los filtros de la página acts sobre la misma tabla que
+relación con el calendario y para que los filtros de la página actúen sobre la misma tabla que
 calcula las medidas.
+
+## 3.1 Visualizaciones y su interpretación
+
+Cada gráfico tiene su propio cuadro de interpretación en la página (texto de 9-10 pt debajo del
+visual), además de los tres conocimientos de la parte inferior:
+
+| Visual | Qué muestra | Lectura |
+|---|---|---|
+| Gráfico 1 | % de servicio continuo por año, Regional contra Nacional | El Regional pasa de 100 % (2019-2023) a 43,91 % (2024) y 23,76 % (2025); el Nacional se mantiene entre 48,76 % y 52,06 % |
+| Gráfico 2 | % de servicio continuo por trimestre | Estable entre 77,56 % y 83,30 % hasta 2024-T1; cae a 38,44 % en 2024-T2 y no se recupera en 2025 (33,04 %-35,16 %) |
+| Gráfico 3 | IRCA promedio por año | Entre 14,22 y 14,69; la variación máxima entre años es 0,34 pp, así que la calidad no acompaña el quiebre del servicio |
+| Gráfico 4 | Almacenamiento promedio por año y región | El Regional cae de 70,79 % (2022) a 50,84 % (2023) y 37,98 % (2024); el Nacional se mantiene entre 56,66 % y 58,37 % |
+| Gráfico 5 | Precipitación promedio por año y región | El Regional baja de 2,97 mm (2022) a 1,81 mm (2023) y 1,56 mm (2024), y sube a 2,39 mm en 2025; coincide con el almacenamiento, sin probar causa |
 
 ## 4. Verificación después de cargar
 

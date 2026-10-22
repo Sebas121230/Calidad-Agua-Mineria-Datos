@@ -111,7 +111,7 @@ Cómo se lee:
 - `REMOVEFILTERS ( Agua[periodo] )` quita el filtro de trimestre antes de reimponer el del año
   anterior; `REMOVEFILTERS` sobre `Agua[periodo]` no toca el filtro de `Agua[anio]`, así que el
   año anterior queda acotado.
-- El `IF ( NOT ISBLANK ( ... ) )` evita que la tarjeta mostrese una variación falsa cuando el
+- El `IF ( NOT ISBLANK ( ... ) )` evita que la tarjeta muestre una variación falsa cuando el
   año anterior no tiene datos en el filtro elegido (por ejemplo 2019, que no tiene 2018): en ese
   caso la tarjeta queda en blanco.
 

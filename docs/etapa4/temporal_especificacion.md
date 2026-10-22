@@ -40,7 +40,7 @@ registro por combinación fecha + municipio.
 | Nombres de municipio con `@` en lugar de `A`; afecta a Regional y a Nacional | Sin corregir, un mismo municipio aparece dividido en dos | Reemplazar `@` por `A` en Power Query (paso ya hecho en las páginas 1 y 2); quedan 29 municipios |
 | 262 registros sin IRCA (2,07 % de 12.680) | El denominador del IRCA es menor que el número de registros | Se excluyen del promedio de IRCA y de los porcentajes de riesgo, y se informa el denominador (12.418) |
 | El dataset es sintético: lo genera `generar_dataset.py` y el generador **simula una crisis ENSO en 2024** (`crisis_dip` entre abril y septiembre de 2024) | Los resultados describen el dataset, no el sistema real; y la coincidencia entre la crisis simulada y el quiebre observado no es una prueba de causa | Se declara como limitación y la causa (ENSO, operación o ambas) se presenta siempre como hipótesis |
-| El IRCA se registra por el mismo operador regional en cada municipio | Puede no captar el efecto de la racionación sobre la calidad | Se declara como limitación del Conocimiento 2 |
+| El IRCA se registra por el mismo operador regional en cada municipio | Puede no captar el efecto del racionamiento sobre la calidad | Se declara como limitación del Conocimiento 2 |
 | Banda de riesgo calculada con los rangos del propio dataset, no con la Resolución 2115 de 2007 | Los porcentajes por banda dependen de ese criterio | Se cita el criterio usado en cada indicador |
 
 ## 4. Variables

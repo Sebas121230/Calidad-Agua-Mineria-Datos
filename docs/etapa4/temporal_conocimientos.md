@@ -49,7 +49,7 @@ o el servicio se comportó igual los siete años?
 | Hallazgo | La disponibilidad se desplomó en 2024 y 2025, pero ningún indicador de calidad acompaña el movimiento |
 | Interpretación | El IRCA y las bandas de riesgo no son sensibles a la restricción del servicio: seguir solo el IRCA habría dado por normal todo el periodo en que la Sabana estuvo sin agua continua |
 | Utilidad | Obliga a que el tablero de vigilancia incluya indicadores de disponibilidad (continuidad y racionamiento) y no solo de calidad, y define qué se revisa cuando la disponibilidad cae |
-| Limitación | El IRCA se registra por el mismo operador regional en cada municipio, así que puede no captar el efecto de la racionación sobre la calidad; además, las 262 mediciones sin IRCA (2,07 %) quedan fuera de los promedios y el denominador cambia levemente entre años |
+| Limitación | El IRCA se registra por el mismo operador regional en cada municipio, así que puede no captar el efecto del racionamiento sobre la calidad; además, las 262 mediciones sin IRCA (2,07 %) quedan fuera de los promedios y el denominador cambia levemente entre años |
 
 ---
 
