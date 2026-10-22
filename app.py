@@ -902,7 +902,20 @@ PAGINAS_CONOCIMIENTO = [
     {
         "numero": 1,
         "titulo": "Composición y distribución",
-        "pregunta": None,
+        "pregunta": (
+            "¿Cómo se distribuyen las mediciones diarias por nivel de riesgo IRCA, nivel de "
+            "servicio y tipo de región, y qué grupos predominan o son minoritarios?"
+        ),
+        "hallazgos": [
+            "El 67,18 % de las mediciones con IRCA está en sin riesgo o bajo riesgo, y el "
+            "18,61 % en alto riesgo o inviable.",
+            "El servicio continuo bajó de cerca del 80 % (2019-2023) a 47,19 % en 2024 y "
+            "34,03 % en 2025.",
+            "Solo el 2,07 % de las mediciones no tiene IRCA, y ese faltante está repartido "
+            "entre regiones y años.",
+        ],
+        "archivo": "powerbi/conocimiento_evidente.pbix",
+        "documento": "docs/etapa4/composicion_conocimientos.md",
     },
     {
         "numero": 2,
