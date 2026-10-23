@@ -255,3 +255,29 @@ este definida, la pagina muestra el enlace a la carpeta `powerbi` del repositori
 
 El desarrollo de la pagina territorial en Power BI se realiza en la rama
 `feature/conocimiento-territorial`.
+
+### Pagina 4: analisis multivariado
+
+La pagina 4 cruza calidad del agua (IRCA), cobertura de acueducto, nivel de servicio,
+region y periodo usando las 12.680 mediciones del conjunto limpio. El analisis y sus
+limitaciones estan documentados en
+[`docs/etapa4/multidimensional_conocimientos.md`](docs/etapa4/multidimensional_conocimientos.md).
+
+**Pregunta:** ¿como se relacionan simultaneamente la calidad del agua, la cobertura y la
+continuidad del servicio al compararlas por region, municipio y periodo?
+
+**Hallazgos principales:**
+
+- La correlacion global entre IRCA y cobertura es `r = -0,522`, pero dentro de Regional y
+  Nacional es aproximadamente `r = -0,002`; la relacion global coincide principalmente
+  con la diferencia entre regiones.
+- En Regional, el servicio continuo pasa del 100 % de los registros entre 2019 y 2023 al
+  43,9 % en 2024 y al 23,8 % en 2025.
+- En Nacional, IRCA superior a 40 aparece en 521 de 2.495 registros con servicio continuo
+  (20,9 %) y en 514 de 2.483 con servicio intermitente (20,7 %).
+
+El informe de Power BI esta en `powerbi/multivariado.pbix`. Se abre con Power BI Desktop;
+si solicita la fuente, se selecciona `dataset_calidad_agua_limpio.csv`. La pagina web con
+el resumen esta disponible en `/etapa4/conocimiento-evidente`.
+
+El desarrollo de esta pagina se realiza en la rama `feature/multivariado-power-bi`.
