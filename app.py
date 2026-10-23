@@ -1100,7 +1100,20 @@ PAGINAS_CONOCIMIENTO = [
     {
         "numero": 1,
         "titulo": "Composición y distribución",
-        "pregunta": None,
+        "pregunta": (
+            "¿Cómo se distribuyen las mediciones diarias por nivel de riesgo IRCA, nivel de "
+            "servicio y tipo de región, y qué grupos predominan o son minoritarios?"
+        ),
+        "hallazgos": [
+            "El 67,18 % de las mediciones con IRCA está en sin riesgo o bajo riesgo, y el "
+            "18,61 % en alto riesgo o inviable.",
+            "El servicio continuo bajó de cerca del 80 % (2019-2023) a 47,19 % en 2024 y "
+            "34,03 % en 2025.",
+            "Solo el 2,07 % de las mediciones no tiene IRCA, y ese faltante está repartido "
+            "entre regiones y años.",
+        ],
+        "archivo": "powerbi/conocimiento_evidente.pbix",
+        "documento": "docs/etapa4/composicion_conocimientos.md",
     },
     {
         "numero": 2,
@@ -1142,7 +1155,22 @@ PAGINAS_CONOCIMIENTO = [
     {
         "numero": 4,
         "titulo": "Análisis multivariado",
-        "pregunta": None,
+        "pregunta": (
+            "¿Cómo se relacionan la calidad del agua (IRCA), la cobertura de acueducto y la "
+            "continuidad del servicio al compararlas por región y periodo?"
+        ),
+        "hallazgos": [
+            "La correlación IRCA-cobertura es -0,522 en conjunto, pero casi nula dentro de "
+            "cada región (-0,002): la diferencia global coincide principalmente con la "
+            "separación entre Regional y Nacional.",
+            "En Regional, el servicio continuo pasa del 100 % de los registros en 2019-2023 "
+            "al 43,9 % en 2024 y al 23,8 % en 2025; Nacional se mantiene cerca de la mitad.",
+            "Entre los registros Nacionales con IRCA, el valor supera 40 en 521 de 2.495 "
+            "mediciones con servicio continuo (20,9 %) y en 514 de 2.483 con servicio "
+            "intermitente (20,7 %).",
+        ],
+        "archivo": "powerbi/multivariado.pbix",
+        "documento": "docs/etapa4/multidimensional_conocimientos.md",
     },
 ]
 
