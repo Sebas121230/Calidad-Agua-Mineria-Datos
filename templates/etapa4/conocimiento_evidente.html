@@ -26,62 +26,73 @@
 
 <!-- ===== Las cuatro páginas ===== -->
 <h2 class="h5 mb-3">Las cuatro páginas del informe</h2>
-<div class="row g-3 mb-4">
-    {% for p in paginas %}
-    <div class="col-12 col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+<p class="text-secondary small mb-3">
+    Cada tarjeta muestra la página correspondiente del informe publicado, en el mismo orden
+    del archivo de Power BI. Si aparece la pantalla de inicio de sesión, usa la cuenta
+    institucional; el informe está en el espacio personal del autor.
+</p>
+
+<style>
+    .pbi-vista { --bs-aspect-ratio: 58%; }
+    @media (max-width: 767.98px) { .pbi-vista { --bs-aspect-ratio: 110%; } }
+</style>
+
+{% for p in paginas %}
+<section id="pagina-{{ p.numero }}" class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <div>
                 <div class="small text-uppercase text-secondary" style="letter-spacing:.08em;">
                     Página {{ p.numero }}
                 </div>
-                <h3 class="h6 mb-2">{{ p.titulo }}</h3>
-
-                {% if p.pregunta %}
-                <p class="mb-2"><strong>Pregunta:</strong> {{ p.pregunta }}</p>
-                <ul class="small mb-2">
-                    {% for h in p.hallazgos %}<li>{{ h }}</li>{% endfor %}
-                </ul>
-                <div class="small text-secondary">
-                    <a href="{{ repo_url }}/blob/main/{{ p.documento }}" target="_blank" rel="noopener">Conocimientos evidentes</a>
-                    &middot;
-                    <a href="{{ repo_url }}/blob/main/{{ p.archivo }}" target="_blank" rel="noopener">Archivo de Power BI</a>
-                </div>
-                {% else %}
-                <p class="text-secondary small mb-0">Pregunta pendiente: la completa quien tiene esta página.</p>
-                {% endif %}
+                <h3 class="h5 mb-0">{{ p.titulo }}</h3>
             </div>
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ p.pagina_url }}" target="_blank" rel="noopener">
+                Abrir esta página en Power BI
+            </a>
+        </div>
+
+        {% if p.pregunta %}
+        <p class="mb-2"><strong>Pregunta:</strong> {{ p.pregunta }}</p>
+        <ul class="small mb-3">
+            {% for h in p.hallazgos %}<li>{{ h }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+
+        <div class="ratio pbi-vista shadow-sm rounded overflow-hidden">
+            <iframe title="Power BI, página {{ p.numero }}: {{ p.titulo }}"
+                    src="{{ p.vista_url }}" allowfullscreen="true" loading="lazy"
+                    style="border:0;"></iframe>
+        </div>
+
+        {% if p.nota %}
+        <p class="small text-secondary mt-2 mb-0">{{ p.nota }}</p>
+        {% endif %}
+
+        <div class="small text-secondary mt-2">
+            <a href="{{ repo_url }}/blob/main/{{ p.documento }}" target="_blank" rel="noopener">Conocimientos evidentes</a>
+            &middot;
+            <a href="{{ repo_url }}/blob/main/{{ p.archivo }}" target="_blank" rel="noopener">Archivo de Power BI</a>
         </div>
     </div>
-    {% endfor %}
-</div>
+</section>
+{% endfor %}
 
-<!-- ===== Informe de Power BI ===== -->
-<h2 class="h5 mb-3">Informe de Power BI</h2>
+<!-- ===== Informe completo ===== -->
+<h2 class="h5 mb-3">Informe completo</h2>
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        {% if informe_url %}
-        <div class="ratio" style="--bs-aspect-ratio: 62%;">
-            <iframe title="Informe de Power BI: conocimiento evidente"
-                    src="{{ informe_url }}" allowfullscreen="true" style="border:0;"></iframe>
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <p class="mb-1">El informe está publicado en Power BI y cada vista de arriba abre una página distinta.</p>
+            <p class="small text-secondary mb-0">
+                Si una vista no carga, inicia sesión con la cuenta institucional y vuelve a esta página.
+            </p>
         </div>
-        <p class="small mt-2 mb-0">
-            <a href="{{ informe_url }}" target="_blank" rel="noopener">Abrir el informe en Power BI</a>
-            (si no se ve aquí, hay que iniciar sesión con la cuenta de la universidad).
-        </p>
-        {% else %}
-        <p class="mb-2">
-            El informe todavía no está publicado en Power BI. Mientras tanto, se puede abrir el archivo
-            desde el repositorio:
-        </p>
-        <ul class="mb-2">
-            <li><a href="{{ repo_url }}/tree/main/powerbi" target="_blank" rel="noopener">Carpeta powerbi del repositorio</a></li>
-            <li>Se abre con <strong>Power BI Desktop</strong> (Windows). Al abrirlo, si pide la ruta del archivo de datos, se cambia a la ubicación de
-                <code>dataset_calidad_agua_limpio.csv</code> en el computador.</li>
-        </ul>
-        <p class="small text-secondary mb-0">
-            Cuando el informe esté publicado, basta con definir la variable de entorno
-            <code>CONOCIMIENTO_EVIDENTE_URL</code> con su dirección para que aparezca aquí.
-        </p>
+        {% if informe_url %}
+        <a class="btn btn-primary btn-sm" href="{{ informe_url }}" target="_blank" rel="noopener">
+            Abrir el informe completo
+        </a>
         {% endif %}
     </div>
 </div>

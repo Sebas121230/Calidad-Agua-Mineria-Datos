@@ -1090,15 +1090,32 @@ def etapa4_territorial_datos():
 # Etapa 4: seccion "Conocimiento evidente" (informe de Power BI)
 REPO_URL = "https://github.com/Sebas121230/Calidad-Agua-Mineria-Datos"
 
-# Direccion del informe publicado en Power BI (Archivo > Insertar informe). Si no esta
-# definida, la pagina muestra el enlace al archivo .pbix del repositorio en su lugar.
-# Se puede cambiar con la variable de entorno CONOCIMIENTO_EVIDENTE_URL.
-CONOCIMIENTO_EVIDENTE_URL = os.environ.get("CONOCIMIENTO_EVIDENTE_URL", "")
+# Informe publicado en Power BI. El identificador y el espacio se pueden cambiar con
+# variables de entorno si el informe se mueve a otro espacio de trabajo.
+POWER_BI_REPORT_ID = os.environ.get(
+    "POWER_BI_REPORT_ID", "74104f6f-0eba-480c-879c-b83285eeca05"
+)
+POWER_BI_GROUP_ID = os.environ.get("POWER_BI_GROUP_ID", "me")
+
+CONOCIMIENTO_EVIDENTE_URL = os.environ.get(
+    "CONOCIMIENTO_EVIDENTE_URL",
+    f"https://app.powerbi.com/groups/{POWER_BI_GROUP_ID}/reports/{POWER_BI_REPORT_ID}"
+    "/6c5f16c00f80fed89cfd?language=es-419&experience=power-bi",
+)
+
+# URL base del visor incrustado. autoAuth usa la sesion de Power BI del navegador.
+POWER_BI_EMBED_URL = (
+    f"https://app.powerbi.com/reportEmbed?reportId={POWER_BI_REPORT_ID}"
+    "&autoAuth=true&language=es-419"
+)
+if POWER_BI_GROUP_ID != "me":
+    POWER_BI_EMBED_URL += f"&groupId={POWER_BI_GROUP_ID}"
 
 # Las 4 paginas del informe. Cada integrante completa la suya.
 PAGINAS_CONOCIMIENTO = [
     {
         "numero": 1,
+        "page_id": "6c5f16c00f80fed89cfd",
         "titulo": "Composición y distribución",
         "pregunta": (
             "¿Cómo se distribuyen las mediciones diarias por nivel de riesgo IRCA, nivel de "
@@ -1117,6 +1134,7 @@ PAGINAS_CONOCIMIENTO = [
     },
     {
         "numero": 2,
+        "page_id": "9c73b75d63d7b7d53fc9",
         "titulo": "Comparación de territorios",
         "pregunta": (
             "¿Hay diferencias reales en la calidad del agua, la cobertura de acueducto y la "
@@ -1135,6 +1153,7 @@ PAGINAS_CONOCIMIENTO = [
     },
     {
         "numero": 3,
+        "page_id": "d9e4c848e972a5daee94",
         "titulo": "Evolución en el tiempo",
         "pregunta": (
             "¿La calidad del agua y la disponibilidad del servicio cambiaron a lo largo del "
@@ -1154,6 +1173,7 @@ PAGINAS_CONOCIMIENTO = [
     },
     {
         "numero": 4,
+        "page_id": "6e27d2ba8670d95491a5",
         "titulo": "Análisis multivariado",
         "pregunta": (
             "¿Cómo se relacionan la calidad del agua (IRCA), la cobertura de acueducto y la "
@@ -1171,6 +1191,10 @@ PAGINAS_CONOCIMIENTO = [
         ],
         "archivo": "powerbi/multivariado.pbix",
         "documento": "docs/etapa4/multidimensional_conocimientos.md",
+        "nota": (
+            "La vista de esta página ya está conectada al informe. Cuando se agregue su "
+            "contenido en Power BI, aparecerá aquí sin cambiar el código de la aplicación."
+        ),
     },
 ]
 
@@ -1180,6 +1204,19 @@ def _miles(n):
     return f"{n:,}".replace(",", ".")
 
 
+def _url_vista_powerbi(page_id):
+    """URL del visor incrustado para una pagina concreta del informe."""
+    return f"{POWER_BI_EMBED_URL}&pageName={page_id}"
+
+
+def _url_pagina_powerbi(page_id):
+    """URL normal de una pagina, para abrirla en la aplicacion de Power BI."""
+    return (
+        f"https://app.powerbi.com/groups/{POWER_BI_GROUP_ID}/reports/"
+        f"{POWER_BI_REPORT_ID}/{page_id}?language=es-419&experience=power-bi"
+    )
+
+
 @app.route("/etapa4/conocimiento-evidente")
 def etapa4_conocimiento_evidente():
     """Portada de la Etapa 4: informe de Power BI con el conocimiento evidente."""
@@ -1187,7 +1224,14 @@ def etapa4_conocimiento_evidente():
     fechas = sorted(r["fecha"] for r in registros if r.get("fecha"))
     return render_template(
         "etapa4/conocimiento_evidente.html",
-        paginas=PAGINAS_CONOCIMIENTO,
+        paginas=[
+            {
+                **pagina,
+                "vista_url": _url_vista_powerbi(pagina["page_id"]),
+                "pagina_url": _url_pagina_powerbi(pagina["page_id"]),
+            }
+            for pagina in PAGINAS_CONOCIMIENTO
+        ],
         informe_url=CONOCIMIENTO_EVIDENTE_URL,
         repo_url=REPO_URL,
         total_registros=_miles(len(registros)) if registros else None,
