@@ -138,21 +138,28 @@ El desarrollo de la Etapa 3 se realiza en la rama `feature/limpieza_de_datos`.
 
 ### Tableros
 
-El menu de la Etapa 4 incluye dos tableros: la **Dimension territorial** en
-`/etapa4/territorial` y el **Analisis multivariable** en `/etapa4/multivariable`.
+El menu de la Etapa 4 incluye tres tableros: la **Dimension territorial** en
+`/etapa4/territorial`, la **Dimension temporal** en `/etapa4/temporal` y el **Analisis
+multivariable** en `/etapa4/multivariable`.
 El tablero multivariable relaciona IRCA, cobertura de acueducto, nivel de servicio,
 municipio, region y periodo. Incluye indicadores, dispersion por registro, comparacion
 de grupos y las combinaciones trimestrales mas frecuentes, con filtros interactivos de
 año y region. Sus agregaciones se calculan sobre el dataset limpio; las relaciones son
 descriptivas y no implican causalidad.
 
+El tablero temporal sigue la serie 2019-2025 trimestre a trimestre: continuidad del
+servicio por año y region, IRCA promedio por año, almacenamiento y precipitacion por año, con
+filtros de año, periodo y tipo de region. Sus cifras se recalculan sobre el dataset limpio.
+
 ```
 Calidad-Agua-Mineria-Datos/
 ├── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
 ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
 ├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
+├── calcular_indicadores_temporal.py   # Recalcula los indicadores por año y trimestre
 └── templates/etapa4/
     ├── territorial.html               # Tablero de la dimension territorial
+    ├── temporal.html                  # Tablero de la dimension temporal
     └── Multivariada.html               # Tablero de analisis multivariable
 ```
 
@@ -255,3 +262,72 @@ este definida, la pagina muestra el enlace a la carpeta `powerbi` del repositori
 
 El desarrollo de la pagina territorial en Power BI se realiza en la rama
 `feature/conocimiento-territorial`.
+
+
+## Etapa 4 - Conocimiento evidente en Power BI (pagina 3: evolucion en el tiempo)
+
+Esta parte documenta la **pagina 3: evolucion en el tiempo** del informe de Power BI y el tablero
+correspondiente de la aplicacion (`/etapa4/temporal`).
+
+Responsable: John Sebastian Rodriguez Dominguez.
+
+**Pregunta de la pagina:** ¿la calidad del agua y la disponibilidad del servicio cambiaron a lo
+largo del periodo 2019-2025, o el servicio se comporto igual los siete años?
+
+**Resultados principales** (todo el periodo 2019-2025, sin filtros):
+
+- El servicio de la Sabana dejo de ser continuo en un trimestre exacto (**2024-T2**, primer registro
+  no continuo el 2024-04-01) y no se recupero en los siete trimestres siguientes: la continuidad
+  Regional pasa de 100 % (2019-2023) a 43,91 % (2024) y 23,76 % (2025), mientras el Nacional se
+  mantiene entre 48,76 % y 52,06 %.
+- El IRCA no se movio: entre 14,22 y 14,69 por año, con variaciones de 0,34 puntos como maximo
+  entre años consecutivos, en el mismo periodo en que el servicio continuo caia de 80,30 % a
+  47,19 %. Un tablero construido solo con calidad no habria detectado el quiebre.
+- El almacenamiento de la Sabana se deterioro un año antes del quiebre (70,79 % en 2022, 50,84 % en
+  2023 y 37,98 % en 2024) y sirve de alerta temprana, pero su recuperacion en 2025 (61,11 %) no
+  devolvio el servicio.
+
+### Contenido
+
+```
+Calidad-Agua-Mineria-Datos/
+├── powerbi/
+│   └── temporal.pbix                   # Pagina "3. Evolucion en el tiempo"
+├── docs/etapa4/
+│   ├── temporal_especificacion.md      # Pregunta, unidad de analisis, tratamientos y problemas pendientes
+│   ├── temporal_datos.md               # Modelo de datos, medidas agregadas y verificacion
+│   ├── temporal_medidas_dax.md         # Medidas DAX `Temp_` con sus valores esperados
+│   └── temporal_conocimientos.md       # Tres conocimientos evidentes, limitacion y decision
+├── calcular_indicadores_temporal.py    # Script que recalcula las tablas citadas
+└── templates/etapa4/
+    └── temporal.html                   # Tablero de la dimension temporal
+```
+
+### Como abrir el informe
+
+Requiere **Power BI Desktop** (solo Windows).
+
+1. Abrir `powerbi/temporal.pbix` (contiene las tres paginas: composicion, comparacion territorial y
+   evolucion en el tiempo).
+2. Si aparece el error `DataSource.NotFound`, la ruta del archivo de datos es la del computador de
+   quien lo creo. Se corrige en **Inicio > Transformar datos > Configuracion de origen de datos >
+   Cambiar origen**, eligiendo `dataset_calidad_agua_limpio.csv` de este repositorio.
+3. **Cerrar y aplicar**.
+4. Comprobar las cifras de `docs/etapa4/temporal_datos.md` (12.680 filas, 29 municipios, 28
+   periodos y 31 medidas, ocho de ellas con prefijo `Temp_`).
+
+### Datos y periodo
+
+Fuente: `dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
+mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico:
+el generador simula una crisis ENSO en 2024, por lo que la causa del quiebre se presenta siempre
+como hipotesis.
+
+### Seccion en la aplicacion
+
+El menu lateral tiene la entrada **Dimension temporal** (`/etapa4/temporal`), con los indicadores,
+las cuatro graficas, los tres conocimientos evidentes, la limitacion y la decision sustentada. Los
+filtros de año, periodo y tipo de region recalculan todo el tablero sobre el dataset limpio.
+
+El desarrollo de la pagina temporal en Power BI se realiza en la rama
+`feature/conocimiento-temporal`.

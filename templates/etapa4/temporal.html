@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --series-1:       #2a78d6; /* Regional (Sabana) */
+    --series-2:       #eb6834; /* Nacional */
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical:#d03b3b;
+  }
+  .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
+  .viz-root .interpretacion {
+    font-size: .88rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--gridline);
+    padding: .5rem .9rem;
+    margin-top: .5rem;
+  }
+  .viz-root .stat-tile h3 { color: var(--text-primary); }
+  .viz-root .stat-tile .lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .conocimiento dt { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-top: .6rem; }
+  .conocimiento dd { margin-bottom: 0; }
+  .alerta-quiebre {
+    background: #fdf3f1;
+    border-left: 3px solid var(--status-critical);
+    padding: .6rem .9rem;
+    font-size: .88rem;
+  }
+</style>
+
+<div class="viz-root">
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h4 mb-1">Etapa 4 &middot; Dimension temporal</h1>
+  </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+</div>
+
+{% if not hay_datos %}
+<div class="alert alert-warning">
+  No se encontro <code>dataset_calidad_agua_limpio.csv</code> en el proyecto. Genera primero
+  ese archivo (ver <code>generar_dataset_limpio.py</code>) y vuelve a cargar esta pagina.
+</div>
+{% else %}
+
+<!-- ================= TITULO Y PREGUNTA ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">Evolucion en el tiempo de la calidad y la disponibilidad del agua</h2>
+    <p class="mb-2">
+      <strong>Pregunta de analisis:</strong> &iquest;la calidad del agua y la disponibilidad del
+      servicio cambiaron a lo largo del periodo 2019-2025, o el servicio se comporto igual los
+      siete anos?
+    </p>
+    <p class="small text-muted mb-0">
+      La serie cubre los <strong>12.680</strong> registros del dataset limpio entre
+      <strong>2019-01-01</strong> y <strong>2025-12-31</strong>. Los siete anos tienen los cuatro
+      trimestres completos y entre 1.809 y 1.814 mediciones, asi que los periodos son comparables
+      entre si.
+    </p>
+  </div>
+</div>
+
+<!-- ================= VARIABLES ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Variables usadas en esta dimension</h2>
+    <div class="table-responsive">
+      <table class="table table-sm small mb-0">
+        <thead><tr><th>Variable</th><th>Tipo</th><th>Descripcion</th></tr></thead>
+        <tbody>
+          <tr><td><code>anio</code></td><td>Numerica (entero)</td><td>2019 a 2025. Eje de los graficos 1, 3, 4 y 5.</td></tr>
+          <tr><td><code>periodo</code></td><td>Categorica</td><td>Trimestre en formato <code>AAAA-Tn</code>. Eje del grafico 2 y filtro.</td></tr>
+          <tr><td><code>tipo_region</code></td><td>Categorica</td><td>Regional (Sabana) o Nacional. Separa la serie por territorio.</td></tr>
+          <tr><td><code>nivel_servicio</code></td><td>Categorica</td><td>Continuo, Intermitente, Racionado o Sin servicio.</td></tr>
+          <tr><td><code>irca</code></td><td>Numerica (0-100)</td><td>Indice de Riesgo de la Calidad del Agua. A menor valor, menor riesgo.</td></tr>
+          <tr><td><code>clasificacion_riesgo</code></td><td>Categorica ordenada</td><td>Banda de riesgo segun los cortes del propio dataset.</td></tr>
+          <tr><td><code>nivel_almacenamiento_pct</code></td><td>Numerica (0-100)</td><td>Nivel de almacenamiento del embalse en el momento de la medicion.</td></tr>
+          <tr><td><code>precipitacion_mm</code></td><td>Numerica</td><td>Precipitacion en milimetros del periodo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mt-2 mb-0">
+      <strong>Denominadores.</strong> Los porcentajes de servicio usan todas las mediciones del
+      periodo. El IRCA promedio y el porcentaje de riesgo alto usan solo las <strong>12.418</strong>
+      mediciones con IRCA reportado (las 262 sin IRCA quedan fuera de ese denominador). Todos los
+      porcentajes son de <em>mediciones</em>, no de personas.
+    </p>
+  </div>
+</div>
+
+<!-- ================= FILTROS ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <label for="filtroAnio" class="form-label small mb-1">Anio</label>
+      <select id="filtroAnio" class="form-select form-select-sm">
+        <option value="Todos">Todos los anos</option>
+        {% for a in anios %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtroPeriodo" class="form-label small mb-1">Periodo (trimestre)</label>
+      <select id="filtroPeriodo" class="form-select form-select-sm">
+        <option value="Todos">Todos los periodos</option>
+        {% for p in periodos %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtroRegion" class="form-label small mb-1">Tipo de region</label>
+      <select id="filtroRegion" class="form-select form-select-sm">
+        <option value="Todos">Todas las regiones</option>
+        {% for r in regiones %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="small text-muted">Los indicadores y las graficas se recalculan con los filtros.</div>
+  </div>
+</div>
+
+<!-- ================= INDICADORES ================= -->
+<div class="row g-3 mb-3" id="indicadores">
+</div>
+
+<!-- ================= VISUALIZACION 1 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">1. Servicio continuo por ano y tipo de region</h2>
+    <p class="small text-muted mb-2">
+      Porcentaje de mediciones con nivel de servicio "Continuo", por ano y separado entre la
+      Sabana (Regional) y el resto del pais (Nacional). El quiebre regional aparece en 2024.
+    </p>
+    <div id="chart-continuidad-anio" class="plot-box" style="width:100%;height:400px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> El Regional esta al 100 % continuo de 2019 a 2023 y cae a
+      <strong>43,91 %</strong> en 2024 y <strong>23,76 %</strong> en 2025. El Nacional, en cambio,
+      se mantiene entre 48,76 % y 52,06 % en los siete anos. La caida es regional y no nacional.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 2 ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">2. Servicio continuo por trimestre</h2>
+    <p class="small text-muted mb-2">
+      Los 28 periodos (7 anos x 4 trimestres) en orden cronologico. Los periodos son
+      equivalentes, asi que el quiebre se puede ubicar en el trimestre exacto.
+    </p>
+    <div id="chart-continuidad-trimestre" class="plot-box" style="width:100%;height:400px;"></div>
+    <div class="interpretacion">
+      <strong>Interpretacion.</strong> La serie esta estable entre 77,56 % y 83,30 % hasta
+      2024-T1 y se desploma en <strong>2024-T2 (38,44 %)</strong>. No vuelve a la banda anterior
+      en los siete trimestres siguientes (33,04 % a 35,16 % en 2025). El primer registro no
+      continuo de la Sabana es del <strong>2024-04-01</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISUALIZACION 3 ================= -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-1">3. IRCA promedio por ano</h2>
+        <p class="small text-muted mb-2">
+          El IRCA resume que tan riesgosa es el agua (0-100; mas alto es peor).
+        </p>
+        <div id="chart-irca-anio" class="plot-box" style="width:100%;height:360px;"></div>
+        <div class="interpretacion">
+          <strong>Interpretacion.</strong> El IRCA promedio anual se mueve entre 14,22 y 14,69
+          puntos y la variacion de un ano a otro nunca pasa de 0,34 pp. En el 2024 en que la
+          continuidad cae de 80,30 % a 47,19 %, el IRCA sube apenas 0,13 pp.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-1">4. Almacenamiento y precipitacion por ano</h2>
+        <p class="small text-muted mb-2">
+          Barras: nivel de almacenamiento promedio (%). Linea: precipitacion media (mm, eje
+          derecho).
+        </p>
+        <div id="chart-fisico-anio" class="plot-box" style="width:100%;height:360px;"></div>
+        <div class="interpretacion">
+          <strong>Interpretacion.</strong> El almacenamiento Regional cae de 70,79 % (2022) a
+          50,84 % (2023) y 37,98 % (2024), y la precipitacion de 2,97 a 1,81 y 1,56 mm; el
+          Nacional se mantiene entre 56,66 % y 58,37 %. El deterioro antecede al quiebre del
+          servicio y la recuperacion de 2025 (61,11 %) no lo revierte.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="alerta-quiebre mb-3">
+  <strong>Lectura conjunta de los cuatro graficos.</strong> La disponibilidad se cae
+  (graficos 1 y 2) mientras la calidad no se mueve (grafico 3). El almacenamiento y la
+  precipitacion de la Sabana se deterioran un ano antes del quiebre (grafico 4) y su
+  recuperacion en 2025 no devuelve el servicio.
+</div>
+
+<!-- ================= CONOCIMIENTOS EVIDENTES ================= -->
+<h2 class="h5 mt-4 mb-3">Conocimientos evidentes</h2>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 1</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>&iquest;En que momento dejo de ser continuo el servicio de agua en la Sabana y ese
+        cambio fue general o fue solo regional?</dd>
+      <dt>Variables</dt>
+      <dd><code>periodo</code>, <code>anio</code>, <code>nivel_servicio</code>,
+        <code>tipo_region</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el porcentaje de mediciones con nivel de servicio "Continuo" en cada
+        trimestre y en cada ano, separando por tipo de region, y se reviso la fecha del primer
+        registro no continuo de la Sabana.</dd>
+      <dt>Evidencia</dt>
+      <dd>El primer registro Regional no continuo es del <strong>2024-04-01</strong> (FUNZA,
+        Intermitente); ese mismo dia aparece "Sin servicio" en MOSQUERA y el primer "Racionado" es
+        del 2024-04-04 en MADRID. Antes de esa fecha los 1.887 registros no continuos del dataset
+        son todos del nivel Nacional y en estado Intermitente. En 2024-T2 la continuidad Regional
+        cae a <strong>26,39 %</strong> y se mueve entre 21,93 % y 25,46 % hasta 2025-T4,
+        mientras el Nacional se mantiene entre 44,81 % y 56,35 %.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El quiebre no es gradual ni general: ocurre en un trimestre exacto, en la Sabana, y no
+        se recupera en los siete trimestres siguientes.</dd>
+      <dt>Interpretacion</dt>
+      <dd>La discontinuidad se concentro en la operacion regional desde el segundo trimestre de
+        2024; el resto del pais no registra un cambio comparable, asi que el dato apunta a una
+        causa operativa regional y no a un fenomeno general del pais.</dd>
+      <dt>Utilidad</dt>
+      <dd>Acota la ventana de intervencion (desde el 2024-04-01) y el responsable operativo, y
+        evita diluir el problema promediando el pais entero.</dd>
+      <dt>Limitacion</dt>
+      <dd>Antes de 2024-T2 no existe ningun registro con nivel "Racionado" ni "Sin servicio", asi
+        que la comparacion entre periodos mezcla un cambio del servicio con un cambio de las
+        categorias de registro; y los datos son sinteticos, por lo que la causa real debe
+        confirmarse con la operacion.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 2</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>&iquest;La restriccion del servicio se ve tambien en la calidad del agua (IRCA)?</dd>
+      <dt>Variables</dt>
+      <dd><code>irca</code>, <code>clasificacion_riesgo</code>, <code>anio</code>,
+        <code>nivel_servicio</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el IRCA promedio y el porcentaje de riesgo alto o inviable de cada ano y se
+        contrastaron con el porcentaje de servicio continuo del mismo ano.</dd>
+      <dt>Evidencia</dt>
+      <dd>El IRCA promedio por ano va de <strong>14,22</strong> (2020 y 2022) a
+        <strong>14,69</strong> (2024): la variacion entre anos consecutivos nunca pasa de
+        <strong>0,34 puntos</strong>. El porcentaje de riesgo alto o inviable se mantiene entre
+        17,90 % y 19,74 %. En el mismo 2024 en que el servicio continuo cae de 80,30 % a 47,19 %,
+        el IRCA sube solo 0,13 puntos.</dd>
+      <dt>Hallazgo</dt>
+      <dd>La disponibilidad se desplomo en 2024 y 2025, pero ningun indicador de calidad
+        acompana el movimiento.</dd>
+      <dt>Interpretacion</dt>
+      <dd>El IRCA y las bandas de riesgo no son sensibles a la restriccion del servicio: seguir
+        solo el IRCA habria dado por normal todo el periodo en que la Sabana estuvo sin agua
+        continua.</dd>
+      <dt>Utilidad</dt>
+      <dd>Obliga a que el tablero de vigilancia incluya indicadores de disponibilidad
+        (continuidad y racionamiento) y no solo de calidad.</dd>
+      <dt>Limitacion</dt>
+      <dd>El IRCA se registra por el mismo operador regional en cada municipio, asi que puede no
+        captar el efecto de la racionacion sobre la calidad; ademas, las 262 mediciones sin
+        IRCA (2,07 %) quedan fuera de los promedios.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <h3 class="h6 text-primary">Conocimiento 3</h3>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>&iquest;El almacenamiento y la precipitacion anticiparon el quiebre, y la recuperacion
+        de esos indicadores se tradujo en volver al servicio continuo?</dd>
+      <dt>Variables</dt>
+      <dd><code>nivel_almacenamiento_pct</code>, <code>precipitacion_mm</code>, <code>anio</code>,
+        <code>periodo</code>, <code>nivel_servicio</code>.</dd>
+      <dt>Procedimiento</dt>
+      <dd>Se calculo el almacenamiento y la precipitacion promedio por ano y por trimestre y se
+        compararon con el porcentaje de servicio continuo del mismo periodo.</dd>
+      <dt>Evidencia</dt>
+      <dd>El almacenamiento promedio de la Sabana pasa de <strong>70,79 %</strong> (2022) a
+        <strong>50,84 %</strong> (2023) y a <strong>37,98 %</strong> (2024), con la precipitacion
+        media de la region cayendo de 2,97 mm (2022) a 1,81 mm (2023) y 1,56 mm (2024), mientras el
+        servicio seguia continuo hasta 2024-T1. En 2025 el almacenamiento se recupera a
+        <strong>61,11 %</strong> y la precipitacion sube a 2,39 mm, pero la continuidad sigue en
+        <strong>23,76 %</strong> anual, peor que el 43,91 % de 2024.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El almacenamiento y la precipitacion se deterioraron un ano antes del quiebre del
+        servicio, y su recuperacion en 2025 no devolvio la continuidad.</dd>
+      <dt>Interpretacion</dt>
+      <dd>El almacenamiento sirve como senal temprana (adelanto un ano el problema), pero la
+        relacion con el servicio no es mecanica: con 61,11 % de almacenamiento el servicio sigio
+        intermitente, lo que apunta a que la restriccion no es solo de oferta hidrica.</dd>
+      <dt>Utilidad</dt>
+      <dd>Permite construir una alerta temprana con el almacenamiento y define una verificacion
+        adicional (continuidad y racionamiento) antes de declarar resuelta una recuperacion.</dd>
+      <dt>Limitacion</dt>
+      <dd>La coincidencia entre el deterioro de la precipitacion y el quiebre es una hipotesis de
+        causa (el generador del dataset simula una crisis ENSO en 2024), no una demostracion:
+        habria que contrastarla con los registros del operador y con la serie oficial de
+        precipitacion.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= LIMITACION Y DECISION ================= -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Limitacion general de la dimension</h2>
+        <p class="small mb-0">
+          La serie permite comparar bien los periodos entre si (siete anos completos con los
+          cuatro trimestres y 365 o 366 fechas por ano), pero no permite leer el antes y el
+          despues del quiebre como si fueran la misma medicion: hasta 2024-T1 no existe ninguna
+          categoria "Racionado" ni "Sin servicio", asi que el 100 % continuo del Regional antes de
+          2024 es consecuencia de como se registraron los datos y no de una operacion sin
+          incidentes. A eso se suma que el dataset es sintetico (incluye una crisis ENSO simulada
+          en 2024), que hay 262 mediciones sin IRCA (2,07 %) y que cada registro es un
+          dia-municipio, no una persona.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary">Decision sustentada en datos</h2>
+        <p class="small mb-0">
+          La vigilancia de la calidad del agua de la Sabana no puede seguir apoyandose solo en el
+          IRCA: la decision es incorporar la continuidad del servicio a la agenda de seguimiento y
+          abrir una revision operativa de la Sabana con fecha de arranque en 2024-04-01, sostenida
+          en el Conocimiento 1 (el quiebre es de un trimestre exacto, de alcance regional y sin
+          recuperacion en siete trimestres), en el Conocimiento 2 (el IRCA no se movio, con
+          variaciones de 0,34 puntos como maximo, asi que un tablero solo de calidad no lo habria
+          detectado) y en el Conocimiento 3 (el almacenamiento se deterioro un ano antes y sirve
+          como alerta temprana, pero su recuperacion en 2025 no devolvio el servicio, de modo que
+          esa senal no basta para cerrar el caso). La causa (ENSO, operacion o ambas) queda como
+          hipotesis y debe confirmarse con los registros del operador antes de reasignar
+          responsabilidades.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /viz-root -->
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+(function () {
+  var datosIniciales = {{ datos_json|safe }};
+  var COLOR = {
+    regional: "#2a78d6",
+    nacional: "#eb6834",
+    muted: "#898781",
+    secondary: "#52514e",
+    grid: "#e1e0d9",
+    good: "#0ca30c",
+    critical: "#d03b3b"
+  };
+  var LAYOUT_BASE = {
+    paper_bgcolor: "#fcfcfb",
+    plot_bgcolor: "#fcfcfb",
+    font: { family: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#52514e", size: 12 },
+    margin: { t: 20, r: 20, b: 50, l: 60 }
+  };
+
+  function fmt(n) {
+    if (n === null || n === undefined) return "s/d";
+    return n.toLocaleString("es-CO", { maximumFractionDigits: 2 });
+  }
+
+  function pct(n) {
+    if (n === null || n === undefined) return "s/d";
+    return fmt(n) + "%";
+  }
+
+  function colorRegion(region) {
+    return region === "Regional" ? COLOR.regional : COLOR.nacional;
+  }
+
+  function renderIndicadores(ind) {
+    var cont = document.getElementById("indicadores");
+    var tiles = [
+      { lbl: "Servicio continuo", val: pct(ind.pct_continuo), sub: "% de mediciones" },
+      { lbl: "Racionamiento o sin servicio", val: pct(ind.pct_racionamiento), sub: "% de mediciones" },
+      { lbl: "Variacion del IRCA", val: ind.variacion_irca_pp !== null ? fmt(ind.variacion_irca_pp) : "s/d", sub: ind.referencia_anterior ? "pp vs. " + ind.referencia_anterior : "pp vs. periodo anterior" },
+      { lbl: "IRCA promedio", val: fmt(ind.irca_promedio), sub: "0-100 (mas alto = peor)" },
+      { lbl: "Riesgo alto o inviable", val: pct(ind.pct_riesgo_alto), sub: "solo con IRCA reportado" },
+      { lbl: "Almacenamiento promedio", val: ind.almacenamiento_promedio !== null ? fmt(ind.almacenamiento_promedio) + "%" : "s/d", sub: "nivel medio del periodo" }
+    ];
+    cont.innerHTML = tiles.map(function (t) {
+      return '<div class="col-6 col-md-4 col-lg-2">' +
+        '<div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body py-3 text-center">' +
+        '<h3 class="mb-1">' + t.val + '</h3>' +
+        '<div class="lbl">' + t.lbl + '</div>' +
+        '<div class="small text-muted">' + t.sub + '</div>' +
+        '</div></div></div>';
+    }).join("");
+  }
+
+  function renderContinuidadAnio(lista) {
+    var anios = [];
+    lista.forEach(function (d) { if (anios.indexOf(d.anio) === -1) anios.push(d.anio); });
+    var regiones = [];
+    lista.forEach(function (d) { if (regiones.indexOf(d.tipo_region) === -1) regiones.push(d.tipo_region); });
+
+    var traces = regiones.map(function (region) {
+      var porAnio = {};
+      lista.forEach(function (d) { if (d.tipo_region === region) porAnio[d.anio] = d.pct_continuo; });
+      return {
+        type: "bar",
+        x: anios,
+        y: anios.map(function (a) { return porAnio[a] !== undefined ? porAnio[a] : null; }),
+        name: region,
+        marker: { color: colorRegion(region) },
+        hovertemplate: "%{x}<br>" + region + ": %{y:.2f}%<extra></extra>"
+      };
+    });
+
+    Plotly.newPlot("chart-continuidad-anio", traces, Object.assign({}, LAYOUT_BASE, {
+      barmode: "group",
+      yaxis: { title: "% de mediciones", range: [0, 100], gridcolor: COLOR.grid },
+      xaxis: { tickangle: 0 },
+      legend: { orientation: "h", y: -0.18 }
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function renderContinuidadTrimestre(lista) {
+    var periodos = lista.map(function (d) { return d.periodo; });
+    var valores = lista.map(function (d) { return d.pct_continuo; });
+
+    Plotly.newPlot("chart-continuidad-trimestre", [{
+      type: "scatter",
+      mode: "lines+markers",
+      x: periodos,
+      y: valores,
+      line: { color: COLOR.regional, width: 2 },
+      marker: { size: 6, color: COLOR.regional },
+      hovertemplate: "%{x}<br>Continuo: %{y:.2f}%<extra></extra>"
+    }], Object.assign({}, LAYOUT_BASE, {
+      yaxis: { title: "% de mediciones", range: [0, 100], gridcolor: COLOR.grid },
+      xaxis: { tickangle: -45, dtick: 2 },
+      shapes: [{
+        type: "rect", xref: "x", x0: "2024-T1", x1: "2025-T4",
+        y0: 0, y1: 100,
+        fillcolor: "rgba(208,59,59,0.07)", line: { width: 0 }, layer: "below"
+      }],
+      annotations: [{
+        xref: "x", x: "2024-T2", y: 100, xanchor: "left", yanchor: "top",
+        text: "quiebre: 2024-T2", showarrow: false,
+        font: { size: 10, color: COLOR.critical }
+      }]
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function renderIrcaAnio(lista) {
+    Plotly.newPlot("chart-irca-anio", [{
+      type: "scatter",
+      mode: "lines+markers",
+      x: lista.map(function (d) { return d.anio; }),
+      y: lista.map(function (d) { return d.irca_promedio; }),
+      line: { color: COLOR.nacional, width: 2 },
+      marker: { size: 6, color: COLOR.nacional },
+      text: lista.map(function (d) { return fmt(d.irca_promedio); }),
+      textposition: "top center",
+      hovertemplate: "%{x}<br>IRCA promedio: %{y:.2f}<extra></extra>"
+    }], Object.assign({}, LAYOUT_BASE, {
+      yaxis: { title: "IRCA promedio", range: [0, 20], gridcolor: COLOR.grid },
+      xaxis: { tickangle: 0 }
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  function renderFisicoAnio(lista) {
+    var anios = [];
+    lista.forEach(function (d) { if (anios.indexOf(d.anio) === -1) anios.push(d.anio); });
+    var regiones = [];
+    lista.forEach(function (d) { if (regiones.indexOf(d.tipo_region) === -1) regiones.push(d.tipo_region); });
+
+    var traces = [];
+    regiones.forEach(function (region) {
+      var porAnio = {};
+      lista.forEach(function (d) { if (d.tipo_region === region) porAnio[d.anio] = d; });
+      traces.push({
+        type: "bar",
+        x: anios,
+        y: anios.map(function (a) {
+          return porAnio[a] ? porAnio[a].almacenamiento_promedio : null;
+        }),
+        name: "Almacenamiento " + region,
+        marker: { color: colorRegion(region) },
+        yaxis: "y",
+        hovertemplate: "%{x}<br>Almacenamiento: %{y:.2f}%<extra></extra>"
+      });
+    });
+
+    if (regiones.length === 1) {
+      var porAnio = {};
+      lista.forEach(function (d) { porAnio[d.anio] = d; });
+      traces.push({
+        type: "scatter",
+        mode: "lines+markers",
+        x: anios,
+        y: anios.map(function (a) {
+          return porAnio[a] ? porAnio[a].precipitacion_promedio : null;
+        }),
+        name: "Precipitacion (mm)",
+        yaxis: "y2",
+        line: { color: COLOR.muted, width: 2, dash: "dot" },
+        marker: { size: 5 },
+        hovertemplate: "%{x}<br>Precipitacion: %{y:.2f} mm<extra></extra>"
+      });
+    }
+
+    var layout = Object.assign({}, LAYOUT_BASE, {
+      barmode: "group",
+      yaxis: { title: "Almacenamiento (%)", range: [0, 100], gridcolor: COLOR.grid },
+      xaxis: { tickangle: -45 },
+      legend: { orientation: "h", y: -0.25 }
+    });
+    if (regiones.length === 1) {
+      layout.yaxis2 = {
+        title: "Precipitacion (mm)",
+        overlaying: "y",
+        side: "right",
+        range: [0, 8]
+      };
+    }
+
+    Plotly.newPlot("chart-fisico-anio", traces, layout,
+      { displayModeBar: false, responsive: true });
+  }
+
+  function render(data) {
+    renderIndicadores(data.indicadores);
+    renderContinuidadAnio(data.continuidad_region);
+    renderContinuidadTrimestre(data.serie_trimestral);
+    renderIrcaAnio(data.serie_anual);
+    renderFisicoAnio(data.fisico_region);
+  }
+
+  function aplicarFiltros() {
+    var anio = document.getElementById("filtroAnio").value;
+    var periodo = document.getElementById("filtroPeriodo").value;
+    var region = document.getElementById("filtroRegion").value;
+    fetch("{{ url_for('etapa4_temporal_datos') }}?anio=" + encodeURIComponent(anio) +
+      "&periodo=" + encodeURIComponent(periodo) +
+      "&tipo_region=" + encodeURIComponent(region))
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function (err) { console.error("No se pudieron cargar los datos filtrados:", err); });
+  }
+
+  document.getElementById("filtroAnio").addEventListener("change", aplicarFiltros);
+  document.getElementById("filtroPeriodo").addEventListener("change", aplicarFiltros);
+  document.getElementById("filtroRegion").addEventListener("change", aplicarFiltros);
+
+  render(datosIniciales);
+})();
+</script>
+{% endif %}
+{% endblock %}

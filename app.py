@@ -636,6 +636,175 @@ def _promedio(regs, campo):
     return round(sum(vals) / len(vals), 2) if vals else None
 
 
+# Etapa 4: dimension temporal
+
+RIESGO_ALTO = {"Alto riesgo (28-40)", "Inviable sanitariamente (>40)"}
+SIN_SERVICIO = {"Racionado", "Sin servicio"}
+
+
+def _porcentaje(regs, condicion):
+    """Porcentaje de observaciones que cumplen la condicion (denominador: todos
+    los registros del grupo)."""
+    if not regs:
+        return None
+    return round(sum(1 for r in regs if condicion(r)) / len(regs) * 100, 2)
+
+
+def _promedio_exacto(regs, campo):
+    """Promedio sin redondear, para que las diferencias entre periodos se
+    calculen igual que en DAX (que trabaja con toda la precision)."""
+    vals = [float(r[campo]) for r in regs if r.get(campo)]
+    return sum(vals) / len(vals) if vals else None
+
+
+def _datos_temporal(anio="Todos", periodo="Todos", tipo_region="Todos"):
+    """Agrega el dataset limpio por tiempo aplicando los filtros.
+
+    La dimension temporal compara periodos equivalentes: la serie anual (7 anos
+    completos con los 4 trimestres) y la serie trimestral (28 periodos). El
+    quiebre del servicio de la Sabana ocurre en 2024-T2 y solo en la zona
+    Regional; el IRCA, en cambio, se mantiene estable en todo el periodo.
+
+    Nunca se escribe un numero fijo aqui: todo se recalcula sobre el CSV en
+    cada llamada, para que los filtros siempre reflejen el dato real.
+    """
+    from collections import defaultdict
+
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if anio and anio != "Todos":
+        registros = [r for r in registros if r.get("anio") == anio]
+    if periodo and periodo != "Todos":
+        registros = [r for r in registros if r.get("periodo") == periodo]
+    if tipo_region and tipo_region != "Todos":
+        registros = [r for r in registros if r.get("tipo_region") == tipo_region]
+
+    def resumen(regs):
+        con_irca = [r for r in regs if r.get("irca_reportado") != "No"]
+        return {
+            "n": len(regs),
+            "n_con_irca": len(con_irca),
+            "pct_continuo": _porcentaje(regs, lambda r: r.get("nivel_servicio") == "Continuo"),
+            "pct_racionamiento": _porcentaje(regs, lambda r: r.get("nivel_servicio") in SIN_SERVICIO),
+            "pct_riesgo_alto": _porcentaje(con_irca, lambda r: r.get("clasificacion_riesgo") in RIESGO_ALTO),
+            "pct_sin_irca": _porcentaje(regs, lambda r: r.get("irca_reportado") == "No"),
+            "irca_promedio": _promedio(con_irca, "irca"),
+            "almacenamiento_promedio": _promedio(regs, "nivel_almacenamiento_pct"),
+            "precipitacion_promedio": _promedio(regs, "precipitacion_mm"),
+        }
+
+    indicadores = resumen(registros)
+
+    # Serie anual: se calcula sobre el dataset completo (sin el filtro de anio)
+    # para que la linea de tiempo no se reduzca a un solo punto.
+    base = leer_csv("dataset_calidad_agua_limpio.csv")
+    if periodo and periodo != "Todos":
+        base = [r for r in base if r.get("periodo") == periodo]
+    if tipo_region and tipo_region != "Todos":
+        base = [r for r in base if r.get("tipo_region") == tipo_region]
+
+    por_anio = defaultdict(list)
+    for r in base:
+        por_anio[r["anio"]].append(r)
+
+    serie_anual = []
+    for clave in sorted(por_anio):
+        datos = resumen(por_anio[clave])
+        datos["anio"] = clave
+        serie_anual.append(datos)
+
+    # Serie trimestral (periodos equivalentes)
+    por_periodo = defaultdict(list)
+    for r in base:
+        por_periodo[r["periodo"]].append(r)
+
+    serie_trimestral = []
+    for clave in sorted(por_periodo):
+        datos = resumen(por_periodo[clave])
+        datos["periodo"] = clave
+        serie_trimestral.append(datos)
+
+    # Continuidad por ano y tipo de region (sin el filtro de anio)
+    por_region_anio = defaultdict(list)
+    for r in base:
+        por_region_anio[(r["anio"], r["tipo_region"])].append(r)
+
+    continuidad_region = []
+    for (clave_anio, region) in sorted(por_region_anio):
+        regs = por_region_anio[(clave_anio, region)]
+        continuidad_region.append({
+            "anio": clave_anio,
+            "tipo_region": region,
+            "pct_continuo": _porcentaje(regs, lambda r: r.get("nivel_servicio") == "Continuo"),
+            "n": len(regs),
+        })
+
+    # Almacenamiento y precipitacion por ano y tipo de region
+    fisico_region = []
+    for (clave_anio, region) in sorted(por_region_anio):
+        regs = por_region_anio[(clave_anio, region)]
+        fisico_region.append({
+            "anio": clave_anio,
+            "tipo_region": region,
+            "almacenamiento_promedio": _promedio(regs, "nivel_almacenamiento_pct"),
+            "precipitacion_promedio": _promedio(regs, "precipitacion_mm"),
+        })
+
+    # Variacion del IRCA frente al periodo comparable (mismo trimestre del ano
+    # anterior si el filtro fija un trimestre; ano completo anterior si no).
+    # Igual que en DAX: sin filtro de anio ni de periodo, el periodo actual es el
+    # ultimo ano de la serie y el de referencia es el ano completo anterior.
+    anio_actual = max((r["anio"] for r in base), default=None)
+    if anio and anio != "Todos":
+        anio_actual = anio
+    periodo_unico = periodo if periodo != "Todos" else None
+
+    if periodo_unico:
+        contexto_actual = registros
+    elif anio and anio != "Todos":
+        contexto_actual = registros
+    else:
+        contexto_actual = [r for r in registros if r.get("anio") == anio_actual]
+
+    irca_actual = _promedio_exacto(
+        [r for r in contexto_actual if r.get("irca_reportado") != "No"], "irca")
+    irca_anterior = None
+    if anio_actual:
+        if periodo_unico:
+            clave = f"{int(anio_actual) - 1}-{periodo_unico[-2:]}"
+            referencia = [r for r in leer_csv("dataset_calidad_agua_limpio.csv")
+                          if r.get("periodo") == clave]
+        else:
+            referencia = [r for r in leer_csv("dataset_calidad_agua_limpio.csv")
+                          if r.get("anio") == str(int(anio_actual) - 1)]
+        if referencia:
+            if tipo_region and tipo_region != "Todos":
+                referencia = [r for r in referencia if r.get("tipo_region") == tipo_region]
+            irca_anterior = _promedio_exacto(
+                [r for r in referencia if r.get("irca_reportado") != "No"], "irca")
+    indicadores["irca_periodo_actual"] = round(irca_actual, 2) if irca_actual is not None else None
+    indicadores["irca_periodo_anterior"] = (
+        round(irca_anterior, 2) if irca_anterior is not None else None)
+    indicadores["variacion_irca_pp"] = (
+        round(irca_actual - irca_anterior, 2)
+        if irca_actual is not None and irca_anterior is not None else None
+    )
+    indicadores["periodo_anterior"] = (
+        f"{int(anio_actual) - 1}-{periodo_unico[-2:]}" if periodo_unico and anio_actual else None
+    )
+    indicadores["referencia_anterior"] = (
+        f"{int(anio_actual) - 1}-{periodo_unico[-2:]}" if periodo_unico and anio_actual
+        else (str(int(anio_actual) - 1) if anio_actual else None)
+    )
+
+    return {
+        "indicadores": indicadores,
+        "serie_anual": serie_anual,
+        "serie_trimestral": serie_trimestral,
+        "continuidad_region": continuidad_region,
+        "fisico_region": fisico_region,
+    }
+
+
 def _datos_territorial(anio="Todos", nivel_servicio="Todos"):
     """Agrega el dataset limpio aplicando los filtros (anio, nivel_servicio).
 
@@ -856,6 +1025,35 @@ def etapa4_territorial():
     return _render_tablero_etapa4("etapa4/territorial.html")
 
 
+@app.route("/etapa4/temporal")
+def etapa4_temporal():
+    """Tablero de la dimension temporal (evolucion en el tiempo)."""
+    registros = leer_csv("dataset_calidad_agua_limpio.csv")
+    if not registros:
+        return render_template("etapa4/temporal.html", hay_datos=False)
+
+    anios = sorted({r["anio"] for r in registros if r.get("anio")})
+    periodos = sorted({r["periodo"] for r in registros if r.get("periodo")})
+    regiones = sorted({r["tipo_region"] for r in registros if r.get("tipo_region")})
+    return render_template(
+        "etapa4/temporal.html",
+        hay_datos=True,
+        anios=anios,
+        periodos=periodos,
+        regiones=regiones,
+        datos_json=json.dumps(_datos_temporal()),
+    )
+
+
+@app.route("/etapa4/temporal/datos")
+def etapa4_temporal_datos():
+    """API en JSON que alimenta los filtros interactivos del tablero temporal."""
+    anio = request.args.get("anio", "Todos")
+    periodo = request.args.get("periodo", "Todos")
+    tipo_region = request.args.get("tipo_region", "Todos")
+    return jsonify(_datos_temporal(anio=anio, periodo=periodo, tipo_region=tipo_region))
+
+
 @app.route("/etapa4/multivariable")
 def etapa4_multivariable():
     """Tablero de analisis multivariable de calidad y disponibilidad del agua."""
@@ -892,15 +1090,32 @@ def etapa4_territorial_datos():
 # Etapa 4: seccion "Conocimiento evidente" (informe de Power BI)
 REPO_URL = "https://github.com/Sebas121230/Calidad-Agua-Mineria-Datos"
 
-# Direccion del informe publicado en Power BI (Archivo > Insertar informe). Si no esta
-# definida, la pagina muestra el enlace al archivo .pbix del repositorio en su lugar.
-# Se puede cambiar con la variable de entorno CONOCIMIENTO_EVIDENTE_URL.
-CONOCIMIENTO_EVIDENTE_URL = os.environ.get("CONOCIMIENTO_EVIDENTE_URL", "")
+# Informe publicado en Power BI. El identificador y el espacio se pueden cambiar con
+# variables de entorno si el informe se mueve a otro espacio de trabajo.
+POWER_BI_REPORT_ID = os.environ.get(
+    "POWER_BI_REPORT_ID", "74104f6f-0eba-480c-879c-b83285eeca05"
+)
+POWER_BI_GROUP_ID = os.environ.get("POWER_BI_GROUP_ID", "me")
+
+CONOCIMIENTO_EVIDENTE_URL = os.environ.get(
+    "CONOCIMIENTO_EVIDENTE_URL",
+    f"https://app.powerbi.com/groups/{POWER_BI_GROUP_ID}/reports/{POWER_BI_REPORT_ID}"
+    "/6c5f16c00f80fed89cfd?language=es-419&experience=power-bi",
+)
+
+# URL base del visor incrustado. autoAuth usa la sesion de Power BI del navegador.
+POWER_BI_EMBED_URL = (
+    f"https://app.powerbi.com/reportEmbed?reportId={POWER_BI_REPORT_ID}"
+    "&autoAuth=true&language=es-419"
+)
+if POWER_BI_GROUP_ID != "me":
+    POWER_BI_EMBED_URL += f"&groupId={POWER_BI_GROUP_ID}"
 
 # Las 4 paginas del informe. Cada integrante completa la suya.
 PAGINAS_CONOCIMIENTO = [
     {
         "numero": 1,
+        "page_id": "6c5f16c00f80fed89cfd",
         "titulo": "Composición y distribución",
         "pregunta": (
             "¿Cómo se distribuyen las mediciones diarias por nivel de riesgo IRCA, nivel de "
@@ -919,6 +1134,7 @@ PAGINAS_CONOCIMIENTO = [
     },
     {
         "numero": 2,
+        "page_id": "9c73b75d63d7b7d53fc9",
         "titulo": "Comparación de territorios",
         "pregunta": (
             "¿Hay diferencias reales en la calidad del agua, la cobertura de acueducto y la "
@@ -937,11 +1153,27 @@ PAGINAS_CONOCIMIENTO = [
     },
     {
         "numero": 3,
+        "page_id": "d9e4c848e972a5daee94",
         "titulo": "Evolución en el tiempo",
-        "pregunta": None,
+        "pregunta": (
+            "¿La calidad del agua y la disponibilidad del servicio cambiaron a lo largo del "
+            "periodo 2019-2025, o el servicio se comportó igual los siete años?"
+        ),
+        "hallazgos": [
+            "El servicio de la Sabana dejó de ser continuo en un trimestre exacto (2024-T2) "
+            "y no se recuperó en los siete trimestres siguientes.",
+            "El IRCA no se movió: entre 14,22 y 14,69 por año, con variaciones de 0,34 puntos "
+            "como máximo, mientras el servicio continuo caía de 100 % a 43,91 %.",
+            "El almacenamiento de la Sabana se deterioró un año antes (70,79 % en 2022 a "
+            "37,98 % en 2024) y sirve de alerta temprana, pero su recuperación en 2025 no "
+            "devolvió el servicio.",
+        ],
+        "archivo": "powerbi/temporal.pbix",
+        "documento": "docs/etapa4/temporal_conocimientos.md",
     },
     {
         "numero": 4,
+        "page_id": "6e27d2ba8670d95491a5",
         "titulo": "Análisis multivariado",
         "pregunta": (
             "¿Cómo se relacionan la calidad del agua (IRCA), la cobertura de acueducto y la "
@@ -959,6 +1191,10 @@ PAGINAS_CONOCIMIENTO = [
         ],
         "archivo": "powerbi/multivariado.pbix",
         "documento": "docs/etapa4/multidimensional_conocimientos.md",
+        "nota": (
+            "La vista de esta página ya está conectada al informe. Cuando se agregue su "
+            "contenido en Power BI, aparecerá aquí sin cambiar el código de la aplicación."
+        ),
     },
 ]
 
@@ -968,6 +1204,19 @@ def _miles(n):
     return f"{n:,}".replace(",", ".")
 
 
+def _url_vista_powerbi(page_id):
+    """URL del visor incrustado para una pagina concreta del informe."""
+    return f"{POWER_BI_EMBED_URL}&pageName={page_id}"
+
+
+def _url_pagina_powerbi(page_id):
+    """URL normal de una pagina, para abrirla en la aplicacion de Power BI."""
+    return (
+        f"https://app.powerbi.com/groups/{POWER_BI_GROUP_ID}/reports/"
+        f"{POWER_BI_REPORT_ID}/{page_id}?language=es-419&experience=power-bi"
+    )
+
+
 @app.route("/etapa4/conocimiento-evidente")
 def etapa4_conocimiento_evidente():
     """Portada de la Etapa 4: informe de Power BI con el conocimiento evidente."""
@@ -975,7 +1224,14 @@ def etapa4_conocimiento_evidente():
     fechas = sorted(r["fecha"] for r in registros if r.get("fecha"))
     return render_template(
         "etapa4/conocimiento_evidente.html",
-        paginas=PAGINAS_CONOCIMIENTO,
+        paginas=[
+            {
+                **pagina,
+                "vista_url": _url_vista_powerbi(pagina["page_id"]),
+                "pagina_url": _url_pagina_powerbi(pagina["page_id"]),
+            }
+            for pagina in PAGINAS_CONOCIMIENTO
+        ],
         informe_url=CONOCIMIENTO_EVIDENTE_URL,
         repo_url=REPO_URL,
         total_registros=_miles(len(registros)) if registros else None,
