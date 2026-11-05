@@ -5,6 +5,7 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, request
 
+from etapa5 import consultas_pivot as pivot
 from etapa5.pivot import pivot_bp
 from etapa5 import consultas_slice_dice as olap
 from scripts.generar_dataset_limpio import clasificar_riesgo
@@ -1327,6 +1328,71 @@ def etapa5_slice_dice_datos():
             datos = _datos_dice(filtros, nivel, filas, columnas)
         else:
             return jsonify({"error": "La operacion debe ser slice o dice."}), 400
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(datos)
+
+
+# ---------- Etapa 5: operacion Pivot ----------
+PIVOT_INICIAL = {
+    "filas": "region",
+    "columnas": "anio",
+    "medida": "pct_continuo",
+    "filtros": {},
+    "medidas": [],
+}
+PIVOT2_INICIAL = {
+    "filas": "trimestre",
+    "columnas": "medidas",
+    "medida": "pct_continuo",
+    "filtros": {"region": ["Regional"], "anio": ["2022", "2023", "2024", "2025"]},
+    "medidas": ["almacenamiento", "precipitacion", "pct_continuo"],
+}
+
+
+def _datos_pivot(filas, columnas, medida, filtros, medidas):
+    datos = pivot.operacion_pivot(filas, columnas, medida, filtros, medidas)
+    datos["indicadores"], datos["contexto"] = pivot.indicadores(filtros)
+    datos["validacion"] = pivot.validar_pivot(filas, columnas, medida, filtros, medidas)
+    return datos
+
+
+@app.route("/etapa5/pivot")
+def etapa5_pivot():
+    """Vista de la operacion Pivot sobre el modelo estrella."""
+    if not pivot.BASE.exists():
+        return render_template("etapa5/pivot.html", hay_datos=False)
+    return render_template(
+        "etapa5/pivot.html",
+        hay_datos=True,
+        opciones=olap.opciones(),
+        filtros_info=pivot.FILTROS,
+        ejes=pivot.EJES,
+        medidas=pivot.MEDIDAS,
+        pivot_inicial=PIVOT_INICIAL,
+        pivot2_inicial=PIVOT2_INICIAL,
+        pivot_json=json.dumps(_datos_pivot(**PIVOT_INICIAL)),
+    )
+
+
+@app.route("/etapa5/pivot/datos")
+def etapa5_pivot_datos():
+    """API JSON para generar la matriz Pivot con los ejes y filtros seleccionados."""
+    if not pivot.BASE.exists():
+        return jsonify({"error": "No se encontró la base del modelo estrella."}), 503
+    filtros = {
+        nombre: request.args.getlist(nombre)
+        for nombre in pivot.FILTROS
+        if request.args.getlist(nombre)
+    }
+    try:
+        datos = _datos_pivot(
+            request.args.get("filas", "region"),
+            request.args.get("columnas", "anio"),
+            request.args.get("medida", "pct_continuo"),
+            filtros,
+            request.args.getlist("medidas"),
+        )
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
     return jsonify(datos)
