@@ -5,19 +5,20 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, request
 
-from generar_dataset_limpio import clasificar_riesgo
+from scripts.generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
 app = Flask(__name__)
 
-# Carpeta donde vive app.py (para leer los CSV sin importar desde donde se ejecute)
+# Carpetas del proyecto (para leer los datos sin importar desde donde se ejecute)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATOS_DIR = os.path.join(BASE_DIR, "datos")
 
 
 def leer_csv(nombre):
-    """Lee un CSV del proyecto y lo devuelve como lista de diccionarios.
+    """Lee un CSV de datos/ y lo devuelve como lista de diccionarios.
     Si el archivo no existe todavia, devuelve una lista vacia en vez de romper."""
-    ruta = os.path.join(BASE_DIR, nombre)
+    ruta = os.path.join(DATOS_DIR, nombre)
     if not os.path.exists(ruta):
         return []
     with open(ruta, encoding="utf-8") as f:

@@ -261,7 +261,7 @@
     <h2 class="h6 text-primary mb-2">Como verificar estos resultados</h2>
     <p class="small mb-2">
       Todo lo anterior es auditable ejecutando
-      <code>sql/05_consultas_verificacion.sql</code> sobre la base
+      <code>etapa3/sql/05_consultas_verificacion.sql</code> sobre la base
       <code>CalidadAgua_ETL</code>:
     </p>
     <div class="table-responsive">
@@ -284,7 +284,7 @@
               <td>Que se conserva el valor original y el motivo del rechazo.</td></tr>
           <tr><td>F4 / F5</td><td>&laquo;Inviabile&raquo; en staging y en destino</td>
               <td>Que la correccion del catalogo paso de 1.073 a 0 ocurrencias.</td></tr>
-          <tr><td>E1</td><td>Export del log a <code>resultados_iteraciones.csv</code></td>
+          <tr><td>E1</td><td>Export del log a <code>datos/resultados_iteraciones.csv</code></td>
               <td>Que la tabla de esta pagina proviene de la base de datos.</td></tr>
         </tbody>
       </table>
@@ -299,9 +299,9 @@
     <h2 class="h6 text-primary mb-2">Comparacion de indicadores: antes y despues</h2>
     <p class="small">
       La columna <b>Antes</b> es la linea base medida en la etapa 2
-      (<code>metricas_calidad.csv</code>). La columna <b>Despues</b> se obtiene aplicando
+      (<code>datos/metricas_calidad.csv</code>). La columna <b>Despues</b> se obtiene aplicando
       al conjunto original las mismas reglas del paquete, mediante
-      <code>calcular_indicadores_etapa3.py</code>, que esta en el repositorio para que la
+      <code>scripts/calcular_indicadores_etapa3.py</code>, que esta en el repositorio para que la
       comparacion sea reproducible sin el servidor.
     </p>
     <div class="alert alert-warning small">
@@ -479,8 +479,8 @@
 
 {% else %}
 <div class="alert alert-warning small">
-  No se encontro <code>resultados_iteraciones.csv</code>. Ejecute el paquete SSIS y
-  exporte la consulta E1 de <code>sql/05_consultas_verificacion.sql</code> para
+  No se encontro <code>datos/resultados_iteraciones.csv</code>. Ejecute el paquete SSIS y
+  exporte la consulta E1 de <code>etapa3/sql/05_consultas_verificacion.sql</code> para
   regenerar la bitacora.
 </div>
 {% endif %}

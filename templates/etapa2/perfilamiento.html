@@ -10,16 +10,16 @@
 
 {% if datos is none %}
 <div class="alert alert-warning small" role="alert">
-    <strong>No se encontro <code>dataset_calidad_agua.csv</code>.</strong>
+    <strong>No se encontro <code>datos/dataset_calidad_agua.csv</code>.</strong>
     El perfil se calcula en tiempo de ejecucion sobre ese archivo. Ejecute
-    <code>python generar_dataset.py</code> para regenerarlo y recargue la pagina.
+    <code>python scripts/generar_dataset.py</code> para regenerarlo y recargue la pagina.
 </div>
 {% else %}
 
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Resultado del perfilamiento</h2>
     <p class="small mb-2">
-        El perfil se obtiene ejecutando la lectura de <code>dataset_calidad_agua.csv</code> sin ninguna
+        El perfil se obtiene ejecutando la lectura de <code>datos/dataset_calidad_agua.csv</code> sin ninguna
         limpieza previa, con la libreria estandar de Python, por lo que los numeros siempre coinciden
         con el archivo. El conjunto tiene <b>{{ "{:,}".format(datos.registros).replace(",", ".") }}
         registros &times; {{ datos.n_variables }} variables</b>

@@ -2,7 +2,7 @@
 """
 Etapa 5 - Carga del modelo estrella (calidad del agua).
 
-Lee el dataset tratado en la etapa 3 (dataset_calidad_agua_limpio.csv), crea la base
+Lee el dataset tratado en la etapa 3 (datos/dataset_calidad_agua_limpio.csv), crea la base
 SQLite con el script 01_crear_modelo.sql y llena las dimensiones y la tabla de hechos.
 Al final imprime las comprobaciones contra el CSV.
 
@@ -18,8 +18,8 @@ from datetime import date
 from pathlib import Path
 
 CARPETA = Path(__file__).resolve().parent
-CSV_ORIGEN = CARPETA.parent / "dataset_calidad_agua_limpio.csv"
-SCRIPT_MODELO = CARPETA / "01_crear_modelo.sql"
+CSV_ORIGEN = CARPETA.parent / "datos" / "dataset_calidad_agua_limpio.csv"
+SCRIPT_MODELO = CARPETA / "sql" / "01_crear_modelo.sql"
 BASE = CARPETA / "calidad_agua_dw.db"
 
 MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",

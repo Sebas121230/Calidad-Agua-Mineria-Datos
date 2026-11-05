@@ -20,17 +20,21 @@ Que hace este script:
         verificaciones_sin_hallazgo.csv -> pruebas que dieron cero
         evidencias_inventario.txt       -> salidas crudas de soporte
 
-Uso:
+Uso (desde la raiz del proyecto):
     pip install pandas
-    python inventario_calidad.py
+    python scripts/inventario_calidad.py
 """
 
 import re
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
-ARCHIVO = "dataset_calidad_agua.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATOS = BASE_DIR / "datos"
+
+ARCHIVO = DATOS / "dataset_calidad_agua.csv"
 FECHA_ANALISIS = date.today()
 
 # Ventana de vigencia adoptada por el equipo para la dimension Actualidad.
@@ -625,14 +629,14 @@ log("VERIFICACIONES SIN HALLAZGOS (pruebas ejecutadas que dieron cero)",
 # ===========================================================================
 inv = pd.DataFrame(problemas)
 met = pd.DataFrame(metricas)
-inv.to_csv("inventario_problemas.csv", index=False, encoding="utf-8")
-met.to_csv("metricas_calidad.csv", index=False, encoding="utf-8")
+inv.to_csv(DATOS / "inventario_problemas.csv", index=False, encoding="utf-8")
+met.to_csv(DATOS / "metricas_calidad.csv", index=False, encoding="utf-8")
 pd.DataFrame(sin_hallazgo,
              columns=["variable", "prueba_realizada", "registros_afectados",
                       "dimension_calidad"]
-             ).to_csv("verificaciones_sin_hallazgo.csv", index=False, encoding="utf-8")
+             ).to_csv(DATOS / "verificaciones_sin_hallazgo.csv", index=False, encoding="utf-8")
 
-with open("evidencias_inventario.txt", "w", encoding="utf-8") as f:
+with open(DATOS / "evidencias_inventario.txt", "w", encoding="utf-8") as f:
     f.write(f"EVIDENCIAS DE CALIDAD - {ARCHIVO}\n")
     f.write(f"{N} registros x {COLS} variables\n")
     f.write(f"Fecha de analisis: {FECHA_ANALISIS}\n")

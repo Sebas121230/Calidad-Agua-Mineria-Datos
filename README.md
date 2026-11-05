@@ -1,7 +1,8 @@
 # Calidad y Accesibilidad del Agua - Mineria de Datos
 
-Aplicacion Flask que documenta la **Etapa 1** del proyecto de Mineria de Datos sobre la
-disponibilidad y continuidad del servicio de agua potable en Bogota D.C. (2019-2025).
+Aplicacion Flask y scripts que documentan las **etapas 1 a 5** del proyecto de Mineria
+de Datos sobre la disponibilidad y continuidad del servicio de agua potable en Bogota D.C.
+(2019-2025).
 
 **Universidad de Cundinamarca** - Ingenieria de Sistemas y Computacion
 
@@ -18,22 +19,20 @@ disponibilidad y continuidad del servicio de agua potable en Bogota D.C. (2019-2
 Calidad-Agua-Mineria-Datos/
 ├── app.py                  # Rutas de la aplicacion Flask
 ├── requirements.txt        # Dependencias
-├── .gitignore
-├── static/
-│   ├── css/estilos.css     # Estilos propios (complementan Bootstrap)
-│   └── img/logo_udec.png
-└── templates/
-    ├── base.html           # Plantilla base con el menu lateral
-    ├── inicio.html         # Portada
-    └── etapa1/             # Los 8 submenus de la Etapa 1
-        ├── problema.html
-        ├── preguntas.html
-        ├── necesidades.html
-        ├── fuentes.html
-        ├── dataset.html
-        ├── diccionario.html
-        ├── calidad.html
-        └── limitaciones.html
+├── README.md
+├── scripts/                # Scripts de generacion, limpieza y auditoria
+├── datos/                  # CSV de entrada, salidas y evidencias
+├── docs/                   # Documentacion de las etapas
+│   └── etapa5/             # Modelo estrella y diagrama
+├── etapa3/                 # ETL SSIS y scripts SQL de la Etapa 3
+│   ├── ETL_CalidadAgua/    # Proyecto de Visual Studio
+│   └── sql/
+├── etapa5/                 # Modelo multidimensional en SQLite
+│   ├── cargar_modelo.py
+│   ├── calidad_agua_dw.db
+│   └── sql/
+├── static/                 # CSS e imagenes
+└── templates/              # Vistas Flask por etapa
 ```
 
 ## Como ejecutar el proyecto
@@ -78,25 +77,27 @@ Una vez validada, se integra a `main` mediante merge.
 ## Etapa 3 - Limpieza de datos con SSIS
 
 Proceso ETL en SQL Server Integration Services que trata los problemas de calidad
-identificados en la Etapa 2 sobre `dataset_calidad_agua.csv` (12.989 registros), en tres
+identificados en la Etapa 2 sobre `datos/dataset_calidad_agua.csv` (12.989 registros), en tres
 iteraciones documentadas en la tabla `etl_log`.
 
 ### Contenido
 
 ```
 Calidad-Agua-Mineria-Datos/
-├── ETL_CalidadAgua/                 # Proyecto de Visual Studio (SSIS)
-│   ├── ETL_CalidadAgua.slnx         # Abrir este archivo
-│   └── ETL_CalidadAgua/Package.dtsx # Paquete: Control Flow y Data Flows
-├── sql/
-│   ├── 01_crear_staging.sql         # Zona staging (datos originales, todo texto)
-│   ├── 02_crear_destino.sql         # Datos limpios con tipos reales y llave UNIQUE
-│   ├── 03_crear_revision.sql        # Registros rechazados con valor original y motivo
-│   ├── 04_crear_log.sql             # Una fila por ejecucion con los conteos
-│   ├── 05_consultas_verificacion.sql# Evidencias y verificacion de resultados
-│   └── 06_sql_del_paquete.sql       # SQL que ejecuta SSIS internamente
-├── dataset_calidad_agua.csv         # Datos originales
-└── resultados_iteraciones.csv       # Log exportado de las tres iteraciones
+├── etapa3/
+│   ├── ETL_CalidadAgua/                    # Proyecto de Visual Studio (SSIS)
+│   │   ├── ETL_CalidadAgua.slnx            # Abrir este archivo
+│   │   └── ETL_CalidadAgua/Package.dtsx    # Paquete: Control Flow y Data Flows
+│   └── sql/
+│       ├── 01_crear_staging.sql            # Zona staging (datos originales, todo texto)
+│       ├── 02_crear_destino.sql            # Datos limpios con tipos reales y llave UNIQUE
+│       ├── 03_crear_revision.sql           # Registros rechazados con valor original y motivo
+│       ├── 04_crear_log.sql                # Una fila por ejecucion con los conteos
+│       ├── 05_consultas_verificacion.sql   # Evidencias y verificacion de resultados
+│       └── 06_sql_del_paquete.sql          # SQL que ejecuta SSIS internamente
+├── datos/
+│   ├── dataset_calidad_agua.csv            # Datos originales
+│   └── resultados_iteraciones.csv          # Log exportado de las tres iteraciones
 ```
 
 ### Como reproducir el proceso
@@ -104,13 +105,13 @@ Calidad-Agua-Mineria-Datos/
 Requisitos: SQL Server 2025 (Developer), SSMS y Visual Studio con la extension
 *SQL Server Integration Services Projects 2022+*.
 
-1. En SSMS, crear la base de datos `CalidadAgua_ETL` y ejecutar `sql/01` a `sql/04` en orden.
-2. Abrir `ETL_CalidadAgua/ETL_CalidadAgua.slnx` en Visual Studio.
+1. En SSMS, crear la base de datos `CalidadAgua_ETL` y ejecutar `etapa3/sql/01` a `etapa3/sql/04` en orden.
+2. Abrir `etapa3/ETL_CalidadAgua/ETL_CalidadAgua.slnx` en Visual Studio.
 3. En *Administradores de conexiones*, editar `CSV_CalidadAgua` y seleccionar la ruta local
-   de `dataset_calidad_agua.csv`. La conexion a `localhost` usa autenticacion de Windows
+   de `datos/dataset_calidad_agua.csv`. La conexion a `localhost` usa autenticacion de Windows
    (el repositorio no contiene contrasenas).
 4. Fijar la variable `vIteracion` (1, 2 o 3) y `vObservacion`, y ejecutar el paquete.
-5. Revisar los resultados con `sql/05_consultas_verificacion.sql`.
+5. Revisar los resultados con `etapa3/sql/05_consultas_verificacion.sql`.
 
 ### Resultados
 
@@ -153,30 +154,32 @@ filtros de año, periodo y tipo de region. Sus cifras se recalculan sobre el dat
 
 ```
 Calidad-Agua-Mineria-Datos/
-├── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
-├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
-├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
-├── calcular_indicadores_temporal.py   # Recalcula los indicadores por año y trimestre
+├── scripts/
+│   ├── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
+│   └── calcular_indicadores_temporal.py   # Recalcula los indicadores por año y trimestre
+├── datos/
+│   ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
+│   └── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
 └── templates/etapa4/
-    ├── territorial.html               # Tablero de la dimension territorial
-    ├── temporal.html                  # Tablero de la dimension temporal
-    └── Multivariada.html               # Tablero de analisis multivariable
+    ├── territorial.html                   # Tablero de la dimension territorial
+    ├── temporal.html                      # Tablero de la dimension temporal
+    └── Multivariada.html                  # Tablero de analisis multivariable
 ```
 
 **Por que un script en Python y no la tabla `dst_calidad_agua` de SQL Server:** el
 paquete SSIS de la Etapa 3 corre contra una base de datos local que no se exporta ni
-se versiona en el repositorio. `generar_dataset_limpio.py` aplica, en Python puro,
+se versiona en el repositorio. `scripts/generar_dataset_limpio.py` aplica, en Python puro,
 las mismas reglas documentadas en `Informe_Etapa3_Calidad_Agua.pdf` (normalizacion,
 validacion P05/P09/P08, clasificacion de riesgo y llave unica fecha+municipio+sistema
 para los duplicados P07), para que el tablero de Flask tenga un dataset limpio sin
 depender de SQL Server. Se valido que coincide **exactamente** con la iteracion 2 del
-ETL real registrada en `resultados_iteraciones.csv`: 12.680 aceptados, 62 duplicados y
+ETL real registrada en `datos/resultados_iteraciones.csv`: 12.680 aceptados, 62 duplicados y
 247 en revision sobre 12.989 recibidos.
 
 Para regenerar los archivos limpios:
 
 ```bash
-python generar_dataset_limpio.py
+python scripts/generar_dataset_limpio.py
 ```
 
 **Pregunta de analisis:** ¿la calidad (IRCA) y la disponibilidad del servicio de
@@ -193,7 +196,7 @@ IRCA y 17.11 puntos porcentuales en cobertura de acueducto.
 corrupta del nombre (la letra "A" aparece como "@", p. ej. "CHI@" junto a "CHIA").
 Esta corrupcion ya viene del dataset original y el ETL de la Etapa 3 no la corrige
 (su regla P10 solo hace `UPPER(TRIM(...))`). Se homologa unicamente dentro de la capa
-de agregacion del tablero (`app.py`), sin modificar `dataset_calidad_agua_limpio.csv`,
+de agregacion del tablero (`app.py`), sin modificar `datos/dataset_calidad_agua_limpio.csv`,
 para no alterar el resultado ya validado de la Etapa 3.
 
 El desarrollo de la Etapa 4 (dimension territorial) se realiza en la rama
@@ -220,34 +223,30 @@ de la Sabana de Bogota (Regional) y los del resto del pais (Nacional)?
 
 ### Contenido
 
+El archivo `.pbix` y las fichas de `docs/etapa4/` no se versionan en esta rama; el informe
+publicado se incrusta en la aplicacion. Los archivos que si acompañan esta pagina son:
+
 ```
 Calidad-Agua-Mineria-Datos/
-├── powerbi/
-│   ├── conocimiento_evidente.pbix        # Archivo base del equipo
-│   └── territorial.pbix                  # Pagina "2. Comparacion territorial"
-├── docs/etapa4/
-│   ├── territorial_especificacion.md     # Pregunta, unidad de analisis, tratamientos y problemas pendientes
-│   ├── territorial_datos.md              # Pasos de Power Query y modelo de datos
-│   ├── territorial_medidas_dax.md        # Medidas DAX con sus valores esperados
-│   └── territorial_conocimientos.md      # Tres conocimientos evidentes, limitacion y decision
+├── scripts/
+│   └── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
+├── datos/
+│   ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
+│   ├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
+│   └── resultados_iteraciones.csv         # Log de las iteraciones del ETL
 └── templates/etapa4/
-    └── conocimiento_evidente.html        # Seccion "Conocimiento evidente" de la aplicacion
+    └── conocimiento_evidente.html         # Seccion "Conocimiento evidente" de la aplicacion
 ```
 
 ### Como abrir el informe
 
-Requiere **Power BI Desktop** (solo Windows).
-
-1. Abrir `powerbi/territorial.pbix`.
-2. Si aparece el error `DataSource.NotFound`, la ruta del archivo de datos es la del computador de
-   quien lo creo. Se corrige en **Inicio > Transformar datos > Configuracion de origen de datos >
-   Cambiar origen**, eligiendo `dataset_calidad_agua_limpio.csv` de este repositorio.
-3. **Cerrar y aplicar**.
-4. Comprobar las cifras de `docs/etapa4/territorial_datos.md` (12.680 filas, 29 municipios).
+El informe se consulta en `/etapa4/conocimiento-evidente`, donde se incrustan sus cuatro
+paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
+`DataSource.NotFound`, se cambia el origen de datos a `datos/dataset_calidad_agua_limpio.csv`.
 
 ### Datos y periodo
 
-Fuente: `dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
+Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
 mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico.
 
 ### Seccion en la aplicacion
@@ -256,9 +255,9 @@ Con la aplicacion en marcha, el menu lateral tiene la entrada **Conocimiento evi
 (`/etapa4/conocimiento-evidente`), con el proposito, las cuatro preguntas, el informe y la fuente
 de los datos.
 
-Para mostrar el informe dentro de la pagina, hay que publicarlo en Power BI (Archivo > Insertar
-informe) y definir su direccion en la variable de entorno `CONOCIMIENTO_EVIDENTE_URL`. Mientras no
-este definida, la pagina muestra el enlace a la carpeta `powerbi` del repositorio.
+La pagina ya trae el identificador del informe publicado y arma una vista por pagina con
+`pageName`. Se puede cambiar con las variables de entorno `POWER_BI_REPORT_ID` y
+`POWER_BI_GROUP_ID`; el enlace de apertura se ajusta con `CONOCIMIENTO_EVIDENTE_URL`.
 
 El desarrollo de la pagina territorial en Power BI se realiza en la rama
 `feature/conocimiento-territorial`.
@@ -289,36 +288,28 @@ largo del periodo 2019-2025, o el servicio se comporto igual los siete años?
 
 ### Contenido
 
+El archivo `.pbix` y las fichas de `docs/etapa4/` no se versionan en esta rama; el informe
+publicado se incrusta en la aplicacion. Los archivos que si acompañan esta pagina son:
+
 ```
 Calidad-Agua-Mineria-Datos/
-├── powerbi/
-│   └── temporal.pbix                   # Pagina "3. Evolucion en el tiempo"
-├── docs/etapa4/
-│   ├── temporal_especificacion.md      # Pregunta, unidad de analisis, tratamientos y problemas pendientes
-│   ├── temporal_datos.md               # Modelo de datos, medidas agregadas y verificacion
-│   ├── temporal_medidas_dax.md         # Medidas DAX `Temp_` con sus valores esperados
-│   └── temporal_conocimientos.md       # Tres conocimientos evidentes, limitacion y decision
-├── calcular_indicadores_temporal.py    # Script que recalcula las tablas citadas
+├── scripts/
+│   └── calcular_indicadores_temporal.py   # Recalcula las tablas citadas
+├── datos/
+│   └── dataset_calidad_agua_limpio.csv    # Fuente de los indicadores
 └── templates/etapa4/
-    └── temporal.html                   # Tablero de la dimension temporal
+    └── temporal.html                      # Tablero de la dimension temporal
 ```
 
 ### Como abrir el informe
 
-Requiere **Power BI Desktop** (solo Windows).
-
-1. Abrir `powerbi/temporal.pbix` (contiene las tres paginas: composicion, comparacion territorial y
-   evolucion en el tiempo).
-2. Si aparece el error `DataSource.NotFound`, la ruta del archivo de datos es la del computador de
-   quien lo creo. Se corrige en **Inicio > Transformar datos > Configuracion de origen de datos >
-   Cambiar origen**, eligiendo `dataset_calidad_agua_limpio.csv` de este repositorio.
-3. **Cerrar y aplicar**.
-4. Comprobar las cifras de `docs/etapa4/temporal_datos.md` (12.680 filas, 29 municipios, 28
-   periodos y 31 medidas, ocho de ellas con prefijo `Temp_`).
+El informe se consulta en `/etapa4/conocimiento-evidente`, donde se incrustan sus cuatro
+paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
+`DataSource.NotFound`, se cambia el origen de datos a `datos/dataset_calidad_agua_limpio.csv`.
 
 ### Datos y periodo
 
-Fuente: `dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
+Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
 mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico:
 el generador simula una crisis ENSO en 2024, por lo que la causa del quiebre se presenta siempre
 como hipotesis.
@@ -335,7 +326,7 @@ El desarrollo de la pagina temporal en Power BI se realiza en la rama
 
 ### Modelo estrella
 
-Modelo multidimensional en SQLite construido a partir de `dataset_calidad_agua_limpio.csv`
+Modelo multidimensional en SQLite construido a partir de `datos/dataset_calidad_agua_limpio.csv`
 (12.680 mediciones diarias de 29 municipios, 2019-2025).
 
 - Tabla de hechos: `fact_medicion` (una medicion diaria de un municipio).
@@ -348,10 +339,10 @@ Modelo multidimensional en SQLite construido a partir de `dataset_calidad_agua_l
 
 | Archivo | Contenido |
 |---|---|
-| `etapa5/01_crear_modelo.sql` | Creacion de tablas, claves y relaciones |
+| `etapa5/sql/01_crear_modelo.sql` | Creacion de tablas, claves y relaciones |
 | `etapa5/cargar_modelo.py` | Carga reproducible del CSV a las dimensiones y la tabla de hechos |
-| `etapa5/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, faltantes y comparacion con el CSV |
-| `etapa5/calidad_agua_dw.db` | Base SQLite ya cargada (la que consulta Flask) |
+| `etapa5/sql/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, faltantes y comparacion con el CSV |
+| `etapa5/calidad_agua_dw.db` | Base SQLite ya cargada, lista para consultar |
 
 ### Como crear y cargar la base
 

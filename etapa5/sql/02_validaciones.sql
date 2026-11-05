@@ -69,7 +69,7 @@ FROM fact_medicion;
 
 -- ---------------------------------------------------------------------
 -- 5. COHERENCIA DE CONTEOS Y AGREGACIONES CON EL CSV DE ORIGEN
--- Valores del CSV dataset_calidad_agua_limpio.csv (calculados por
+-- Valores del CSV datos/dataset_calidad_agua_limpio.csv (calculados por
 -- cargar_modelo.py): 12.680 registros, 12.418 con IRCA, IRCA promedio
 -- 14,43, 7.606 Regional y 5.074 Nacional, 29 municipios.
 -- ---------------------------------------------------------------------

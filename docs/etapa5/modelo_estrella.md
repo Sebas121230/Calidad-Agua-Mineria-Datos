@@ -1,12 +1,12 @@
 # Etapa 5 - Modelo multidimensional (modelo estrella)
 
 Responsable: Diego Armando Guzmán Garzón.
-Archivos: `etapa5/01_crear_modelo.sql`, `etapa5/cargar_modelo.py`, `etapa5/02_validaciones.sql`
+Archivos: `etapa5/sql/01_crear_modelo.sql`, `etapa5/cargar_modelo.py`, `etapa5/sql/02_validaciones.sql`
 y la base `etapa5/calidad_agua_dw.db`.
 
 ## 1. Datos de partida
 
-- **Origen:** `dataset_calidad_agua_limpio.csv`, resultado del tratamiento con SSIS de la etapa 3
+- **Origen:** `datos/dataset_calidad_agua_limpio.csv`, resultado del tratamiento con SSIS de la etapa 3
   (12.989 registros recibidos, 62 duplicados descartados, 247 enviados a revisión).
 - **Registros usados:** 12.680 mediciones de 29 municipios entre el 2019-01-01 y el 2025-12-31.
 - **Unidad de análisis:** una medición diaria de la calidad y el servicio de agua de un municipio.
@@ -167,8 +167,8 @@ Desde la carpeta del proyecto:
 python etapa5/cargar_modelo.py
 ```
 
-1. Lee `dataset_calidad_agua_limpio.csv`.
-2. Borra la base si existe y ejecuta `01_crear_modelo.sql` (crea las tablas, las claves y los
+1. Lee `datos/dataset_calidad_agua_limpio.csv`.
+2. Borra la base si existe y ejecuta `sql/01_crear_modelo.sql` (crea las tablas, las claves y los
    miembros fijos de `dim_riesgo`, `dim_servicio` y los "Desconocido").
 3. Carga `dim_tiempo`, `dim_geografia` y `dim_sistema` con los valores distintos del CSV.
 4. Carga `fact_medicion` buscando la clave de cada dimensión.
@@ -176,7 +176,7 @@ python etapa5/cargar_modelo.py
 
 ## 10. Validaciones y comparación con el CSV
 
-Consultas en `etapa5/02_validaciones.sql`. Resultados de la carga final:
+Consultas en `etapa5/sql/02_validaciones.sql`. Resultados de la carga final:
 
 | Comprobación | CSV | Modelo | Resultado |
 |---|---|---|---|

@@ -30,7 +30,7 @@
           DTS:RowDelimiter=""
           DTS:TextQualifier="_x0022_"
           DTS:CodePage="1252"
-          DTS:ConnectionString="C:\Users\diarg\OneDrive\Documents\9_Semestre\Mineria_Datos\Calidad_de_Agua\Calidad-Agua-Mineria-Datos\dataset_calidad_agua.csv">
+          DTS:ConnectionString="C:\Users\diarg\OneDrive\Documents\9_Semestre\Mineria_Datos\Calidad_de_Agua\Calidad-Agua-Mineria-Datos\datos\dataset_calidad_agua.csv">
           <DTS:FlatFileColumns>
             <DTS:FlatFileColumn
               DTS:ColumnType="Delimited"

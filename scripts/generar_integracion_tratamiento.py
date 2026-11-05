@@ -9,6 +9,10 @@ analisis de causas ya vigentes (post-commit "Ajustes al inventario y al
 analisis de causas").
 """
 import csv
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATOS = BASE_DIR / "datos"
 
 # ===========================================================================
 # PUNTO 8 - INTEGRACION Y HOMOLOGACION
@@ -90,12 +94,12 @@ homologacion = [
      "El nivel Global queda con muy poca representacion, 1.09% (P05, P06)."),
 ]
 
-with open("integracion_diferencias.csv", "w", newline="", encoding="utf-8") as f:
+with open(DATOS / "integracion_diferencias.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(["tipo_diferencia", "ejemplo"])
     w.writerows(diferencias)
 
-with open("integracion_homologacion.csv", "w", newline="", encoding="utf-8") as f:
+with open(DATOS / "integracion_homologacion.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(["variable_final", "fuentes_origen", "regla_homologacion", "limitacion"])
     w.writerows(homologacion)
@@ -186,7 +190,7 @@ tratamiento = [
      "Rediseno de esquema (fuera de una correccion puntual)", "Completitud, Consistencia"),
 ]
 
-with open("plan_tratamiento.csv", "w", newline="", encoding="utf-8") as f:
+with open(DATOS / "plan_tratamiento.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(["id", "variable_o_campo", "problema_resumen", "accion_planeada",
                 "tipo_accion", "dimension_que_mejora"])

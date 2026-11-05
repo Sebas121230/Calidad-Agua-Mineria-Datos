@@ -8,23 +8,22 @@ Todo se calcula sobre dataset_calidad_agua_limpio.csv (12.680 registros
 validos de 12.989 recibidos en la Etapa 3). Ningun numero esta fijado a mano:
 si el dataset cambia, las tablas cambian.
 
-Uso:
-    python calcular_indicadores_temporal.py
+Uso (desde la raiz del proyecto):
+    python scripts/calcular_indicadores_temporal.py
 """
 
 import csv
-import os
+from pathlib import Path
 
-ARCHIVO = "dataset_calidad_agua_limpio.csv"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = Path(__file__).resolve().parent.parent
+ARCHIVO = BASE_DIR / "datos" / "dataset_calidad_agua_limpio.csv"
 
 RIESGO_ALTO = {"Alto riesgo (28-40)", "Inviable sanitariamente (>40)"}
 SIN_SERVICIO = {"Racionado", "Sin servicio"}
 
 
 def leer():
-    ruta = os.path.join(BASE_DIR, ARCHIVO)
-    with open(ruta, encoding="utf-8") as f:
+    with open(ARCHIVO, encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 

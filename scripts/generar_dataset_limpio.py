@@ -16,10 +16,14 @@ Salidas:
 import csv
 import re
 from collections import Counter
+from pathlib import Path
 
-ARCHIVO_ENTRADA = "dataset_calidad_agua.csv"
-ARCHIVO_LIMPIO = "dataset_calidad_agua_limpio.csv"
-ARCHIVO_REVISION = "dataset_calidad_agua_revision.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATOS = BASE_DIR / "datos"
+
+ARCHIVO_ENTRADA = DATOS / "dataset_calidad_agua.csv"
+ARCHIVO_LIMPIO = DATOS / "dataset_calidad_agua_limpio.csv"
+ARCHIVO_REVISION = DATOS / "dataset_calidad_agua_revision.csv"
 
 MARCADORES_NULO = {"", "N/A", "null", "-"}
 

@@ -26,15 +26,20 @@ Bogota (ver generar_dataset.py y el punto 8 de la Etapa 1). El analisis que
 sigue explica, para cada defecto observado, el mecanismo que lo produciria en
 las nueve fuentes documentadas en la Etapa 1.
 
-Uso:
-    python analisis_causas.py     (requiere haber corrido antes inventario_calidad.py)
+Uso (desde la raiz del proyecto):
+    python scripts/analisis_causas.py     (requiere haber corrido antes inventario_calidad.py)
 """
+
+from pathlib import Path
 
 import pandas as pd
 
-INVENTARIO = "inventario_problemas.csv"
-SALIDA = "analisis_causas.csv"
-SALIDA_RESUMEN = "resumen_causas.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATOS = BASE_DIR / "datos"
+
+INVENTARIO = DATOS / "inventario_problemas.csv"
+SALIDA = DATOS / "analisis_causas.csv"
+SALIDA_RESUMEN = DATOS / "resumen_causas.csv"
 
 CAPTURA = "Errores de captura"
 FORMATOS = "Formatos diferentes"

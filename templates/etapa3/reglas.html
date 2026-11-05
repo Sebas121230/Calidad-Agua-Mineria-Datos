@@ -21,8 +21,8 @@
       <strong>Principio rector:</strong> corregir cuando la correccion es determinable y
       justificable; marcar y separar cuando el valor no es reconstruible; nunca descartar
       informacion sin registrarla. Las reglas provienen de
-      <code>plan_tratamiento.csv</code>, cruzado con el impacto y la dimension de cada
-      hallazgo en <code>inventario_problemas.csv</code>.
+      <code>datos/plan_tratamiento.csv</code>, cruzado con el impacto y la dimension de cada
+      hallazgo en <code>datos/inventario_problemas.csv</code>.
     </p>
   </div>
 </div>
@@ -73,8 +73,8 @@
 </p>
 {% else %}
 <div class="alert alert-warning small">
-  No se encontro <code>plan_tratamiento.csv</code>. Ejecute
-  <code>python generar_integracion_tratamiento.py</code> para regenerarlo.
+  No se encontro <code>datos/plan_tratamiento.csv</code>. Ejecute
+  <code>python scripts/generar_integracion_tratamiento.py</code> para regenerarlo.
 </div>
 {% endif %}
 

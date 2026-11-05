@@ -41,8 +41,8 @@
 
 {% if not hay_datos %}
 <div class="alert alert-warning">
-  No se encontro <code>dataset_calidad_agua_limpio.csv</code> en el proyecto. Genera primero
-  ese archivo (ver <code>generar_dataset_limpio.py</code>) y vuelve a cargar esta pagina.
+  No se encontro <code>datos/dataset_calidad_agua_limpio.csv</code> en el proyecto. Genera primero
+  ese archivo (ver <code>scripts/generar_dataset_limpio.py</code>) y vuelve a cargar esta pagina.
 </div>
 {% else %}
 
@@ -290,7 +290,7 @@
         <h2 class="h6 text-primary">Limitacion general de la dimension</h2>
         <p class="small mb-0">
           El dataset limpio usado aqui reproduce en Python el resultado del paquete SSIS de
-          la Etapa 3 (validado exactamente contra <code>resultados_iteraciones.csv</code>:
+          la Etapa 3 (validado exactamente contra <code>datos/resultados_iteraciones.csv</code>:
           12.680 aceptados, 62 duplicados, 247 en revision sobre 12.989 recibidos), pero no
           corrige una inconsistencia de origen: 8 de los 9 municipios de la Sabana llegan
           con una variante donde la letra "A" aparece como "@" (p. ej. "CHI@" junto a

@@ -16,15 +16,17 @@ etl_log: 12.680 aceptados, 62 duplicados (P07) y 247 en revision (141 casos P05
 cada regla de forma independiente, mientras que el paquete las aplica en el orden
 de sus transformaciones.
 
-Uso:
-    python calcular_indicadores_etapa3.py
+Uso (desde la raiz del proyecto):
+    python scripts/calcular_indicadores_etapa3.py
 """
 
 import csv
 import re
 import statistics
+from pathlib import Path
 
-ARCHIVO = "dataset_calidad_agua.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+ARCHIVO = BASE_DIR / "datos" / "dataset_calidad_agua.csv"
 MARCADORES = {"", "N/A", "N/A ", "null", "-", "NA", "N/D"}
 
 # Cortes normativos del IRCA (Res. 2115/2007), replicados del Derived Column.

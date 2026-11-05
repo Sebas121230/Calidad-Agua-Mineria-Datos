@@ -177,25 +177,25 @@
           <tr><th style="width:300px">Archivo</th><th>Contenido</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>ETL_CalidadAgua/ETL_CalidadAgua.slnx</code></td>
+          <tr><td><code>etapa3/ETL_CalidadAgua/ETL_CalidadAgua.slnx</code></td>
               <td>Solucion de Visual Studio, punto de entrada del proyecto SSIS.</td></tr>
-          <tr><td><code>ETL_CalidadAgua/ETL_CalidadAgua/Package.dtsx</code></td>
+          <tr><td><code>etapa3/ETL_CalidadAgua/ETL_CalidadAgua/Package.dtsx</code></td>
               <td>Paquete con el Control Flow, los dos Data Flows y las nueve variables.</td></tr>
-          <tr><td><code>sql/01_crear_staging.sql</code></td>
+          <tr><td><code>etapa3/sql/01_crear_staging.sql</code></td>
               <td>Zona de staging: 20 columnas VARCHAR mas lote_id y fecha_carga.</td></tr>
-          <tr><td><code>sql/02_crear_destino.sql</code></td>
+          <tr><td><code>etapa3/sql/02_crear_destino.sql</code></td>
               <td>Destino con tipos reales, <code>irca_reportado</code> y llave
                   <code>UNIQUE (iteracion, fecha, municipio, sistema_abastecimiento)</code>.</td></tr>
-          <tr><td><code>sql/03_crear_revision.sql</code></td>
+          <tr><td><code>etapa3/sql/03_crear_revision.sql</code></td>
               <td>Registros rechazados con valor original, <code>campo_afectado</code>,
                   <code>motivo</code> y <code>regla_id</code>.</td></tr>
-          <tr><td><code>sql/04_crear_log.sql</code></td>
+          <tr><td><code>etapa3/sql/04_crear_log.sql</code></td>
               <td>Bitacora <code>etl_log</code>: una fila por ejecucion con los conteos.</td></tr>
-          <tr><td><code>sql/05_consultas_verificacion.sql</code></td>
+          <tr><td><code>etapa3/sql/05_consultas_verificacion.sql</code></td>
               <td>Consultas de verificacion, hallazgos y conciliacion (secciones A a F).</td></tr>
-          <tr><td><code>sql/06_sql_del_paquete.sql</code></td>
+          <tr><td><code>etapa3/sql/06_sql_del_paquete.sql</code></td>
               <td>SQL que ejecuta el paquete internamente, documentado para reimplementacion.</td></tr>
-          <tr><td><code>resultados_iteraciones.csv</code></td>
+          <tr><td><code>datos/resultados_iteraciones.csv</code></td>
               <td>Bitacora exportada (consulta E1) con las cuatro ejecuciones registradas.</td></tr>
         </tbody>
       </table>

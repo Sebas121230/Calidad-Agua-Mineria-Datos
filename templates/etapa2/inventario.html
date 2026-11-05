@@ -4,14 +4,14 @@
 
 <h1 class="h4 mb-1">4. Inventario de problemas encontrados</h1>
 <p class="text-secondary small mb-3">
-    Seccion Calidad de Datos &middot; Diagnostico sobre <code>dataset_calidad_agua.csv</code>
+    Seccion Calidad de Datos &middot; Diagnostico sobre <code>datos/dataset_calidad_agua.csv</code>
 </p>
 
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Procedimiento</h2>
     <p class="small mb-2">
         Sobre el dataset consolidado (<b>{{ n_registros }} registros &times; {{ n_variables }} variables</b>)
-        se ejecuto el script <code>inventario_calidad.py</code>, que evalua las <b>seis dimensiones
+        se ejecuto el script <code>scripts/inventario_calidad.py</code>, que evalua las <b>seis dimensiones
         de calidad</b> exigidas y levanta el inventario de hallazgos. El archivo se leyo
         <b>sin ninguna limpieza previa</b> y con todas las columnas cargadas como texto: si se dejan
         inferir los tipos, pandas normaliza por su cuenta las fechas y los espacios sobrantes, y los
@@ -117,7 +117,7 @@
 <div class="card shadow-sm border-0 mb-3"><div class="card-body">
     <h2 class="h6 text-primary">Inventario de problemas</h2>
     <p class="small text-secondary">
-        Tabla generada a partir de <code>inventario_problemas.csv</code>. Cada fila documenta los seis
+        Tabla generada a partir de <code>datos/inventario_problemas.csv</code>. Cada fila documenta los seis
         elementos exigidos. La columna <i>Dim. complementaria</i> se incluye cuando el hallazgo afecta
         de forma secundaria a otra dimension.
     </p>

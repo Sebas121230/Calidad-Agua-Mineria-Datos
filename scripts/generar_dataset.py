@@ -17,15 +17,19 @@ import csv
 import random
 import math
 from datetime import date, timedelta
+from pathlib import Path
 
 random.seed(42)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATOS = BASE_DIR / "datos"
 
 # ===========================================================================
 # CONFIGURACION
 # ===========================================================================
 ANIO_INICIO = 2019
 ANIO_FIN = 2025
-ARCHIVO_SALIDA = "dataset_calidad_agua.csv"
+ARCHIVO_SALIDA = DATOS / "dataset_calidad_agua.csv"
 
 # Municipios Bogota / Sabana (EAAB)
 MUNICIPIOS_BOGOTA = [
