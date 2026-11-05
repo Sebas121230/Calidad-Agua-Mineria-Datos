@@ -5,6 +5,7 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, request
 
+from etapa5 import consultas_slice_dice as olap
 from scripts.generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
