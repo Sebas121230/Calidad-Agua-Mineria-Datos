@@ -306,6 +306,145 @@
   </div>
 </div>
 
+
+<!-- ======================================================================
+     CONOCIMIENTOS MULTIDIMENSIONALES
+     ====================================================================== -->
+<h2 class="h5 mt-4 mb-3">Conocimientos multidimensionales</h2>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <h3 class="h6 text-primary mb-0"><span class="badge bg-primary op-badge me-1">Slice</span>
+        Conocimiento 1. En la región Nacional el riesgo sanitario alto está extendido en todos los
+        departamentos y casi no cambia con la continuidad del servicio</h3>
+      <button type="button" class="btn btn-outline-primary btn-sm" id="verK1">Ver esta selección</button>
+    </div>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿El riesgo sanitario alto de la región Nacional se concentra en pocos departamentos y depende
+        de que el servicio sea continuo o intermitente?</dd>
+      <dt>Dimensiones y medidas</dt>
+      <dd>Geografía (tipo_region &rarr; departamento) y Servicio (nivel de servicio). Medidas:
+        % riesgo alto o inviable (denominador: mediciones con IRCA reportado), IRCA promedio y mediciones.</dd>
+      <dt>Procedimiento</dt>
+      <dd><strong>Slice</strong> sobre la dimensión Geografía con <code>tipo_region = 'Nacional'</code>
+        (5.074 mediciones de 20 municipios). Dentro del corte se baja al nivel <em>departamento</em> y
+        luego se cambia el nivel de detalle a <em>nivel de servicio</em>, con la matriz
+        nivel de servicio &times; grupo de riesgo. Las medidas se recalculan en cada nivel; no se promedian
+        los porcentajes de los departamentos.</dd>
+      <dt>Evidencia</dt>
+      <dd>Indicadores y Visualización 1 del slice, tabla por departamento y matriz del slice; consultas
+        S0, S1 y S2 de <code>etapa5/sql/03_consultas_slice_dice.sql</code>.</dd>
+      <dt>Hallazgo</dt>
+      <dd>El 46,4 % de las mediciones de la región Nacional está en riesgo alto o inviable, frente al
+        18,6 % del total y al 0 % de la región Regional. Los 19 departamentos están por encima de 38,6 %:
+        el más bajo es Valle del Cauca (38,6 %) y el más alto Risaralda (52,5 %), una diferencia de
+        13,9 p.p.; cinco departamentos (Risaralda, Meta, Quindío, Caldas y Huila) llegan al 50 % o más.
+        Al cortar por nivel de servicio, el riesgo alto es 45,4 % con servicio continuo y 47,5 % con
+        servicio intermitente (IRCA promedio 25,94 frente a 26,32): solo 2,1 p.p. de diferencia.</dd>
+      <dt>Interpretación</dt>
+      <dd>La etapa 4 mostró que la región Nacional tiene peor IRCA que la Regional. El slice agrega que
+        ese resultado no se explica por unos pocos departamentos, porque incluso el mejor de ellos duplica
+        el promedio general, y que tampoco depende de la continuidad del servicio: tener agua todo el día
+        no se asocia con agua de mejor calidad. Como hipótesis, que no se puede comprobar con estos datos,
+        el riesgo estaría ligado al tratamiento y a la vigilancia de la calidad más que a la operación
+        del suministro.</dd>
+      <dt>Utilidad</dt>
+      <dd>Indica que las acciones para mejorar la calidad en la región Nacional deben dirigirse a toda la
+        región, empezando por los cinco departamentos con 50 % o más, y que invertir solo en continuidad
+        del servicio no bastaría para bajar el riesgo sanitario.</dd>
+      <dt>Limitación</dt>
+      <dd>En el modelo cada departamento de la región Nacional tiene un solo municipio, excepto Antioquia
+        (Bello y Medellín), así que "departamento" equivale casi siempre a un municipio y no representa
+        a todo el departamento. Se excluyen del porcentaje las 96 mediciones Nacionales sin IRCA. Es una
+        asociación en un conjunto de datos sintético, no una relación causal.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <h3 class="h6 text-primary mb-0"><span class="badge bg-warning text-dark op-badge me-1">Dice</span>
+        Conocimiento 2. En la Sabana el racionamiento de 2024-2025 afectó por igual a los tres sistemas
+        de la EAAB y se agravó en 2025, aunque el almacenamiento ya se había recuperado</h3>
+      <button type="button" class="btn btn-outline-primary btn-sm" id="verK2">Ver esta selección</button>
+    </div>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿Cuándo empezó la pérdida de continuidad del servicio en la región Regional, si fue igual en
+        todos los sistemas de abastecimiento y si siguió al nivel de almacenamiento?</dd>
+      <dt>Dimensiones y medidas</dt>
+      <dd>Geografía (tipo_region), Tiempo (año &rarr; trimestre), Sistema de abastecimiento y Servicio.
+        Medidas: % servicio continuo y % racionado o sin servicio (denominador: todas las mediciones del
+        grupo), almacenamiento promedio (%), IRCA promedio y mediciones.</dd>
+      <dt>Procedimiento</dt>
+      <dd><strong>Dice</strong> con <code>tipo_region = 'Regional'</code>, <code>anio IN (2024, 2025)</code>
+        y <code>sistema IN ('Chingaza', 'Sur', 'Tibitoc')</code> (2.170 mediciones). Se consulta por
+        trimestre y por año, con la matriz sistema &times; nivel de servicio, y se compara con el periodo
+        equivalente 2022-2023 (mismos filtros de región y sistema, también dos años).</dd>
+      <dt>Evidencia</dt>
+      <dd>Indicadores, Visualización 2, tabla por trimestre, matriz del dice y tabla de comparación de
+        periodos; consultas D1, D2 y D3 de <code>etapa5/sql/03_consultas_slice_dice.sql</code>.</dd>
+      <dt>Hallazgo</dt>
+      <dd>Frente a 2022-2023, el servicio continuo bajó de 100 % a 33,8 % (-66,2 p.p.) y las mediciones
+        racionadas o sin servicio pasaron de 0 % a 43,5 %. El quiebre empieza en 2024-T2: en 2024-T1 el
+        servicio todavía era 100 % continuo. Los tres sistemas cayeron casi igual (servicio continuo entre
+        30,6 % en Sur y 36,2 % en Tibitoc). En 2025 el almacenamiento promedio subió a 61,1 %, por encima
+        del 60,8 % de 2022-2023, y llegó a 69,4 % en 2025-T2; aun así, las mediciones racionadas o sin
+        servicio aumentaron de 36,4 % en 2024 a 50,5 % en 2025. El IRCA promedio no cambió
+        (6,61 frente a 6,63).</dd>
+      <dt>Interpretación</dt>
+      <dd>La etapa 4 identificó el quiebre del servicio en la Sabana en 2024. El dice muestra que no fue
+        la falla de un solo sistema, sino una medida que afectó por igual a Chingaza, Sur y Tibitoc, y que
+        en estos datos la continuidad no volvió cuando el almacenamiento se recuperó. Como hipótesis, la
+        decisión de racionar se mantuvo por precaución o con rezago frente al nivel de los embalses. La
+        calidad del agua no se deterioró: el problema de la región fue de disponibilidad, no de calidad.</dd>
+      <dt>Utilidad</dt>
+      <dd>Sirve para proponer criterios explícitos de salida del racionamiento, ligados a umbrales de
+        almacenamiento y revisados cada trimestre, y para tratarlo como una decisión de toda la región
+        y no de un sistema en particular.</dd>
+      <dt>Limitación</dt>
+      <dd>El modelo no incluye la variable de decisión de racionamiento ni las afluencias, así que no se
+        puede saber por qué se mantuvo; el almacenamiento es un promedio de las mediciones, no el nivel
+        diario de cada embalse. El sistema coincide con la región (los tres sistemas solo existen en la
+        Regional). Es una asociación en datos sintéticos, no una relación causal.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= 11. LIMITACION Y 12. DECISION ================= -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Limitación del análisis</h2>
+        <p class="small mb-0">Las dimensiones Geografía y Sistema no son independientes: "Fuera de
+          cobertura EAAB" es siempre la región Nacional y Chingaza, Sur y Tibitoc son siempre la Regional.
+          Por eso un dice que combine solo esas dos dimensiones no agrega información, y no se puede
+          separar el efecto del sistema del efecto del territorio. Además, los niveles Racionado y Sin
+          servicio solo existen en la región Regional entre 2024 y 2025, y los datos son sintéticos:
+          los resultados describen este conjunto de datos, no el sistema real.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Decisión sustentada en los datos</h2>
+        <p class="small mb-0">Separar las dos estrategias según el territorio. En la región Nacional,
+          priorizar programas de tratamiento y vigilancia de la calidad del agua, empezando por Risaralda,
+          Meta, Quindío, Caldas y Huila (50 % o más de mediciones en riesgo alto), porque mejorar la
+          continuidad no se asocia con menos riesgo (45,4 % frente a 47,5 %). En la región Regional, la
+          prioridad es la disponibilidad: definir umbrales de almacenamiento para levantar el
+          racionamiento, ya que en 2025 el almacenamiento superó el de 2022-2023 y las interrupciones
+          siguieron aumentando (50,5 %).</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endif %}
 </div>
 
@@ -626,6 +765,20 @@
   $("sReset").addEventListener("click", () => { iniciarSlice(); aplicarSlice(); });
   $("formDice").addEventListener("submit", aplicarDice);
   $("dReset").addEventListener("click", () => { iniciarDice(); aplicarDice(); });
+
+  // Botones "Ver esta selección": ponen en los controles los filtros de cada conocimiento
+  $("verK1").addEventListener("click", () => {
+    iniciarSlice();
+    $("sNivel").value = "servicio";
+    $("sMedida").value = "pct_riesgo_alto";
+    aplicarSlice();
+    $("formSlice").scrollIntoView({behavior: "smooth"});
+  });
+  $("verK2").addEventListener("click", () => {
+    iniciarDice();
+    aplicarDice();
+    $("formDice").scrollIntoView({behavior: "smooth"});
+  });
 
   iniciarSlice();
   iniciarDice();
