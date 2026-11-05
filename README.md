@@ -331,3 +331,40 @@ filtros de año, periodo y tipo de region recalculan todo el tablero sobre el da
 
 El desarrollo de la pagina temporal en Power BI se realiza en la rama
 `feature/conocimiento-temporal`.
+## Etapa 5 - Analisis multidimensional
+
+### Modelo estrella
+
+Modelo multidimensional en SQLite construido a partir de `dataset_calidad_agua_limpio.csv`
+(12.680 mediciones diarias de 29 municipios, 2019-2025).
+
+- Tabla de hechos: `fact_medicion` (una medicion diaria de un municipio).
+- Dimensiones: `dim_tiempo`, `dim_geografia`, `dim_sistema`, `dim_riesgo` y `dim_servicio`.
+- Jerarquias: anio > trimestre > mes > dia; tipo_region > departamento > municipio;
+  grupo_riesgo > clasificacion.
+- Diagrama y diccionario: [docs/etapa5/modelo_estrella.md](docs/etapa5/modelo_estrella.md).
+
+### Archivos
+
+| Archivo | Contenido |
+|---|---|
+| `etapa5/01_crear_modelo.sql` | Creacion de tablas, claves y relaciones |
+| `etapa5/cargar_modelo.py` | Carga reproducible del CSV a las dimensiones y la tabla de hechos |
+| `etapa5/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, faltantes y comparacion con el CSV |
+| `etapa5/calidad_agua_dw.db` | Base SQLite ya cargada (la que consulta Flask) |
+
+### Como crear y cargar la base
+
+Requisitos: Python 3.10 o superior. No necesita librerias adicionales (usa `csv` y `sqlite3`).
+
+```
+python etapa5/cargar_modelo.py
+```
+
+El script borra la base si existe, la vuelve a crear, carga los datos e imprime las comprobaciones
+contra el CSV (todas deben salir `OK`). Para consultar la base desde Flask:
+
+```python
+import sqlite3
+con = sqlite3.connect("etapa5/calidad_agua_dw.db")
+```
