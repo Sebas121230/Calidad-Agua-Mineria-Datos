@@ -11,7 +11,7 @@
     --gridline:       #e1e0d9;
     --series-1:       #2a78d6;
     --series-2:       #eb6834;
-    --series-3:       #6c8bab;
+    --series-3:       #1baf7a;
     --status-critical:#d03b3b;
   }
   .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
@@ -35,6 +35,7 @@
   .viz-root .matriz td, .viz-root .matriz th { text-align: right; white-space: nowrap; }
   .viz-root .matriz td:first-child, .viz-root .matriz th:first-child { text-align: left; }
   .viz-root .matriz .pct { color: var(--text-muted); font-size: .78rem; }
+  .viz-root .grafica { min-height: 320px; }
   .viz-root .checks { max-height: 9rem; overflow-y: auto; }
   .viz-root pre.sql {
     background: #0d2137; color: #e8eef5; border-radius: 8px; padding: 12px 14px;
@@ -172,6 +173,17 @@
 <!-- Indicadores del slice -->
 <div class="row g-3 mb-3" id="sIndicadores"></div>
 
+<!-- Visualizacion 1: grafica del slice -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Visualización 1. <span id="sGraficaTxt"></span></h2>
+    <p class="small text-muted mb-2">Una barra por grupo del nivel elegido, ordenadas de mayor a menor.
+      La línea continua marca el valor del corte completo y la punteada el total sin filtrar.
+      Pasa el cursor sobre una barra para ver el valor y las mediciones que lo respaldan.</p>
+    <div class="plot-box"><div id="sGrafica" class="grafica"></div></div>
+  </div>
+</div>
+
 <!-- Tabla por nivel del slice -->
 <div class="card shadow-sm border-0 mb-3">
   <div class="card-body">
@@ -256,6 +268,17 @@
 <!-- Indicadores del dice -->
 <div class="row g-3 mb-3" id="dIndicadores"></div>
 
+<!-- Visualizacion 2: grafica del dice -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Visualización 2. Continuidad, interrupciones y almacenamiento por <span id="dGraficaTxt"></span></h2>
+    <p class="small text-muted mb-2">Las tres series están en porcentaje (0 a 100 %) y comparten un solo eje.
+      Con nivel año o trimestre se dibujan como líneas; con otros niveles, como barras agrupadas.
+      Denominador de % continuo y % racionado o sin servicio: todas las mediciones del grupo.</p>
+    <div class="plot-box"><div id="dGrafica" class="grafica"></div></div>
+  </div>
+</div>
+
 <!-- Tabla por nivel del dice -->
 <div class="card shadow-sm border-0 mb-3">
   <div class="card-body">
@@ -287,6 +310,7 @@
 </div>
 
 {% if hay_datos %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script>
   // ---------------- Datos que envía Flask ----------------
   const OPCIONES   = {{ opciones|tojson }};
@@ -413,6 +437,103 @@
     $("dComparacion").innerHTML = cab + "<tbody>" + fila(a) + fila(b) + dif + "</tbody>";
   }
 
+  // ---------------- Graficas (Plotly) ----------------
+  const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
+  const CONFIG_PLOTLY = {displaylogo: false, responsive: true,
+    modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"]};
+  function layoutBase() {
+    return {
+      paper_bgcolor: css("--surface-1"), plot_bgcolor: css("--surface-1"),
+      font: {family: "system-ui, -apple-system, Segoe UI, sans-serif", size: 12, color: css("--text-secondary")},
+      margin: {l: 60, r: 30, t: 30, b: 50},
+      hoverlabel: {bgcolor: "#ffffff", bordercolor: css("--gridline"), font: {color: css("--text-primary")}},
+    };
+  }
+  const ejeValor = titulo => ({title: {text: titulo}, gridcolor: css("--gridline"), zeroline: false,
+                               linecolor: css("--gridline"), tickformat: ",.0f"});
+
+  // Visualizacion 1: barras horizontales de la medida elegida por grupo del slice
+  function graficarSlice() {
+    const d = datosSlice, m = $("sMedida").value, u = unidadMedida(m);
+    const filas = d.tabla.filter(f => f[m] !== null && f[m] !== undefined)
+                         .sort((a, b) => a[m] - b[m]);          // la mayor queda arriba
+    $("sGraficaTxt").textContent = `${etiquetaMedida(m)} por ${d.nivel.toLowerCase()} (${d.seleccion})`;
+    if (!filas.length) { Plotly.purge("sGrafica"); $("sGrafica").innerHTML =
+      "<p class='small text-muted p-3 mb-0'>La medida no tiene datos en esta selección.</p>"; return; }
+    const sufijo = u === "%" ? " %" : "";
+    const lineas = [
+      {valor: d.indicadores[m], texto: "Corte: " + fmt(d.indicadores[m], u), dash: "solid"},
+      {valor: d.contexto[m],    texto: "Total: " + fmt(d.contexto[m], u),    dash: "dot"},
+    ].filter(l => l.valor !== null);
+    const layout = Object.assign(layoutBase(), {
+      height: Math.max(260, 26 * filas.length + 90),
+      margin: {l: 150, r: 40, t: 34, b: 50},
+      bargap: 0.35, barcornerradius: 4,
+      xaxis: Object.assign(ejeValor(`${etiquetaMedida(m)} (${u})`), u === "%" ? {range: [0, 100]} : {rangemode: "tozero"}),
+      yaxis: {automargin: true, linecolor: css("--gridline")},
+      shapes: lineas.map(l => ({type: "line", xref: "x", yref: "paper", x0: l.valor, x1: l.valor, y0: 0, y1: 1,
+                                line: {color: css("--text-primary"), width: 1.5, dash: l.dash}})),
+      annotations: lineas.map((l, i) => ({x: l.valor, xref: "x", y: 1, yref: "paper", yanchor: "bottom",
+                                          yshift: i * 14, text: l.texto, showarrow: false,
+                                          font: {size: 11, color: css("--text-primary")}})),
+    });
+    Plotly.react("sGrafica", [{
+      type: "bar", orientation: "h",
+      x: filas.map(f => f[m]), y: filas.map(f => String(f.grupo)),
+      customdata: filas.map(f => [f.mediciones, f.municipios]),
+      marker: {color: css("--series-1"), line: {color: css("--surface-1"), width: 2}},
+      hovertemplate: `<b>%{y}</b><br>${etiquetaMedida(m)}: %{x:,.2f}${sufijo}` +
+                     "<br>Mediciones: %{customdata[0]:,}<br>Municipios: %{customdata[1]}<extra></extra>",
+    }], layout, CONFIG_PLOTLY);
+  }
+
+  // Visualizacion 2: continuidad, interrupciones y almacenamiento del dice
+  const SERIES_DICE = [
+    {medida: "pct_continuo",     color: "--series-1", dash: "solid"},
+    {medida: "pct_interrumpido", color: "--series-2", dash: "solid"},
+    {medida: "almacenamiento",   color: "--series-3", dash: "dash"},
+  ];
+  function graficarDice() {
+    const d = datosDice, temporal = ["Año", "Trimestre"].includes(d.nivel);
+    $("dGraficaTxt").textContent = d.nivel.toLowerCase();
+    const x = d.tabla.map(f => String(f.grupo));
+    const trazas = SERIES_DICE.map(s => {
+      const base = {
+        name: etiquetaMedida(s.medida), x: x, y: d.tabla.map(f => f[s.medida]),
+        customdata: d.tabla.map(f => f.mediciones),
+        hovertemplate: `${etiquetaMedida(s.medida)}: %{y:.1f} %<extra></extra>`,
+      };
+      return temporal
+        ? Object.assign(base, {type: "scatter", mode: "lines+markers",
+            line: {color: css(s.color), width: 2, dash: s.dash},
+            marker: {size: 8, color: css(s.color), line: {color: css("--surface-1"), width: 2}}})
+        : Object.assign(base, {type: "bar",
+            marker: {color: css(s.color), line: {color: css("--surface-1"), width: 2}}});
+    });
+    // Etiqueta directa al final de cada linea (ademas de la leyenda)
+    const ultimo = d.tabla.length - 1;
+    // Si dos valores finales quedan muy cerca, se separan para que no se monten
+    const finales = temporal && ultimo >= 0 ? SERIES_DICE
+      .filter(s => d.tabla[ultimo][s.medida] !== null)
+      .map(s => ({valor: d.tabla[ultimo][s.medida], y: d.tabla[ultimo][s.medida]}))
+      .sort((a, b) => b.y - a.y) : [];
+    for (let i = 1; i < finales.length; i++) {
+      if (finales[i - 1].y - finales[i].y < 7) finales[i].y = finales[i - 1].y - 7;
+    }
+    const etiquetas = finales.map(f => ({x: x[ultimo], y: f.y, xanchor: "left", xshift: 8, showarrow: false,
+      text: fmt(f.valor, "%"), font: {size: 11, color: css("--text-primary")}}));
+    const layout = Object.assign(layoutBase(), {
+      height: 360, barmode: "group", bargap: 0.25, barcornerradius: 4,
+      margin: {l: 60, r: 70, t: 40, b: 60},
+      hovermode: temporal ? "x unified" : "closest",
+      legend: {orientation: "h", x: 0, y: 1.12, font: {color: css("--text-primary")}},
+      xaxis: {type: "category", linecolor: css("--gridline"), tickangle: x.length > 8 ? -35 : 0, automargin: true},
+      yaxis: Object.assign(ejeValor("Porcentaje (%)"), {range: [0, 105]}),
+      annotations: etiquetas,
+    });
+    Plotly.react("dGrafica", trazas, layout, CONFIG_PLOTLY);
+  }
+
   function pintarSlice() {
     const d = datosSlice;
     pintarSeleccion("sSeleccion", d);
@@ -423,6 +544,7 @@
     $("sMatrizTxt").textContent = `${d.matriz.etiqueta_filas} × ${COLS_MATRIZ[$("sColumnas").value]}`;
     pintarMatriz("sMatriz", d.matriz);
     $("sSQL").textContent = d.sql;
+    graficarSlice();
   }
 
   function pintarDice() {
@@ -436,6 +558,7 @@
     pintarMatriz("dMatriz", d.matriz);
     pintarComparacion(d);
     $("dSQL").textContent = d.sql;
+    graficarDice();
   }
 
   // ---------------- Pedir datos a Flask ----------------
