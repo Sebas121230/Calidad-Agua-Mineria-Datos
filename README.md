@@ -247,7 +247,7 @@ paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
 ### Datos y periodo
 
 Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
-mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico.
+mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos consolidado y depurado.
 
 ### Seccion en la aplicacion
 
@@ -310,9 +310,9 @@ paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
 ### Datos y periodo
 
 Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
-mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos sintetico:
-el generador simula una crisis ENSO en 2024, por lo que la causa del quiebre se presenta siempre
-como hipotesis.
+mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. La causa del quiebre de 2024 se
+presenta como hipótesis: el conjunto permite describir el cambio y su momento, pero no aislar
+todas las causas operativas.
 
 ### Seccion en la aplicacion
 
@@ -341,7 +341,7 @@ Modelo multidimensional en SQLite construido a partir de `datos/dataset_calidad_
 |---|---|
 | `etapa5/sql/01_crear_modelo.sql` | Creacion de tablas, claves y relaciones |
 | `etapa5/cargar_modelo.py` | Carga reproducible del CSV a las dimensiones y la tabla de hechos |
-| `etapa5/sql/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, faltantes y comparacion con el CSV |
+| `etapa5/sql/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, consistencia y comparacion con el CSV |
 | `etapa5/calidad_agua_dw.db` | Base SQLite ya cargada, lista para consultar |
 
 ### Como crear y cargar la base
@@ -359,3 +359,78 @@ contra el CSV (todas deben salir `OK`). Para consultar la base desde Flask:
 import sqlite3
 con = sqlite3.connect("etapa5/calidad_agua_dw.db")
 ```
+
+### Operaciones Slice y Dice
+
+Responsable: John Sebastian Rodriguez D.
+
+Vista integrada como **Vista 5** de `/etapa5/multidimensional`, en la tarjeta **Slice y Dice**
+del menu **Etapa 5 - Analisis multidimensional**. Todos los indicadores, tablas, matrices y
+graficas se calculan con consultas a `etapa5/calidad_agua_dw.db`; al cambiar un filtro las medidas se
+recalculan desde la tabla de hechos (no se suman ni se promedian porcentajes de otros grupos).
+
+**Pregunta de la vista:** que subconjuntos del territorio y del tiempo concentran el riesgo sanitario
+del agua y la perdida de continuidad del servicio, y como cambian al combinar region, periodo y
+sistema de abastecimiento.
+
+| Archivo | Contenido |
+|---|---|
+| `etapa5/sql/03_consultas_slice_dice.sql` | Consultas de los ejemplos (S0-S2 slice, D1-D3 dice) y validaciones V1-V3 |
+| `etapa5/consultas_slice_dice.py` | Modulo con las consultas parametrizadas que usa Flask |
+| `app.py` | Ruta `/etapa5/slice-dice/datos` (API JSON) y redirección de `/etapa5/slice-dice` a la Vista 5 |
+| `templates/etapa5/_slice_dice_body.html` | Contenido integrado de la Vista 5 |
+| `templates/etapa5/_slice_dice_script.html` | Lógica interactiva de la Vista 5 |
+| `templates/base.html` | Enlace unico de la Etapa 5 |
+
+#### Ejemplos implementados
+
+| Operacion | Filtros | Nivel / matriz | Resultado principal |
+|---|---|---|---|
+| **Slice** | `tipo_region = 'Nacional'` (una dimension, un valor) | departamento; nivel de servicio x grupo de riesgo | 46,4 % de mediciones en riesgo alto o inviable (total: 18,6 %); los 19 departamentos entre 38,6 % y 52,5 %; continuo 45,4 % vs. intermitente 47,5 % |
+| **Dice** | `tipo_region = 'Regional'` + `anio IN (2024, 2025)` + `sistema IN ('Chingaza', 'Sur', 'Tibitoc')` (tres dimensiones) | trimestre; sistema x nivel de servicio; comparacion con 2022-2023 | Servicio continuo de 100 % a 33,8 % (-66,2 p.p.); quiebre desde 2024-T2; en 2025 el almacenamiento (61,1 %) supera al de 2022-2023 y las interrupciones suben a 50,5 % |
+
+#### Medidas y denominadores
+
+| Medida | Calculo | Denominador |
+|---|---|---|
+| % riesgo alto o inviable | mediciones "Alto o inviable" / mediciones con IRCA | Mediciones con IRCA reportado |
+| % servicio continuo | promedio de `es_continuo` | Todas las mediciones del grupo |
+| % racionado o sin servicio | mediciones Racionado o Sin servicio / mediciones | Todas las mediciones del grupo |
+| IRCA y almacenamiento promedio | `AVG` sobre la tabla de hechos | Mediciones con el dato registrado |
+
+#### Como probar
+
+```
+python etapa5/consultas_slice_dice.py
+python app.py
+```
+
+El primer comando imprime los ejemplos del slice y el dice (deben salir 5074 mediciones y 46,4 % para el
+slice; 2170 mediciones y 33,8 % de servicio continuo para el dice). Luego se abre
+`http://127.0.0.1:5000/etapa5/multidimensional` y se despliega la tarjeta **Slice y Dice**.
+
+La API tambien se puede consultar directamente, por ejemplo:
+
+```
+/etapa5/slice-dice/datos?op=slice&dimension=region&valor=Nacional&nivel=departamento&filas=servicio&columnas=riesgo
+/etapa5/slice-dice/datos?op=dice&region=Regional&anio=2024&anio=2025&sistema=Chingaza&sistema=Sur&sistema=Tibitoc&nivel=trimestre&filas=sistema&columnas=servicio
+```
+
+El slice exige una sola dimension con un solo valor y el dice exige filtros sobre al menos dos
+dimensiones diferentes; si no se cumple, la API responde con un mensaje de error (codigo 400).
+
+### Vista de analisis multidimensional
+
+La entrada **Analisis multidimensional** del menu abre `/etapa5/multidimensional`. La pagina
+presenta el modelo estrella, las dimensiones, medidas y jerarquias, y cinco vistas interactivas:
+
+1. Sistemas y continuidad: cambio de regimen y homogeneidad entre sistemas y municipios.
+2. Prioridades por departamento: riesgo, continuidad y cobertura para tres perfiles de intervencion.
+3. Cobertura y continuidad: desacople y efecto de composicion regional.
+4. Recuperacion hidrica y continuidad: consumo, almacenamiento y servicio.
+5. Slice y Dice: subconjuntos y combinaciones de territorio, tiempo y sistema.
+
+Las primeras cuatro vistas consultan `etapa5/calidad_agua_dw.db` mediante
+`/etapa5/multidimensional/datos`; la Vista 5 usa `/etapa5/slice-dice/datos`. Todas recalculan
+indicadores, visualizaciones y matrices con los filtros y niveles activos. Las consultas estan en
+`scripts/consultas_multidimensional.py` y `etapa5/consultas_slice_dice.py`.

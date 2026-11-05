@@ -3,8 +3,10 @@ import json
 import os
 from datetime import date
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_file
 
+from etapa5 import consultas_slice_dice as olap
+from scripts import consultas_multidimensional as multidimensional
 from scripts.generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
@@ -1239,6 +1241,152 @@ def etapa4_conocimiento_evidente():
         fecha_inicio=fechas[0] if fechas else None,
         fecha_fin=fechas[-1] if fechas else None,
     )
+
+
+# Etapa 5 - Analisis multidimensional: operaciones SLICE y DICE
+# Responsable: John Sebastian Rodriguez D.
+# Las consultas se hacen sobre el modelo estrella (etapa5/calidad_agua_dw.db)
+# con el modulo etapa5/consultas_slice_dice.py.
+
+# Selecciones con las que abre la vista (los ejemplos documentados del proyecto)
+SLICE_INICIAL = {"dimension": "region", "valor": "Nacional", "nivel": "departamento",
+                 "filas": "servicio", "columnas": "riesgo"}
+DICE_INICIAL = {"filtros": {"region": ["Regional"], "anio": ["2024", "2025"],
+                            "sistema": ["Chingaza", "Sur", "Tibitoc"]},
+                "nivel": "trimestre", "filas": "sistema", "columnas": "servicio"}
+
+
+def _periodo_equivalente_anterior(anios):
+    """Para 2024-2025 devuelve 2022-2023: el bloque inmediatamente anterior con los
+    mismos anios. Devuelve None si los anios no son consecutivos o no hay datos antes."""
+    try:
+        anios = sorted(int(a) for a in anios)
+    except (TypeError, ValueError):
+        return None
+    if not anios or anios != list(range(anios[0], anios[-1] + 1)):
+        return None
+    anterior = [a - len(anios) for a in anios]
+    if anterior[0] < min(olap.opciones()["anio"]):
+        return None
+    return anterior
+
+
+def _datos_slice(dimension, valor, nivel, filas, columnas):
+    return olap.operacion_slice(dimension, valor, nivel, filas, columnas)
+
+
+def _datos_dice(filtros, nivel, filas, columnas):
+    datos = olap.operacion_dice(filtros, nivel, filas, columnas)
+    anios = filtros.get("anio") or []
+    anterior = _periodo_equivalente_anterior(anios)
+    datos["comparacion"] = (olap.comparar_periodos(filtros, anterior, [int(a) for a in anios])
+                            if anterior else None)
+    return datos
+
+
+@app.route("/etapa5/slice-dice")
+def etapa5_slice_dice():
+    """Compatibilidad: Slice y Dice ahora es la Vista 5 de la pagina integrada."""
+    return redirect("/etapa5/multidimensional#vista-5")
+
+
+@app.route("/etapa5/slice-dice/datos")
+def etapa5_slice_dice_datos():
+    """
+    API en JSON que recalcula el Slice o el Dice con los filtros de la pagina.
+    Ejemplos:
+      /etapa5/slice-dice/datos?op=slice&dimension=region&valor=Nacional&nivel=departamento&filas=servicio&columnas=riesgo
+      /etapa5/slice-dice/datos?op=dice&region=Regional&anio=2024&anio=2025&sistema=Chingaza&sistema=Sur&sistema=Tibitoc&nivel=trimestre&filas=sistema&columnas=servicio
+    """
+    operacion = request.args.get("op", "slice")
+    nivel = request.args.get("nivel", "departamento")
+    filas = request.args.get("filas", "servicio")
+    columnas = request.args.get("columnas", "riesgo")
+    try:
+        if operacion == "slice":
+            datos = _datos_slice(request.args.get("dimension", "region"),
+                                 request.args.get("valor", "Nacional"),
+                                 nivel, filas, columnas)
+        elif operacion == "dice":
+            filtros = {nombre: request.args.getlist(nombre) for nombre in olap.FILTROS
+                       if request.args.getlist(nombre)}
+            datos = _datos_dice(filtros, nivel, filas, columnas)
+        else:
+            return jsonify({"error": "La operacion debe ser slice o dice."}), 400
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(datos)
+
+
+# ---------- Etapa 5: analisis multidimensional ----------
+@app.route("/etapa5/multidimensional")
+def etapa5_multidimensional():
+    """Portada de la Etapa 5: modelo estrella y cuatro vistas interactivas."""
+    opciones_vacias = {"anios": [], "regiones": [], "sistemas": [], "servicios": [],
+                       "periodos": []}
+    try:
+        panorama = multidimensional.panorama()
+        opciones = {**multidimensional.opciones(), **olap.opciones()}
+        slice_json = json.dumps(_datos_slice(**SLICE_INICIAL))
+        dice_json = json.dumps(_datos_dice(**DICE_INICIAL))
+        hay_modelo = True
+    except Exception:
+        panorama = None
+        opciones = opciones_vacias
+        slice_json = "{}"
+        dice_json = "{}"
+        hay_modelo = False
+    return render_template(
+        "etapa5/multidimensional.html",
+        hay_modelo=hay_modelo,
+        panorama=panorama,
+        opciones=opciones,
+        filtros_info=olap.FILTROS,
+        niveles=olap.NIVELES,
+        medidas=olap.MEDIDAS,
+        slice_inicial=SLICE_INICIAL,
+        dice_inicial=DICE_INICIAL,
+        slice_json=slice_json,
+        dice_json=dice_json,
+    )
+
+
+@app.route("/etapa5/diagrama-modelo")
+def etapa5_diagrama_modelo():
+    """Entrega la imagen del modelo estrella usada en la Etapa 5."""
+    return send_file(
+        os.path.join(BASE_DIR, "etapa5", "diagrama_modelo.png"),
+        mimetype="image/png",
+    )
+
+
+@app.route("/etapa5/multidimensional/datos")
+def etapa5_multidimensional_datos():
+    """Datos de una vista, recalculados con los filtros y niveles activos."""
+    vista = request.args.get("vista", "1")
+    filtros = {
+        "anio": request.args.get("anio", "Todos"),
+        "tipo_region": request.args.get("tipo_region", "Todos"),
+        "sistema": request.args.get("sistema", "Todos"),
+        "nivel_servicio": request.args.get("nivel_servicio", "Todos"),
+        "nivel_geo": request.args.get("nivel_geo", "region"),
+        "nivel_tiempo": request.args.get("nivel_tiempo", "anio"),
+        "periodo": request.args.get("periodo", "2024-2025"),
+    }
+    try:
+        if vista == "1":
+            datos = multidimensional.pregunta1(filtros)
+        elif vista == "2":
+            datos = multidimensional.pregunta2(filtros)
+        elif vista == "3":
+            datos = multidimensional.pregunta3(filtros)
+        elif vista == "4":
+            datos = multidimensional.pregunta4(filtros)
+        else:
+            return jsonify({"error": "Vista no válida"}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(datos)
 
 # Ejecutar el servidor en modo desarrollo
 if __name__ == "__main__":

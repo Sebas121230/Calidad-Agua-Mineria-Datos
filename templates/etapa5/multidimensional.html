@@ -1,0 +1,1134 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .multidimensional .plot-box { background: #fcfcfb; border-radius: .5rem; min-height: 340px; }
+  .multidimensional .interpretacion {
+    border-left: 3px solid #cbd5e1; color: #52514e; font-size: .9rem;
+    margin-top: .75rem; padding: .5rem .9rem;
+  }
+  .multidimensional .stat-tile .lbl {
+    color: #6c757d; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .multidimensional .conocimiento dt {
+    color: #6c757d; font-size: .74rem; letter-spacing: .04em;
+    margin-top: .6rem; text-transform: uppercase;
+  }
+  .multidimensional .conocimiento dd { margin-bottom: 0; }
+  .multidimensional .filtro-activo { font-size: .8rem; }
+  .multidimensional .modelo-estrella { background: #f8fafc; border-radius: .5rem; }
+  .multidimensional .tabla-matriz th { white-space: nowrap; }
+  .multidimensional .tabla-matriz td { vertical-align: top; }
+</style>
+
+<div class="multidimensional">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-1" style="color:#0d2137;">Etapa 5 &middot; Análisis multidimensional</h1>
+      <p class="text-secondary mb-0">Modelo estrella, cuatro preguntas y exploración por niveles de detalle</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+  </div>
+
+  {% if not hay_modelo %}
+  <div class="alert alert-warning">
+    No se encontró <code>etapa5/calidad_agua_dw.db</code>. Ejecuta
+    <code>python etapa5/cargar_modelo.py</code> para construir el modelo estrella y vuelve a cargar la página.
+  </div>
+  {% else %}
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">Propósito de la etapa</h2>
+      <p class="mb-2">
+        Profundizar el análisis de la calidad y la disponibilidad del agua mediante un modelo
+        estrella que cruza calidad, cobertura, continuidad, territorio, sistema y tiempo en
+        distintos niveles de detalle. El objetivo es identificar en qué sistemas, departamentos
+        y municipios se concentran los patrones y qué tipo de intervención requiere cada grupo.
+      </p>
+      <p class="small text-secondary mb-0">
+        El análisis es descriptivo. Las asociaciones observadas no prueban causalidad y las
+        explicaciones que no se pueden comprobar con los datos se presentan como hipótesis.
+      </p>
+    </div>
+  </section>
+
+  <section class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body text-center">
+        <h3 class="mb-1">{{ "{:,}".format(panorama.registros).replace(",", ".") }}</h3>
+        <div class="lbl">Registros en la tabla de hechos</div>
+        <div class="small text-muted">una medición diaria por municipio</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body text-center">
+        <h3 class="mb-1">{{ panorama.municipios }}</h3>
+        <div class="lbl">Municipios</div>
+        <div class="small text-muted">{{ panorama.departamentos }} departamentos y 2 regiones</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body text-center">
+        <h3 class="mb-1">{{ panorama.anio_min }}–{{ panorama.anio_max }}</h3>
+        <div class="lbl">Periodo</div>
+        <div class="small text-muted">{{ panorama.periodos }} trimestres completos</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body text-center">
+        <h3 class="mb-1">{{ panorama.cobertura_media }}%</h3>
+        <div class="lbl">Cobertura promedio</div>
+        <div class="small text-muted">acueducto en los registros analizados</div>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">Contexto y unidad de análisis</h2>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <p class="mb-2">
+            El proyecto ya estableció que la continuidad se deterioró en 2024, que el IRCA se
+            mantuvo estable, que la cobertura alta no garantizó continuidad y que el servicio
+            continuo no aseguró calidad. Sobre ese contexto, esta sección examina si el quiebre
+            fue un cambio de régimen, qué departamentos combinan riesgo y baja continuidad, si
+            la cobertura sirve para priorizar y si la recuperación del consumo y del
+            almacenamiento devolvió la continuidad.
+          </p>
+          <p class="small text-secondary mb-0">
+            El análisis desagrega por sistema, departamento, municipio y trimestre, y controla
+            la composición territorial para distinguir patrones generales de diferencias locales.
+          </p>
+        </div>
+        <div class="col-lg-5">
+          <div class="alert alert-light border mb-0 small">
+            <strong>Unidad de análisis:</strong> una medición diaria de calidad y servicio de un
+            municipio.<br>
+            <strong>Granularidad de la tabla de hechos:</strong> una fila por fecha + municipio
+            (<code>fact_medicion</code>, 12.680 filas, llave única). Cada fila referencia un
+            miembro de cada dimensión; no hay multiplicación de registros por las relaciones.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">Modelo estrella utilizado</h2>
+      <div class="modelo-estrella p-3 mb-3 text-center">
+        <img src="{{ url_for('etapa5_diagrama_modelo') }}"
+             alt="Modelo estrella de calidad y disponibilidad del agua"
+             class="img-fluid rounded" style="max-height: 520px;">
+      </div>
+      <p class="small text-secondary">
+        Cada dimensión se une a la tabla de hechos por su clave primaria. Las medidas se agregan
+        sobre <code>fact_medicion</code>; los porcentajes se recalculan con el denominador del
+        nivel activo y nunca se suman porcentajes de grupos.
+      </p>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm small align-middle mb-0">
+          <thead><tr><th>Dimensión</th><th>Jerarquía</th><th>Uso en el análisis</th></tr></thead>
+          <tbody>
+            <tr><td><code>dim_tiempo</code></td><td>año → trimestre → mes → día</td><td>Comparar periodos equivalentes, hacer drill-down de año a trimestre.</td></tr>
+            <tr><td><code>dim_geografia</code></td><td>región → departamento → municipio</td><td>Comparar grupos y hacer drill-down/roll-up territorial.</td></tr>
+            <tr><td><code>dim_sistema</code></td><td>sistema (sin jerarquía interna)</td><td>Separar los tres sistemas de la EAAB del resto del país.</td></tr>
+            <tr><td><code>dim_riesgo</code></td><td>grupo → clasificación IRCA</td><td>Medir concentración de riesgo alto o inviable.</td></tr>
+            <tr><td><code>dim_servicio</code></td><td>nivel de servicio</td><td>Comparar continuo, intermitente, racionado y sin servicio.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm small align-middle mb-0">
+          <thead><tr><th>Medida</th><th>Cálculo</th><th>Denominador</th></tr></thead>
+          <tbody>
+            <tr><td>Registros</td><td><code>COUNT(*)</code> sobre la tabla de hechos</td><td>Todos los registros del filtro.</td></tr>
+            <tr><td>% continuo</td><td><code>SUM(es_continuo) / COUNT(*)</code></td><td>Registros del nivel o filtro activo.</td></tr>
+            <tr><td>% alto o inviable</td><td><code>SUM(grupo_riesgo = 'Alto o inviable') / COUNT(*)</code></td><td>Registros con IRCA registrado en la base de calidad.</td></tr>
+            <tr><td>Cobertura media</td><td><code>AVG(cobertura_acueducto_pct)</code></td><td>Registros con cobertura registrada.</td></tr>
+            <tr><td>IRCA promedio</td><td><code>AVG(irca)</code></td><td>Mediciones con IRCA registrado.</td></tr>
+            <tr><td>Almacenamiento promedio</td><td><code>AVG(nivel_almacenamiento_pct)</code></td><td>Registros del filtro.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-4">
+    <h2 class="h5 mb-3">Vistas de análisis</h2>
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <a class="card shadow-sm border-0 h-100 text-decoration-none text-reset" href="#vista-1"
+           data-bs-toggle="collapse" role="button" aria-expanded="true" aria-controls="vista-1">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="small text-uppercase text-secondary">Vista 1</div>
+              <span class="badge text-bg-light">Abrir</span>
+            </div>
+            <h3 class="h6">Sistemas y cambio de régimen</h3>
+            <p class="small mb-1"><strong>Pregunta:</strong> ¿el quiebre de 2024 fue un cambio de régimen o una caída transitoria, y se repitió en todos los sistemas y municipios?</p>
+            <p class="small mb-0"><strong>Dimensiones:</strong> tiempo, sistema, servicio y geografía.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-lg-6">
+        <a class="card shadow-sm border-0 h-100 text-decoration-none text-reset" href="#vista-2"
+           data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="vista-2">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="small text-uppercase text-secondary">Vista 2</div>
+              <span class="badge text-bg-light">Abrir</span>
+            </div>
+            <h3 class="h6">Prioridades por departamento</h3>
+            <p class="small mb-1"><strong>Pregunta:</strong> ¿qué departamentos combinan alto riesgo con baja continuidad y qué intervención requieren?</p>
+            <p class="small mb-0"><strong>Dimensiones:</strong> riesgo, servicio, geografía y tiempo.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-lg-6">
+        <a class="card shadow-sm border-0 h-100 text-decoration-none text-reset" href="#vista-3"
+           data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="vista-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="small text-uppercase text-secondary">Vista 3</div>
+              <span class="badge text-bg-light">Abrir</span>
+            </div>
+            <h3 class="h6">Cobertura y continuidad</h3>
+            <p class="small mb-1"><strong>Pregunta:</strong> ¿la cobertura alta se traduce en continuidad en cada municipio?</p>
+            <p class="small mb-0"><strong>Dimensiones:</strong> geografía, servicio y tiempo.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-lg-6">
+        <a class="card shadow-sm border-0 h-100 text-decoration-none text-reset" href="#vista-4"
+           data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="vista-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="small text-uppercase text-secondary">Vista 4</div>
+              <span class="badge text-bg-light">Abrir</span>
+            </div>
+            <h3 class="h6">Recuperación hídrica y continuidad</h3>
+            <p class="small mb-1"><strong>Pregunta:</strong> ¿la recuperación del consumo y del almacenamiento devolvió la continuidad?</p>
+            <p class="small mb-0"><strong>Dimensiones:</strong> tiempo, geografía y servicio.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-lg-6">
+        <a class="card shadow-sm border-0 h-100 text-decoration-none text-reset" href="#vista-5"
+           data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="vista-5">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="small text-uppercase text-secondary">Vista 5</div>
+              <span class="badge text-bg-light">Abrir</span>
+            </div>
+            <h3 class="h6">Slice y Dice: subconjuntos y combinaciones</h3>
+            <p class="small mb-1"><strong>Pregunta:</strong> ¿qué subconjuntos del territorio, el tiempo y el sistema concentran riesgo y pérdida de continuidad?</p>
+            <p class="small mb-0"><strong>Dimensiones:</strong> geografía, tiempo, sistema, servicio y riesgo.</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div id="contenidoAnalisis">
+    <!-- ================= VISTA 1 ================= -->
+    <div class="collapse show" id="vista-1" data-bs-parent="#contenidoAnalisis">
+      <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5">Vista 1. Continuidad por sistema, geografía y tiempo</h2>
+          <p class="mb-2"><strong>Pregunta:</strong> ¿el quiebre de 2024 fue un cambio de régimen o una
+            caída transitoria, y se repitió en todos los sistemas de la EAAB y en todos los municipios?</p>
+          <p class="small text-secondary mb-3">
+            <strong>Dimensiones:</strong> tiempo (año/trimestre), sistema, servicio y geografía
+            (región/departamento/municipio). <strong>Medidas:</strong> % continuo, mezcla de
+            niveles de servicio y caída 2023→2025. <strong>Jerarquías:</strong> región →
+            departamento → municipio; año → trimestre.
+          </p>
+          <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
+            <div><label class="form-label small mb-1" for="q1-anio">Año</label>
+              <select id="q1-anio" class="form-select form-select-sm">
+                <option value="Todos">Todos</option>
+                {% for a in opciones.anios %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+              </select></div>
+            <div><label class="form-label small mb-1" for="q1-region">Región</label>
+              <select id="q1-region" class="form-select form-select-sm">
+                <option value="Todos">Todas</option>
+                {% for r in opciones.regiones %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+              </select></div>
+            <div><label class="form-label small mb-1" for="q1-nivel-geo">Nivel geográfico</label>
+              <select id="q1-nivel-geo" class="form-select form-select-sm">
+                <option value="region">Región</option>
+                <option value="departamento">Departamento</option>
+                <option value="municipio">Municipio</option>
+              </select></div>
+            <div><label class="form-label small mb-1" for="q1-nivel-tiempo">Nivel temporal</label>
+              <select id="q1-nivel-tiempo" class="form-select form-select-sm">
+                <option value="anio">Año</option>
+                <option value="trimestre">Trimestre</option>
+              </select></div>
+            <div class="d-flex gap-1">
+              <button id="q1-geo-down" class="btn btn-sm btn-outline-secondary" type="button">Drill-down geografía</button>
+              <button id="q1-geo-up" class="btn btn-sm btn-outline-secondary" type="button">Roll-up geografía</button>
+            </div>
+            <div class="d-flex gap-1">
+              <button id="q1-tiempo-down" class="btn btn-sm btn-outline-secondary" type="button">Drill-down tiempo</button>
+              <button id="q1-tiempo-up" class="btn btn-sm btn-outline-secondary" type="button">Roll-up tiempo</button>
+            </div>
+            <button id="q1-actualizar" class="btn btn-sm btn-primary" type="button">Actualizar</button>
+          </div>
+          <div class="small text-secondary filtro-activo" id="q1-activo"></div>
+          <div id="q1-error" class="alert alert-danger d-none mt-2" role="alert"></div>
+          <div class="row g-3 mt-1" id="q1-indicadores" aria-live="polite"></div>
+          <div class="row g-3 mt-2">
+            <div class="col-lg-7"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Continuidad por sistema y nivel temporal</h3>
+              <div id="q1-chart-a" class="plot-box"></div>
+            </div></div></div>
+            <div class="col-lg-5"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Composición del servicio por unidad geográfica</h3>
+              <div id="q1-chart-b" class="plot-box"></div>
+            </div></div></div>
+          </div>
+          <div class="card border-0 bg-light mt-3"><div class="card-body">
+            <h3 class="h6 text-primary">Matriz geografía × sistema</h3>
+            <p class="small text-secondary mb-2">Cada celda muestra el % de servicio continuo y el número de registros (n).</p>
+            <div class="table-responsive tabla-matriz" id="q1-matriz"></div>
+          </div></div>
+          <div class="interpretacion" id="q1-interpretacion" aria-live="polite"></div>
+          <p class="small text-secondary mt-2 mb-0" id="q1-denominador"></p>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 1. El quiebre es un cambio de régimen, no una caída transitoria</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>Chingaza, Sur y Tibitoc pasan de 100% de continuidad en 2019-2023 a 24,11%, 19,32% y 28,07% en 2025. En Regional, la continuidad anual es 43,91% en 2024 y 23,76% en 2025; no hay recuperación. El sistema “Fuera de cobertura EAAB” se mantiene cerca de 49%.</dd>
+                <dt>Interpretación</dt>
+                <dd>El sistema no volvió a la situación previa ni se estabilizó en un nivel intermedio: pasó a una nueva mezcla de servicio que se mantiene en 2025. El patrón es compatible con una causa común de operación o de política, pero los datos no permiten probarla. La persistencia durante siete trimestres es más compatible con un cambio en la regla de operación que con un choque puntual; la respuesta debe revisar esa regla, no solo esperar más oferta.</dd>
+              </dl>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 2. Ningún municipio tiene un perfil propio: la mezcla se repite</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En 2025, en los 9 municipios Regional cada nivel de servicio pesa entre 17,1% y 31,4%; ningún municipio tiene un nivel dominante y la continuidad global es 23,76%.</dd>
+                <dt>Interpretación</dt>
+                <dd>El drill-down de región a municipio no encuentra un caso aislado ni un perfil municipal distinto: la pérdida de continuidad es regional y homogénea. Priorizar un municipio por su mezcla de servicio no tendría sustento con estos datos. Al no haber un municipio con perfil distinto, un piloto municipal no representaría la escala del problema; la medida debe ser regional.</dd>
+              </dl>
+            </div></div></div>
+          </div>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Limitación</h3>
+              <p class="small mb-0">La ruptura de 2024 coincide con un cambio en las condiciones de operación; los datos no permiten aislar la causa. No se controlan variables operativas ni decisiones de gestión, por lo que las explicaciones causales deben tratarse como hipótesis.</p>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Decisión sustentada</h3>
+              <p class="small mb-0">Tratar 2024-T2 como un cambio estructural y revisar la regla de operación de los tres sistemas de la EAAB; no esperar a que el embalse se recupere para restablecer la continuidad.</p>
+            </div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= VISTA 2 ================= -->
+    <div class="collapse" id="vista-2" data-bs-parent="#contenidoAnalisis">
+      <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5">Vista 2. Prioridades por departamento: riesgo y continuidad</h2>
+          <p class="mb-2"><strong>Pregunta:</strong> ¿qué departamentos combinan alto riesgo con baja
+            continuidad, y cuáles requieren una intervención de calidad, de servicio o conjunta?</p>
+          <p class="small text-secondary mb-3">
+            <strong>Dimensiones:</strong> riesgo, servicio, geografía y tiempo.
+            <strong>Medidas:</strong> % alto o inviable, % continuo y cobertura media.
+            <strong>Jerarquías:</strong> región → departamento; nivel de servicio.
+          </p>
+          <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
+            <div><label class="form-label small mb-1" for="q2-periodo">Periodo</label>
+              <select id="q2-periodo" class="form-select form-select-sm" title="Dice: combina periodo y región">
+                {% for per in opciones.periodos %}<option value="{{ per }}" {% if per == '2024-2025' %}selected{% endif %}>{{ per }}</option>{% endfor %}
+              </select></div>
+            <div><label class="form-label small mb-1" for="q2-region">Región</label>
+              <select id="q2-region" class="form-select form-select-sm" title="Slice: selecciona una región">
+                {% for r in opciones.regiones %}<option value="{{ r }}" {% if r == 'Nacional' %}selected{% endif %}>{{ r }}</option>{% endfor %}
+              </select></div>
+
+            <button id="q2-actualizar" class="btn btn-sm btn-primary" type="button">Actualizar</button>
+          </div>
+          <div class="small text-secondary filtro-activo" id="q2-activo"></div>
+          <div id="q2-error" class="alert alert-danger d-none mt-2" role="alert"></div>
+          <div class="row g-3 mt-1" id="q2-indicadores" aria-live="polite"></div>
+          <div class="row g-3 mt-2">
+            <div class="col-lg-7"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Mapa de calor: departamento × grupo de riesgo</h3>
+              <div id="q2-chart-a" class="plot-box"></div>
+            </div></div></div>
+            <div class="col-lg-5"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Mapa de prioridades: continuidad vs riesgo alto</h3>
+              <div id="q2-chart-b" class="plot-box"></div>
+            </div></div></div>
+          </div>
+          <div class="card border-0 bg-light mt-3"><div class="card-body">
+            <h3 class="h6 text-primary">Matriz departamento × nivel de servicio</h3>
+            <p class="small text-secondary mb-2">Porcentaje de riesgo alto o inviable sobre los registros con IRCA disponible de cada departamento y nivel de servicio; entre paréntesis, n válido.</p>
+            <div class="table-responsive tabla-matriz" id="q2-matriz"></div>
+          </div></div>
+          <div class="interpretacion" id="q2-interpretacion" aria-live="polite"></div>
+          <p class="small text-secondary mt-2 mb-0" id="q2-denominador"></p>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 1. Hay tres perfiles de prioridad, no un solo ranking</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En Nacional, con el periodo 2024-2025, 7 departamentos combinan riesgo alto (≥40%) y continuidad menor a 50% (Meta, Quindío, Tolima, Córdoba, Risaralda, Boyacá y Magdalena); 10 tienen riesgo alto pero continuidad ≥50%; Valle del Cauca y Atlántico quedan en seguimiento. En Regional, Bogotá D.C. y Cundinamarca tienen riesgo bajo y continuidad baja. Meta es la prioridad conjunta más alta (59,5% de riesgo y 47,4% de continuidad); Córdoba y Tolima tienen la continuidad más baja del grupo (39,0% y 40,0%).</dd>
+                <dt>Interpretación</dt>
+                <dd>La prioridad no es la misma en todo el territorio: hay que distinguir entre intervención conjunta (calidad y servicio), intervención de calidad y recuperación de continuidad. Un ranking único de riesgo ocultaría esas diferencias. Separar estos perfiles evita dos errores: asignar recursos de continuidad a departamentos cuyo problema es principalmente de calidad y agrupar a todos los de riesgo alto en una sola lista.</dd>
+              </dl>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 2. La cobertura no separa la prioridad de calidad</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En Nacional, la cobertura de los departamentos con prioridad conjunta va de 75,8% a 78,8% y la de prioridad de calidad de 75,6% a 79,4%. En cambio, Bogotá D.C. y Cundinamarca, con prioridad de servicio, tienen cerca de 95% de cobertura.</dd>
+                <dt>Interpretación</dt>
+                <dd>La cobertura no distingue entre riesgo alto y prioridad conjunta: todos los departamentos fuera de la EAAB tienen cobertura similar. La cobertura alta del grupo Regional convive con baja continuidad, así que no sirve como criterio único. La cobertura de Bogotá y Cundinamarca no evita la baja continuidad; no debe usarse como KPI de servicio.</dd>
+              </dl>
+            </div></div></div>
+          </div>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Limitación</h3>
+              <p class="small mb-0">Los umbrales de 40% de riesgo y 50% de continuidad son criterios analíticos, no normativos. Con el periodo 2024-2025 el número de registros por departamento varía, por lo que el orden exacto puede cambiar; los porcentajes se calculan sobre la base de calidad disponible en cada grupo.</p>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Decisión sustentada</h3>
+              <p class="small mb-0">Aplicar una intervención conjunta en Meta, Quindío, Tolima, Córdoba, Risaralda, Boyacá y Magdalena; una revisión de calidad en los 10 departamentos con riesgo alto y continuidad ≥50%; y una recuperación de continuidad en Bogotá D.C. y Cundinamarca, donde el riesgo es bajo pero el servicio no es continuo.</p>
+            </div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= VISTA 3 ================= -->
+    <div class="collapse" id="vista-3" data-bs-parent="#contenidoAnalisis">
+      <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5">Vista 3. Cobertura y continuidad: ¿van juntas?</h2>
+          <p class="mb-2"><strong>Pregunta:</strong> ¿los municipios con mayor cobertura de acueducto son
+            también los de mayor continuidad, o la brecha se repite en todos?</p>
+          <p class="small text-secondary mb-3">
+            <strong>Dimensiones:</strong> geografía, servicio y tiempo.
+            <strong>Medidas:</strong> cobertura media, % continuo y brecha cobertura–continuidad.
+            <strong>Jerarquías:</strong> región → municipio; nivel de servicio.
+          </p>
+          <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
+            <div><label class="form-label small mb-1" for="q3-anio">Año</label>
+              <select id="q3-anio" class="form-select form-select-sm">
+                <option value="Todos">Todos</option>
+                {% for a in opciones.anios %}<option value="{{ a }}" {% if a == 2025 %}selected{% endif %}>{{ a }}</option>{% endfor %}
+              </select></div>
+            <div><label class="form-label small mb-1" for="q3-region">Región</label>
+              <select id="q3-region" class="form-select form-select-sm" title="Slice: selecciona una región">
+                <option value="Todos">Todas</option>
+                {% for r in opciones.regiones %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+              </select></div>
+            <button id="q3-actualizar" class="btn btn-sm btn-primary" type="button">Actualizar</button>
+          </div>
+          <div class="small text-secondary filtro-activo" id="q3-activo"></div>
+          <div id="q3-error" class="alert alert-danger d-none mt-2" role="alert"></div>
+          <div class="row g-3 mt-1" id="q3-indicadores" aria-live="polite"></div>
+          <div class="row g-3 mt-2">
+            <div class="col-lg-7"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Cobertura media vs continuidad por municipio</h3>
+              <div id="q3-chart-a" class="plot-box"></div>
+            </div></div></div>
+            <div class="col-lg-5"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Mayor brecha cobertura–continuidad</h3>
+              <div id="q3-chart-b" class="plot-box"></div>
+            </div></div></div>
+          </div>
+          <div class="card border-0 bg-light mt-3"><div class="card-body">
+            <h3 class="h6 text-primary">Matriz municipio × nivel de servicio</h3>
+            <p class="small text-secondary mb-2">Cobertura media de acueducto (%) y n de cada combinación.</p>
+            <div class="table-responsive tabla-matriz" id="q3-matriz"></div>
+          </div></div>
+          <div class="interpretacion" id="q3-interpretacion" aria-live="polite"></div>
+          <p class="small text-secondary mt-2 mb-0" id="q3-denominador"></p>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 1. La cobertura alta no distingue a los municipios con mejor continuidad</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En 2025 los 9 municipios Regional tienen cobertura entre 94,48% y 95,11%, pero continuidad entre 17,14% y 29,17%; la brecha va de 65,85 a 77,34 puntos porcentuales.</dd>
+                <dt>Interpretación</dt>
+                <dd>La cobertura mide infraestructura disponible, no la prestación efectiva. Un municipio puede tener casi toda la red y, aun así, un servicio intermitente o racionado. El cuello de botella está en la prestación, no en la infraestructura: ampliar cobertura no cerraría la brecha.</dd>
+              </dl>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 2. La asociación global es un efecto de composición regional</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En 2025 la correlación entre cobertura y continuidad de los 29 municipios es r=-0,871, pero dentro de Regional es r=+0,535 y dentro de Nacional es r=-0,079.</dd>
+                <dt>Interpretación</dt>
+                <dd>El signo global está dominado por la separación Regional/Nacional. Dentro de cada región la relación es débil o cambia de signo; no se puede usar la cobertura como predictor único de continuidad. Cualquier comparación entre regiones debe estratificar; un promedio único de cobertura-continuidad sería engañoso.</dd>
+              </dl>
+            </div></div></div>
+          </div>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Limitación</h3>
+              <p class="small mb-0">La cobertura es un indicador de infraestructura. Los promedios municipales ocultan diferencias dentro del municipio y no miden la calidad del agua ni la continuidad del servicio.</p>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Decisión sustentada</h3>
+              <p class="small mb-0">Evaluar cobertura y continuidad por separado en cada municipio; no usar la cobertura como sustituto de la continuidad ni comparar promedios regionales sin revisar el nivel municipal.</p>
+            </div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= VISTA 4 ================= -->
+    <div class="collapse" id="vista-4" data-bs-parent="#contenidoAnalisis">
+      <section class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5">Vista 4. Recuperación hídrica y continuidad: ¿qué falta?</h2>
+          <p class="mb-2"><strong>Pregunta:</strong> ¿el consumo y el almacenamiento se recuperaron en
+            2025, y esa recuperación vino acompañada de una recuperación de la continuidad del servicio?</p>
+          <p class="small text-secondary mb-3">
+            <strong>Dimensiones:</strong> tiempo, geografía y servicio.
+            <strong>Medidas:</strong> consumo promedio, almacenamiento promedio y % continuo.
+            <strong>Jerarquías:</strong> año → trimestre; región.
+          </p>
+          <div class="d-flex flex-wrap gap-2 align-items-end mb-2">
+            <div><label class="form-label small mb-1" for="q4-periodo">Periodo</label>
+              <select id="q4-periodo" class="form-select form-select-sm" title="Dice: combina periodo y región">
+                {% for per in opciones.periodos %}<option value="{{ per }}" {% if per == '2024-2025' %}selected{% endif %}>{{ per }}</option>{% endfor %}
+              </select></div>
+            <div><label class="form-label small mb-1" for="q4-region">Región</label>
+              <select id="q4-region" class="form-select form-select-sm" title="Slice: selecciona una región">
+                <option value="Todos">Todas</option>
+                {% for r in opciones.regiones %}<option value="{{ r }}" {% if r == 'Regional' %}selected{% endif %}>{{ r }}</option>{% endfor %}
+              </select></div>
+            <button id="q4-actualizar" class="btn btn-sm btn-primary" type="button">Actualizar</button>
+          </div>
+          <div class="small text-secondary filtro-activo" id="q4-activo"></div>
+          <div id="q4-error" class="alert alert-danger d-none mt-2" role="alert"></div>
+          <div class="row g-3 mt-1" id="q4-indicadores" aria-live="polite"></div>
+          <div class="row g-3 mt-2">
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Consumo, almacenamiento y continuidad por trimestre</h3>
+              <div id="q4-chart-a" class="plot-box"></div>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Almacenamiento vs continuidad por trimestre</h3>
+              <div id="q4-chart-b" class="plot-box"></div>
+            </div></div></div>
+          </div>
+          <div class="card border-0 bg-light mt-3"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <h3 class="h6 text-primary">Matriz año × región</h3>
+              <button id="q4-pivot" class="btn btn-sm btn-outline-secondary" type="button" aria-pressed="false" title="Pivot: cambia filas y columnas">Pivot</button>
+            </div>
+            <p class="small text-secondary mb-2">Consumo promedio (m³/s), almacenamiento promedio (%) y continuidad (%) por año y región.</p>
+            <div class="table-responsive tabla-matriz" id="q4-matriz"></div>
+          </div></div>
+          <div class="interpretacion" id="q4-interpretacion" aria-live="polite"></div>
+          <p class="small text-secondary mt-2 mb-0" id="q4-denominador"></p>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 1. La recuperación hídrica no devolvió el servicio</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>En Regional, entre 2024 y 2025 el consumo pasó de 16,10 a 17,32 m³/s y el almacenamiento de 37,98% a 61,11%, pero la continuidad cayó de 43,91% a 23,76%.</dd>
+                <dt>Interpretación</dt>
+                <dd>El consumo y el almacenamiento se recuperaron, mientras el servicio siguió restringido. La continuidad no siguió la recuperación hídrica; esto es compatible con una restricción operativa o de política que persiste, no con una nueva sequía. La secuencia descarta una explicación puramente hidrológica y apunta a un cuello de botella operativo. El servicio lleva siete trimestres restringido mientras el almacenamiento de 2025 supera el nivel de 2023.</dd>
+              </dl>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card shadow-sm border-0 h-100 conocimiento"><div class="card-body">
+              <h3 class="h6 text-primary">Conocimiento 2. La reducción del consumo no fue suficiente para evitar la restricción</h3>
+              <dl class="mb-0">
+                <dt>Evidencia</dt>
+                <dd>El consumo Regional bajó de 16,82 m³/s en 2023 a 16,10 en 2024, mientras la continuidad caía de 100% a 43,91%. En 2025 el consumo subió a 17,32 y la continuidad siguió en 23,76%.</dd>
+                <dt>Interpretación</dt>
+                <dd>La gestión de la demanda acompañó la caída, pero no revirtió la restricción. Usar solo el consumo o el almacenamiento como señal para restablecer el servicio sería insuficiente. El consumo no es una señal suficiente para levantar la restricción; se necesitan criterios explícitos de continuidad.</dd>
+              </dl>
+            </div></div></div>
+          </div>
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Limitación</h3>
+              <p class="small mb-0">El almacenamiento Regional es el mismo para todos los municipios de la Sabana y el consumo es un agregado; la relación es descriptiva y no permite atribuir causalidad a la política de racionamiento.</p>
+            </div></div></div>
+            <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+              <h3 class="h6 text-primary">Decisión sustentada</h3>
+              <p class="small mb-0">No usar la recuperación del almacenamiento o del consumo como criterio único para restablecer el servicio. Auditar la operación y la política de restricción, y monitorear la continuidad por separado de la hidrología.</p>
+            </div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="collapse" id="vista-5" data-bs-parent="#contenidoAnalisis">
+      {% include 'etapa5/_slice_dice_body.html' %}
+    </div>
+  </div>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">Síntesis, limitaciones y conclusiones</h2>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <ul class="small mb-0">
+            <li>El quiebre de 2024 es un cambio de régimen: la continuidad no vuelve a 100% y la mezcla de cuatro niveles de servicio se repite en los tres sistemas de la EAAB y en los nueve municipios Regional.</li>
+            <li>La prioridad no es única: 7 departamentos requieren intervención conjunta de calidad y continuidad, 10 requieren prioridad de calidad y Bogotá D.C. y Cundinamarca requieren recuperar continuidad con riesgo bajo.</li>
+            <li>La cobertura no separa la prioridad de calidad (75,6%–79,4% en ambos grupos) y la cobertura alta de Regional convive con baja continuidad; no sirve como criterio único.</li>
+            <li>En Regional, consumo y almacenamiento se recuperan entre 2024 y 2025, pero la continuidad cae de 43,91% a 23,76%: la restricción no siguió la recuperación hídrica.</li>
+            <li>El Slice confirma que el riesgo alto se distribuye en los 19 departamentos de Nacional (38,6%–52,5%), sin un foco único; el Dice confirma que el quiebre de la Sabana es simultáneo en Chingaza, Sur y Tibitoc y se mantiene en 2025.</li>
+          </ul>
+        </div>
+        <div class="col-lg-5">
+          <div class="alert alert-light border mb-0 small">
+            <strong>Limitación general:</strong> análisis observacional y agregación municipal.
+            Las relaciones no son causales y las explicaciones no comprobadas se presentan como
+            hipótesis.<br><br>
+            <strong>Conclusión:</strong> el análisis muestra un cambio de régimen, tres perfiles
+            de prioridad y una disociación entre recuperación hídrica y continuidad. La decisión
+            ya no es “dónde hay más riesgo”, sino qué tipo de intervención corresponde a cada grupo.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 text-primary">Fuente, periodo y cobertura</h2>
+      <p class="small mb-0">
+        Fuente: <code>etapa5/calidad_agua_dw.db</code>, construida desde
+        <code>datos/dataset_calidad_agua_limpio.csv</code>. Periodo 2019-01-01 a 2025-12-31;
+        12.680 mediciones diarias de 29 municipios (2 regiones, 21 departamentos), 28 trimestres.
+        El IRCA está registrado en 12.418 mediciones y es la base de los indicadores de riesgo.
+        Cobertura promedio del conjunto: {{ panorama.cobertura_media }}%.
+      </p>
+    </div>
+  </section>
+
+  {% endif %}
+</div>
+
+{% if hay_modelo %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+{% include 'etapa5/_slice_dice_script.html' %}
+<script>
+(function () {
+  "use strict";
+
+  var SERVICIOS = ["Continuo", "Intermitente", "Racionado", "Sin servicio"];
+  var COLORES = {
+    "Continuo": "#138a43", "Intermitente": "#e6a700", "Racionado": "#e87532",
+    "Sin servicio": "#c73e3a", "Regional": "#2878c8", "Nacional": "#7a5195",
+    "Bajo o nulo": "#138a43", "Medio": "#e6a700", "Alto o inviable": "#c73e3a",
+    "Desconocido": "#94a3b8", "Chingaza": "#2878c8", "Sur": "#138a43",
+    "Tibitoc": "#7a5195", "Fuera de cobertura EAAB": "#c73e3a"
+  };
+  var LAYOUT = {
+    paper_bgcolor: "#fcfcfb", plot_bgcolor: "#fcfcfb",
+    font: { family: "system-ui, -apple-system, 'Segoe UI', sans-serif", color: "#52514e", size: 12 },
+    margin: { t: 30, r: 20, b: 70, l: 80 }
+  };
+  var estado = {
+    1: { anio: "Todos", tipo_region: "Todos", nivel_geo: "region", nivel_tiempo: "anio" },
+    2: { periodo: "2024-2025", tipo_region: "Nacional" },
+    3: { anio: "2025", tipo_region: "Todos" },
+    4: { periodo: "2024-2025", tipo_region: "Regional" }
+  };
+  var cargadas = {};
+  var q4Pivot = false;
+  var ultimo4 = null;
+
+  function esc(texto) {
+    return String(texto === null || texto === undefined ? "" : texto)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function num(valor, decimales) {
+    if (valor === null || valor === undefined || valor === "") return "s/d";
+    return Number(valor).toLocaleString("es-CO", {
+      minimumFractionDigits: decimales || 0, maximumFractionDigits: decimales || 0
+    });
+  }
+  function pct(valor) {
+    if (valor === null || valor === undefined) return "s/d";
+    return num(valor, 2) + "%";
+  }
+  function pp(valor) {
+    if (valor === null || valor === undefined) return "s/d";
+    var signo = Number(valor) > 0 ? "+" : "";
+    return signo + num(valor, 2) + " pp";
+  }
+  function valorIndicador(ind) {
+    if (ind.unidad === "%") return pct(ind.valor);
+    if (ind.unidad === "pp") return pp(ind.valor);
+    if (ind.unidad === "m³/s") return num(ind.valor, 2) + " m³/s";
+    return typeof ind.valor === "number" ? num(ind.valor, 0) : esc(ind.valor);
+  }
+  function renderIndicadores(id, indicadores) {
+    document.getElementById(id).innerHTML = indicadores.map(function (ind) {
+      return '<div class="col-12 col-md-4"><div class="card shadow-sm border-0 h-100 stat-tile">' +
+        '<div class="card-body text-center"><h3 class="mb-1">' + valorIndicador(ind) + '</h3>' +
+        '<div class="lbl">' + esc(ind.etiqueta) + '</div>' +
+        '<div class="small text-muted">' + esc(ind.detalle || "") + '</div>' +
+        '</div></div></div>';
+    }).join("");
+  }
+  function renderTexto(id, texto) { document.getElementById(id).textContent = texto || ""; }
+  function layoutBase(extra) {
+    return Object.assign({}, LAYOUT, extra || {});
+  }
+  function plot(id, traces, layout) {
+    Plotly.react(id, traces, layout, { displayModeBar: false, responsive: true });
+  }
+  function actualizarActivo(id, texto) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = texto;
+  }
+  function mostrarError(id, mensaje) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (mensaje) { el.textContent = mensaje; el.classList.remove("d-none"); }
+    else { el.textContent = ""; el.classList.add("d-none"); }
+  }
+
+  function params(n) {
+    var p = new URLSearchParams({ vista: String(n) });
+    if (n === 1) {
+      p.set("anio", estado[1].anio);
+      p.set("tipo_region", estado[1].tipo_region);
+      p.set("nivel_geo", estado[1].nivel_geo);
+      p.set("nivel_tiempo", estado[1].nivel_tiempo);
+    } else if (n === 2) {
+      p.set("periodo", estado[2].periodo);
+      p.set("tipo_region", estado[2].tipo_region);
+    } else if (n === 4) {
+      p.set("periodo", estado[4].periodo);
+      p.set("tipo_region", estado[4].tipo_region);
+    } else {
+      p.set("anio", estado[n].anio);
+      p.set("tipo_region", estado[n].tipo_region);
+    }
+    return p;
+  }
+
+  async function cargar(n) {
+    mostrarError("q" + n + "-error", "");
+    try {
+      var respuesta = await fetch("{{ url_for('etapa5_multidimensional_datos') }}?" + params(n).toString());
+      var datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudieron cargar los datos.");
+      if (n === 1) { render1(datos); actualizarActivo("q1-activo", textoActivo1()); }
+      if (n === 2) { render2(datos); actualizarActivo("q2-activo", textoActivo2()); }
+      if (n === 3) { render3(datos); actualizarActivo("q3-activo", textoActivo3()); }
+      if (n === 4) { render4(datos); actualizarActivo("q4-activo", textoActivo4()); }
+      cargadas[n] = true;
+    } catch (error) {
+      mostrarError("q" + n + "-error", error.message);
+    }
+  }
+
+  function textoActivo1() {
+    var g = { region: "región", departamento: "departamento", municipio: "municipio" }[estado[1].nivel_geo];
+    var t = { anio: "año", trimestre: "trimestre" }[estado[1].nivel_tiempo];
+    return "Selección activa: año " + (estado[1].anio === "Todos" ? "todos" : estado[1].anio) +
+      ", región " + (estado[1].tipo_region === "Todos" ? "todas" : estado[1].tipo_region) +
+      "; nivel geográfico " + g + ", nivel temporal " + t + ".";
+  }
+  function textoActivo2() {
+    return "Selección activa: periodo " + estado[2].periodo +
+      ", región " + estado[2].tipo_region + ".";
+  }
+  function textoActivo3() {
+    return "Selección activa: año " + (estado[3].anio === "Todos" ? "todos" : estado[3].anio) +
+      ", región " + (estado[3].tipo_region === "Todos" ? "todas" : estado[3].tipo_region) + ".";
+  }
+  function textoActivo4() {
+    return "Selección activa: periodo " + estado[4].periodo +
+      ", región " + (estado[4].tipo_region === "Todos" ? "todas" : estado[4].tipo_region) + ".";
+  }
+
+  function render1(d) {
+    renderIndicadores("q1-indicadores", d.indicadores);
+    var series = d.chart_a.series || {};
+    var tracesA = Object.keys(series).map(function (nombre) {
+      var puntos = series[nombre];
+      return {
+        type: "scatter", mode: "lines+markers", name: nombre,
+        x: puntos.map(function (p) { return p.x; }),
+        y: puntos.map(function (p) { return p.pct; }),
+        customdata: puntos.map(function (p) { return p.n; }),
+        line: { color: COLORES[nombre] || "#64748b", width: 2 },
+        marker: { size: 5 },
+        hovertemplate: nombre + "<br>%{x}<br>% continuo: %{y:.2f}%<br>n: %{customdata}<extra></extra>"
+      };
+    });
+    plot("q1-chart-a", tracesA, layoutBase({
+      xaxis: { title: d.etiquetas.tiempo, gridcolor: "#e1e0d9", automargin: true },
+      yaxis: { title: "% de servicio continuo", range: [0, 100], gridcolor: "#e1e0d9" },
+      legend: { orientation: "h", y: -0.25 }
+    }));
+
+    var filasB = (d.chart_b.filas || []).slice().reverse();
+    var tracesB = SERVICIOS.map(function (servicio) {
+      return {
+        type: "bar", orientation: "h", name: servicio,
+        y: filasB.map(function (f) { return f.geo; }),
+        x: filasB.map(function (f) { return f.pct[servicio]; }),
+        customdata: filasB.map(function (f) { return f.n[servicio]; }),
+        marker: { color: COLORES[servicio] || "#64748b" },
+        hovertemplate: "%{y}<br>" + servicio + ": %{x:.2f}%<br>n: %{customdata}<extra></extra>"
+      };
+    });
+    plot("q1-chart-b", tracesB, layoutBase({
+      barmode: "stack", bargap: 0.15,
+      xaxis: { title: "% de registros", range: [0, 100], gridcolor: "#e1e0d9" },
+      yaxis: { title: d.etiquetas.geo, automargin: true },
+      legend: { orientation: "h", y: -0.25 },
+      margin: { t: 20, r: 20, b: 80, l: 130 },
+      height: Math.max(330, filasB.length * 22)
+    }));
+
+    var m = d.matriz;
+    var html = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr><th>' +
+      esc(d.etiquetas.geo) + '</th>' + m.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") +
+      '<th>Total</th></tr></thead><tbody>';
+    m.filas.forEach(function (fila) {
+      html += "<tr><td><strong>" + esc(fila.geo) + "</strong></td>";
+      m.columnas.forEach(function (col) {
+        var c = fila.celdas[col];
+        html += c ? "<td>" + pct(c.pct) + '<div class="small text-muted">n=' + num(c.n) + "</div></td>" : '<td class="text-muted">—</td>';
+      });
+      html += "<td>" + pct(fila.pct_total) + '<div class="small text-muted">n=' + num(fila.total) + "</div></td></tr>";
+    });
+    document.getElementById("q1-matriz").innerHTML = html + "</tbody></table>";
+    renderTexto("q1-interpretacion", "Interpretación: " + d.interpretacion);
+    renderTexto("q1-denominador", d.denominador);
+  }
+
+  function render2(d) {
+    renderIndicadores("q2-indicadores", d.indicadores);
+    var filas = d.chart_a.filas || [];
+    var x = d.chart_a.columnas;
+    plot("q2-chart-a", [{
+      type: "heatmap", x: x, y: filas.map(function (f) { return f.departamento; }),
+      z: filas.map(function (f) { return x.map(function (g) { return f.celdas[g] ? f.celdas[g].pct : null; }); }),
+      customdata: filas.map(function (f) { return x.map(function (g) { return f.celdas[g] ? f.celdas[g].n : 0; }); }),
+      colorscale: [[0, "#d9f0e2"], [0.5, "#f7d774"], [1, "#c73e3a"]],
+      colorbar: { title: "% dentro del depto." },
+      hovertemplate: "%{y}<br>%{x}: %{z:.2f}%<br>n: %{customdata}<extra></extra>"
+    }], layoutBase({
+      xaxis: { title: "Grupo de riesgo" }, yaxis: { title: "Departamento", automargin: true },
+      margin: { t: 20, r: 20, b: 70, l: 130 },
+      height: Math.max(380, filas.length * 20)
+    }));
+
+    var prioridades = ["Prioridad conjunta", "Prioridad de calidad", "Prioridad de servicio", "Seguimiento"];
+    var coloresPrioridad = {
+      "Prioridad conjunta": "#c73e3a", "Prioridad de calidad": "#e87532",
+      "Prioridad de servicio": "#2878c8", "Seguimiento": "#138a43"
+    };
+    var puntos = d.chart_b || [];
+    var tracesB = prioridades.map(function (categoria) {
+      var sub = puntos.filter(function (f) { return f.prioridad === categoria; });
+      return {
+        type: "scatter", mode: "markers", name: categoria,
+        x: sub.map(function (f) { return f.pct_continuo; }),
+        y: sub.map(function (f) { return f.pct_alto; }),
+        text: sub.map(function (f) { return f.departamento; }),
+        customdata: sub.map(function (f) { return [f.n, f.cobertura, f.region]; }),
+        marker: { color: coloresPrioridad[categoria], size: sub.map(function (f) { return Math.max(9, Math.sqrt(f.n)); }), opacity: 0.85 },
+        hovertemplate: "%{text}<br>Continuidad: %{x:.2f}%<br>Riesgo alto: %{y:.2f}%<br>Cobertura: %{customdata[1]:.1f}%<br>n: %{customdata[0]}<br>%{customdata[2]}<extra></extra>"
+      };
+    });
+    plot("q2-chart-b", tracesB, layoutBase({
+      xaxis: { title: "% de servicio continuo", range: [0, 100], gridcolor: "#e1e0d9" },
+      yaxis: { title: "% alto o inviable", range: [0, 100], gridcolor: "#e1e0d9" },
+      legend: { orientation: "h", y: -0.3 },
+      shapes: [
+        { type: "line", x0: 50, x1: 50, y0: 0, y1: 100, line: { color: "#94a3b8", dash: "dot", width: 1 } },
+        { type: "line", x0: 0, x1: 100, y0: 40, y1: 40, line: { color: "#94a3b8", dash: "dot", width: 1 } }
+      ]
+    }));
+
+    var m = d.matriz;
+    var html = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr><th>Departamento</th>' +
+      m.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + '<th>n total</th></tr></thead><tbody>';
+    m.filas.forEach(function (fila) {
+      html += "<tr><td><strong>" + esc(fila.departamento) + "</strong></td>";
+      m.columnas.forEach(function (col) {
+        var c = fila.celdas[col];
+        html += c ? "<td>" + pct(c.pct) + '<div class="small text-muted">n válido=' + num(c.validos) + "</div></td>" : '<td class="text-muted">—</td>';
+      });
+      html += "<td>" + num(fila.n) + "</td></tr>";
+    });
+    document.getElementById("q2-matriz").innerHTML = html + "</tbody></table>";
+    renderTexto("q2-interpretacion", "Interpretación: " + d.interpretacion);
+    renderTexto("q2-denominador", d.denominador);
+  }
+
+  function render3(d) {
+    renderIndicadores("q3-indicadores", d.indicadores);
+    var filas = d.chart_a.filas || [];
+    var regiones = ["Regional", "Nacional"];
+    var traces = regiones.map(function (region) {
+      var subset = filas.filter(function (f) { return f.region === region; });
+      return {
+        type: "scatter", mode: "markers", name: region,
+        x: subset.map(function (f) { return f.cobertura; }),
+        y: subset.map(function (f) { return f.continuidad; }),
+        text: subset.map(function (f) { return f.municipio; }),
+        customdata: subset.map(function (f) { return [f.n, f.brecha]; }),
+        marker: { color: COLORES[region], size: subset.map(function (f) { return Math.max(7, Math.sqrt(f.n) / 3); }), opacity: 0.75 },
+        hovertemplate: "%{text}<br>Cobertura: %{x:.2f}%<br>Continuidad: %{y:.2f}%<br>Brecha: %{customdata[1]:.2f} pp<br>n: %{customdata[0]}<extra></extra>"
+      };
+    });
+    plot("q3-chart-a", traces, layoutBase({
+      xaxis: { title: "Cobertura media (%)", range: [70, 100], gridcolor: "#e1e0d9" },
+      yaxis: { title: "% de servicio continuo", range: [0, 100], gridcolor: "#e1e0d9" },
+      legend: { orientation: "h", y: -0.25 }
+    }));
+
+    var barras = (d.chart_b || []).slice().reverse();
+    plot("q3-chart-b", [{
+      type: "bar", orientation: "h", y: barras.map(function (f) { return f.municipio; }),
+      x: barras.map(function (f) { return f.brecha; }),
+      customdata: barras.map(function (f) { return [f.cobertura, f.continuidad]; }),
+      marker: { color: barras.map(function (f) { return COLORES[f.region] || "#64748b"; }) },
+      hovertemplate: "%{y}<br>Brecha: %{x:.2f} pp<br>Cobertura: %{customdata[0]:.2f}%<br>Continuidad: %{customdata[1]:.2f}%<extra></extra>"
+    }], layoutBase({
+      xaxis: { title: "Brecha cobertura − continuidad (pp)", gridcolor: "#e1e0d9" },
+      yaxis: { title: "Municipio", automargin: true },
+      margin: { t: 20, r: 20, b: 70, l: 130 },
+      height: Math.max(340, barras.length * 26)
+    }));
+
+    var m = d.matriz;
+    var html = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr><th>Municipio</th><th>Región</th><th>Cobertura</th><th>Continuidad</th>' +
+      m.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+    m.filas.forEach(function (fila) {
+      html += "<tr><td><strong>" + esc(fila.municipio) + "</strong></td><td>" + esc(fila.region) + "</td>" +
+        "<td>" + pct(fila.cobertura) + "</td><td>" + pct(fila.continuidad) + "</td>";
+      m.columnas.forEach(function (col) {
+        var c = fila.celdas[col];
+        html += c ? "<td>" + pct(c.cobertura) + '<div class="small text-muted">n=' + num(c.n) + "</div></td>" : '<td class="text-muted">—</td>';
+      });
+      html += "</tr>";
+    });
+    document.getElementById("q3-matriz").innerHTML = html + "</tbody></table>";
+    renderTexto("q3-interpretacion", "Interpretación: " + d.interpretacion);
+    renderTexto("q3-denominador", d.denominador);
+  }
+
+  function pintarMatriz4(d, pivot) {
+    var m = d.matriz;
+    var html = "";
+    if (!pivot) {
+      html = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr><th>Año</th>' +
+        m.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+      m.filas.forEach(function (fila) {
+        html += "<tr><td><strong>" + esc(fila.anio) + "</strong></td>";
+        m.columnas.forEach(function (col) {
+          var c = fila.celdas[col];
+          html += c ? "<td><div>Consumo: <strong>" + num(c.consumo, 2) + "</strong> m³/s</div>" +
+            '<div class="small text-muted">Almacenamiento: ' + pct(c.almacenamiento) + "</div>" +
+            '<div class="small text-muted">Continuidad: ' + pct(c.continuidad) + " (n=" + num(c.n) + ")</div></td>" : '<td class="text-muted">—</td>';
+        });
+        html += "</tr>";
+      });
+    } else {
+      html = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr><th>Región</th>' +
+        m.filas.map(function (f) { return "<th>" + esc(f.anio) + "</th>"; }).join("") + "</tr></thead><tbody>";
+      m.columnas.forEach(function (region) {
+        html += "<tr><td><strong>" + esc(region) + "</strong></td>";
+        m.filas.forEach(function (fila) {
+          var c = fila.celdas[region];
+          html += c ? "<td><div>Consumo: <strong>" + num(c.consumo, 2) + "</strong> m³/s</div>" +
+            '<div class="small text-muted">Almacenamiento: ' + pct(c.almacenamiento) + "</div>" +
+            '<div class="small text-muted">Continuidad: ' + pct(c.continuidad) + " (n=" + num(c.n) + ")</div></td>" : '<td class="text-muted">—</td>';
+        });
+        html += "</tr>";
+      });
+    }
+    document.getElementById("q4-matriz").innerHTML = html + "</tbody></table>";
+    var boton = document.getElementById("q4-pivot");
+    if (boton) {
+      boton.textContent = pivot ? "Pivot: región × año" : "Pivot: año × región";
+      boton.setAttribute("aria-pressed", pivot ? "true" : "false");
+    }
+  }
+
+  function render4(d) {
+    ultimo4 = d;
+    renderIndicadores("q4-indicadores", d.indicadores);
+    var filas = d.chart_a.filas || [];
+    var x = filas.map(function (f) { return f.trimestre; });
+    var tracesA = [
+      {
+        type: "scatter", mode: "lines+markers", name: "Almacenamiento",
+        x: x, y: filas.map(function (f) { return f.almacenamiento; }),
+        line: { color: "#2878c8", width: 2 }, marker: { size: 5 },
+        hovertemplate: "%{x}<br>Almacenamiento: %{y:.1f}%<extra></extra>"
+      },
+      {
+        type: "scatter", mode: "lines+markers", name: "Continuidad",
+        x: x, y: filas.map(function (f) { return f.continuidad; }),
+        line: { color: "#138a43", width: 2 }, marker: { size: 5 },
+        hovertemplate: "%{x}<br>Continuidad: %{y:.1f}%<extra></extra>"
+      },
+      {
+        type: "scatter", mode: "lines+markers", name: "Consumo",
+        x: x, y: filas.map(function (f) { return f.consumo; }),
+        yaxis: "y2", line: { color: "#e87532", width: 2, dash: "dot" }, marker: { size: 5 },
+        hovertemplate: "%{x}<br>Consumo: %{y:.2f} m³/s<extra></extra>"
+      }
+    ];
+    plot("q4-chart-a", tracesA, layoutBase({
+      xaxis: { title: "Trimestre", gridcolor: "#e1e0d9", automargin: true },
+      yaxis: { title: "Almacenamiento / continuidad (%)", range: [0, 100], gridcolor: "#e1e0d9" },
+      yaxis2: { title: "Consumo (m³/s)", overlaying: "y", side: "right", showgrid: false, automargin: true },
+      legend: { orientation: "h", y: -0.3 },
+      margin: { t: 30, r: 70, b: 80, l: 80 }
+    }));
+
+    var anios = Array.from(new Set(filas.map(function (f) { return f.anio; }))).sort();
+    var coloresAnio = ["#7a5195", "#e6a700", "#2878c8", "#138a43", "#c73e3a"];
+    var tracesB = anios.map(function (anio, i) {
+      var sub = filas.filter(function (f) { return f.anio === anio; });
+      return {
+        type: "scatter", mode: "markers", name: String(anio),
+        x: sub.map(function (f) { return f.almacenamiento; }),
+        y: sub.map(function (f) { return f.continuidad; }),
+        text: sub.map(function (f) { return f.trimestre; }),
+        customdata: sub.map(function (f) { return [f.consumo, f.n]; }),
+        marker: { color: coloresAnio[i % coloresAnio.length], size: sub.map(function (f) { return Math.max(9, Math.sqrt(f.n)); }), opacity: 0.8 },
+        hovertemplate: "%{text}<br>Almacenamiento: %{x:.1f}%<br>Continuidad: %{y:.2f}%<br>Consumo: %{customdata[0]:.2f} m³/s<br>n: %{customdata[1]}<extra></extra>"
+      };
+    });
+    plot("q4-chart-b", tracesB, layoutBase({
+      xaxis: { title: "Almacenamiento (%)", range: [0, 100], gridcolor: "#e1e0d9" },
+      yaxis: { title: "% de servicio continuo", range: [0, 100], gridcolor: "#e1e0d9" },
+      legend: { orientation: "h", y: -0.3 }
+    }));
+
+    pintarMatriz4(d, q4Pivot);
+    renderTexto("q4-interpretacion", "Interpretación: " + d.interpretacion);
+    renderTexto("q4-denominador", d.denominador);
+  }
+
+  function enlazar(n) {
+    var anio = document.getElementById("q" + n + "-anio");
+    if (anio) anio.addEventListener("change", function () { estado[n].anio = this.value; cargar(n); });
+    if (n === 1) {
+      document.getElementById("q1-region").addEventListener("change", function () {
+        estado[1].tipo_region = this.value; cargar(1);
+      });
+      document.getElementById("q1-nivel-geo").addEventListener("change", function () {
+        estado[1].nivel_geo = this.value; cargar(1);
+      });
+      document.getElementById("q1-nivel-tiempo").addEventListener("change", function () {
+        estado[1].nivel_tiempo = this.value; cargar(1);
+      });
+      document.getElementById("q1-geo-down").addEventListener("click", function () {
+        var orden = ["region", "departamento", "municipio"];
+        var i = orden.indexOf(estado[1].nivel_geo);
+        if (i < orden.length - 1) {
+          estado[1].nivel_geo = orden[i + 1];
+          document.getElementById("q1-nivel-geo").value = estado[1].nivel_geo;
+          cargar(1);
+        }
+      });
+      document.getElementById("q1-geo-up").addEventListener("click", function () {
+        var orden = ["region", "departamento", "municipio"];
+        var i = orden.indexOf(estado[1].nivel_geo);
+        if (i > 0) {
+          estado[1].nivel_geo = orden[i - 1];
+          document.getElementById("q1-nivel-geo").value = estado[1].nivel_geo;
+          cargar(1);
+        }
+      });
+      document.getElementById("q1-tiempo-down").addEventListener("click", function () {
+        estado[1].nivel_tiempo = "trimestre";
+        document.getElementById("q1-nivel-tiempo").value = "trimestre";
+        cargar(1);
+      });
+      document.getElementById("q1-tiempo-up").addEventListener("click", function () {
+        estado[1].nivel_tiempo = "anio";
+        document.getElementById("q1-nivel-tiempo").value = "anio";
+        cargar(1);
+      });
+      document.getElementById("q1-actualizar").addEventListener("click", function () { cargar(1); });
+    }
+    if (n === 2) {
+      document.getElementById("q2-periodo").addEventListener("change", function () {
+        estado[2].periodo = this.value; cargar(2);
+      });
+      document.getElementById("q2-region").addEventListener("change", function () {
+        estado[2].tipo_region = this.value; cargar(2);
+      });
+      document.getElementById("q2-actualizar").addEventListener("click", function () { cargar(2); });
+    }
+    if (n === 3) {
+      document.getElementById("q3-region").addEventListener("change", function () {
+        estado[3].tipo_region = this.value; cargar(3);
+      });
+      document.getElementById("q3-actualizar").addEventListener("click", function () { cargar(3); });
+    }
+    if (n === 4) {
+      document.getElementById("q4-periodo").addEventListener("change", function () {
+        estado[4].periodo = this.value; cargar(4);
+      });
+      document.getElementById("q4-region").addEventListener("change", function () {
+        estado[4].tipo_region = this.value; cargar(4);
+      });
+      document.getElementById("q4-pivot").addEventListener("click", function () {
+        q4Pivot = !q4Pivot;
+        if (ultimo4) pintarMatriz4(ultimo4, q4Pivot);
+      });
+      document.getElementById("q4-actualizar").addEventListener("click", function () { cargar(4); });
+    }
+  }
+
+  function resizeSlice() {
+    ["sGrafica", "dGrafica"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.data) Plotly.Plots.resize(el);
+    });
+  }
+
+  for (var i = 1; i <= 4; i++) enlazar(i);
+  cargar(1);
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.location.hash === "#vista-5" && window.bootstrap) {
+      var panel = document.getElementById("vista-5");
+      if (panel) bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).show();
+    }
+  });
+  document.querySelectorAll("#contenidoAnalisis .collapse").forEach(function (panel) {
+    panel.addEventListener("shown.bs.collapse", function () {
+      var n = Number(panel.id.split("-")[1]);
+      if (n >= 1 && n <= 4) {
+        cargar(n);
+        setTimeout(function () {
+          ["q" + n + "-chart-a", "q" + n + "-chart-b"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && el.data) Plotly.Plots.resize(el);
+          });
+        }, 150);
+      } else if (n === 5) {
+        setTimeout(resizeSlice, 150);
+      }
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

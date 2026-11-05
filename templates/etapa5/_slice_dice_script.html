@@ -1,0 +1,335 @@
+<script>
+  // ---------------- Datos que envía Flask ----------------
+  const OPCIONES   = {{ opciones|tojson }};
+  const FILTROS    = {{ filtros_info|tojson }};   // nombre -> [columna, etiqueta, dimensión]
+  const NIVELES    = {{ niveles|tojson }};        // nombre -> [columna, orden, etiqueta]
+  const MEDIDAS    = {{ medidas|tojson }};        // nombre -> [sql, etiqueta, unidad, denominador]
+  const SLICE_INI  = {{ slice_inicial|tojson }};
+  const DICE_INI   = {{ dice_inicial|tojson }};
+  const URL_DATOS  = "{{ url_for('etapa5_slice_dice_datos') }}";
+  let datosSlice   = {{ slice_json|safe }};
+  let datosDice    = {{ dice_json|safe }};
+
+  const COLUMNAS_TABLA = ["mediciones", "municipios", "irca_promedio", "pct_riesgo_alto",
+                          "pct_continuo", "pct_interrumpido", "almacenamiento"];
+  const IND_SLICE = ["mediciones", "irca_promedio", "pct_riesgo_alto", "pct_continuo"];
+  const IND_DICE  = ["mediciones", "pct_continuo", "pct_interrumpido", "almacenamiento"];
+  const COLS_MATRIZ = {servicio: "Nivel de servicio", riesgo: "Grupo de riesgo"};
+  const DIM_SLICE = ["region", "departamento", "anio", "sistema", "servicio", "riesgo"];
+
+  // ---------------- Utilidades ----------------
+  const $ = id => document.getElementById(id);
+  // unidad "%" -> 46,4 %   |   unidad "pp" -> 13,9 p.p. (diferencia entre porcentajes)
+  function fmt(v, unidad) {
+    if (v === null || v === undefined) return "—";
+    const dec = (unidad === "%" || unidad === "pp") ? 1 : (Number.isInteger(v) ? 0 : 2);
+    const txt = Number(v).toLocaleString("es-CO", {minimumFractionDigits: dec, maximumFractionDigits: dec});
+    if (unidad === "%") return txt + " %";
+    if (unidad === "pp") return txt + " p.p.";
+    return txt;
+  }
+  const etiquetaMedida = m => MEDIDAS[m][1];
+  const unidadMedida   = m => MEDIDAS[m][2];
+  function llenarSelect(sel, pares, valor) {
+    sel.innerHTML = pares.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+    if (valor !== undefined) sel.value = valor;
+  }
+  function llenarChecks(div, nombre, valores, marcados) {
+    div.innerHTML = valores.map((v, i) => `
+      <div class="form-check small">
+        <input class="form-check-input" type="checkbox" name="${nombre}" value="${v}" id="${nombre}${i}"
+               ${marcados.map(String).includes(String(v)) ? "checked" : ""}>
+        <label class="form-check-label" for="${nombre}${i}">${v}</label>
+      </div>`).join("");
+  }
+
+  // ---------------- Pintar resultados ----------------
+  function pintarIndicadores(id, datos, claves) {
+    $(id).innerHTML = claves.map(k => `
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+          <div class="lbl">${etiquetaMedida(k)}</div>
+          <h3>${fmt(datos.indicadores[k], unidadMedida(k))}</h3>
+          <div class="ctx">Total sin filtro: ${fmt(datos.contexto[k], unidadMedida(k))}</div>
+          <div class="ctx">${MEDIDAS[k][3]}</div>
+        </div></div>
+      </div>`).join("");
+  }
+
+  function pintarTabla(id, datos) {
+    const cab = `<thead><tr><th>${datos.nivel}</th>` +
+      COLUMNAS_TABLA.map(k => `<th class="text-end">${etiquetaMedida(k)}</th>`).join("") + "</tr></thead>";
+    const filas = datos.tabla.map(f => `<tr><td>${f.grupo}</td>` +
+      COLUMNAS_TABLA.map(k => `<td class="text-end">${fmt(f[k], unidadMedida(k))}</td>`).join("") + "</tr>").join("");
+    $(id).innerHTML = cab + "<tbody>" + filas + "</tbody>";
+  }
+
+  function pintarMatriz(id, m) {
+    const cab = `<thead><tr><th>${m.etiqueta_filas}</th>` +
+      m.columnas.map(c => `<th>${c}</th>`).join("") + "<th>Total</th></tr></thead>";
+    const filas = m.filas.map(f => `<tr><td>${f.grupo}</td>` +
+      f.conteos.map((c, i) => `<td>${fmt(c)}<div class="pct">${fmt(f.porcentajes[i], "%")}</div></td>`).join("") +
+      `<td><strong>${fmt(f.total)}</strong></td></tr>`).join("");
+    const pie = `<tr class="table-light"><td><strong>Total</strong></td>` +
+      m.totales.map(t => `<td><strong>${fmt(t)}</strong><div class="pct">${fmt(m.total_general ? 100 * t / m.total_general : null, "%")}</div></td>`).join("") +
+      `<td><strong>${fmt(m.total_general)}</strong></td></tr>`;
+    $(id).innerHTML = cab + "<tbody>" + filas + pie + "</tbody>";
+  }
+
+  function pintarSeleccion(id, datos) {
+    $(id).innerHTML = `<strong>Selección activa (${datos.operacion}):</strong> ${datos.seleccion}
+      &nbsp;·&nbsp; <strong>Dimensiones filtradas:</strong> ${datos.dimensiones_filtradas.join(", ")}
+      &nbsp;·&nbsp; <strong>Nivel:</strong> ${datos.nivel}
+      &nbsp;·&nbsp; <strong>Mediciones en el subconjunto:</strong> ${fmt(datos.indicadores.mediciones)}
+      de ${fmt(datos.contexto.mediciones)}`;
+  }
+
+  function extremos(tabla, medida) {
+    const validas = tabla.filter(f => f[medida] !== null && f[medida] !== undefined);
+    if (!validas.length) return null;
+    const orden = [...validas].sort((a, b) => b[medida] - a[medida]);
+    return {max: orden[0], min: orden[orden.length - 1], n: validas.length};
+  }
+
+  function interpretar(datos, medida) {
+    const u = unidadMedida(medida), e = extremos(datos.tabla, medida);
+    let txt = `Con la selección <em>${datos.seleccion}</em>, ${etiquetaMedida(medida).toLowerCase()} es
+      <strong>${fmt(datos.indicadores[medida], u)}</strong>, frente a ${fmt(datos.contexto[medida], u)} en el total
+      sin filtrar.`;
+    if (e && e.n > 1) {
+      txt += ` Por ${datos.nivel.toLowerCase()}, el valor más alto es <strong>${e.max.grupo}</strong>
+        (${fmt(e.max[medida], u)}) y el más bajo <strong>${e.min.grupo}</strong> (${fmt(e.min[medida], u)}),
+        una diferencia de ${fmt(Math.abs(e.max[medida] - e.min[medida]), u === "%" ? "pp" : undefined)}${u === "%" ? "" : " " + u + "."}`;
+    }
+    txt += " Las cifras describen asociaciones en este conjunto de datos, no causas.";
+    return txt;
+  }
+
+  function pintarComparacion(datos) {
+    if (!datos.comparacion) {
+      $("dComparacionBox").classList.add("d-none");
+      return;
+    }
+    $("dComparacionBox").classList.remove("d-none");
+    const claves = ["mediciones", "pct_continuo", "pct_interrumpido", "almacenamiento", "irca_promedio"];
+    const [a, b] = datos.comparacion;
+    const cab = "<thead><tr><th>Periodo</th>" + claves.map(k => `<th class="text-end">${etiquetaMedida(k)}</th>`).join("") + "</tr></thead>";
+    const fila = p => `<tr><td>${p.periodo}</td>` + claves.map(k => `<td class="text-end">${fmt(p[k], unidadMedida(k))}</td>`).join("") + "</tr>";
+    const dif = `<tr class="table-light"><td><strong>Cambio</strong></td>` + claves.map(k => {
+      if (a[k] === null || b[k] === null) return "<td class='text-end'>—</td>";
+      const d = b[k] - a[k];
+      const u = unidadMedida(k) === "%" ? "pp" : undefined;
+      return `<td class="text-end"><strong>${d > 0 ? "+" : ""}${fmt(Math.round(d * 100) / 100, u)}</strong></td>`;
+    }).join("") + "</tr>";
+    $("dComparacion").innerHTML = cab + "<tbody>" + fila(a) + fila(b) + dif + "</tbody>";
+  }
+
+  // ---------------- Graficas (Plotly) ----------------
+  const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
+  const CONFIG_PLOTLY = {displaylogo: false, responsive: true,
+    modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"]};
+  function layoutBase() {
+    return {
+      paper_bgcolor: css("--surface-1"), plot_bgcolor: css("--surface-1"),
+      font: {family: "system-ui, -apple-system, Segoe UI, sans-serif", size: 12, color: css("--text-secondary")},
+      margin: {l: 60, r: 30, t: 30, b: 50},
+      hoverlabel: {bgcolor: "#ffffff", bordercolor: css("--gridline"), font: {color: css("--text-primary")}},
+    };
+  }
+  const ejeValor = titulo => ({title: {text: titulo}, gridcolor: css("--gridline"), zeroline: false,
+                               linecolor: css("--gridline"), tickformat: ",.0f"});
+
+  // Visualizacion 1: barras horizontales de la medida elegida por grupo del slice
+  function graficarSlice() {
+    const d = datosSlice, m = $("sMedida").value, u = unidadMedida(m);
+    const filas = d.tabla.filter(f => f[m] !== null && f[m] !== undefined)
+                         .sort((a, b) => a[m] - b[m]);          // la mayor queda arriba
+    $("sGraficaTxt").textContent = `${etiquetaMedida(m)} por ${d.nivel.toLowerCase()} (${d.seleccion})`;
+    if (!filas.length) { Plotly.purge("sGrafica"); $("sGrafica").innerHTML =
+      "<p class='small text-muted p-3 mb-0'>La medida no tiene datos en esta selección.</p>"; return; }
+    const sufijo = u === "%" ? " %" : "";
+    const lineas = [
+      {valor: d.indicadores[m], texto: "Corte: " + fmt(d.indicadores[m], u), dash: "solid"},
+      {valor: d.contexto[m],    texto: "Total: " + fmt(d.contexto[m], u),    dash: "dot"},
+    ].filter(l => l.valor !== null);
+    const layout = Object.assign(layoutBase(), {
+      height: Math.max(260, 26 * filas.length + 90),
+      margin: {l: 150, r: 40, t: 34, b: 50},
+      bargap: 0.35, barcornerradius: 4,
+      xaxis: Object.assign(ejeValor(`${etiquetaMedida(m)} (${u})`), u === "%" ? {range: [0, 100]} : {rangemode: "tozero"}),
+      yaxis: {automargin: true, linecolor: css("--gridline")},
+      shapes: lineas.map(l => ({type: "line", xref: "x", yref: "paper", x0: l.valor, x1: l.valor, y0: 0, y1: 1,
+                                line: {color: css("--text-primary"), width: 1.5, dash: l.dash}})),
+      annotations: lineas.map((l, i) => ({x: l.valor, xref: "x", y: 1, yref: "paper", yanchor: "bottom",
+                                          yshift: i * 14, text: l.texto, showarrow: false,
+                                          font: {size: 11, color: css("--text-primary")}})),
+    });
+    Plotly.react("sGrafica", [{
+      type: "bar", orientation: "h",
+      x: filas.map(f => f[m]), y: filas.map(f => String(f.grupo)),
+      customdata: filas.map(f => [f.mediciones, f.municipios]),
+      marker: {color: css("--series-1"), line: {color: css("--surface-1"), width: 2}},
+      hovertemplate: `<b>%{y}</b><br>${etiquetaMedida(m)}: %{x:,.2f}${sufijo}` +
+                     "<br>Mediciones: %{customdata[0]:,}<br>Municipios: %{customdata[1]}<extra></extra>",
+    }], layout, CONFIG_PLOTLY);
+  }
+
+  // Visualizacion 2: continuidad, interrupciones y almacenamiento del dice
+  const SERIES_DICE = [
+    {medida: "pct_continuo",     color: "--series-1", dash: "solid"},
+    {medida: "pct_interrumpido", color: "--series-2", dash: "solid"},
+    {medida: "almacenamiento",   color: "--series-3", dash: "dash"},
+  ];
+  function graficarDice() {
+    const d = datosDice, temporal = ["Año", "Trimestre"].includes(d.nivel);
+    $("dGraficaTxt").textContent = d.nivel.toLowerCase();
+    const x = d.tabla.map(f => String(f.grupo));
+    const trazas = SERIES_DICE.map(s => {
+      const base = {
+        name: etiquetaMedida(s.medida), x: x, y: d.tabla.map(f => f[s.medida]),
+        customdata: d.tabla.map(f => f.mediciones),
+        hovertemplate: `${etiquetaMedida(s.medida)}: %{y:.1f} %<extra></extra>`,
+      };
+      return temporal
+        ? Object.assign(base, {type: "scatter", mode: "lines+markers",
+            line: {color: css(s.color), width: 2, dash: s.dash},
+            marker: {size: 8, color: css(s.color), line: {color: css("--surface-1"), width: 2}}})
+        : Object.assign(base, {type: "bar",
+            marker: {color: css(s.color), line: {color: css("--surface-1"), width: 2}}});
+    });
+    // Etiqueta directa al final de cada linea (ademas de la leyenda)
+    const ultimo = d.tabla.length - 1;
+    // Si dos valores finales quedan muy cerca, se separan para que no se monten
+    const finales = temporal && ultimo >= 0 ? SERIES_DICE
+      .filter(s => d.tabla[ultimo][s.medida] !== null)
+      .map(s => ({valor: d.tabla[ultimo][s.medida], y: d.tabla[ultimo][s.medida]}))
+      .sort((a, b) => b.y - a.y) : [];
+    for (let i = 1; i < finales.length; i++) {
+      if (finales[i - 1].y - finales[i].y < 7) finales[i].y = finales[i - 1].y - 7;
+    }
+    const etiquetas = finales.map(f => ({x: x[ultimo], y: f.y, xanchor: "left", xshift: 8, showarrow: false,
+      text: fmt(f.valor, "%"), font: {size: 11, color: css("--text-primary")}}));
+    const layout = Object.assign(layoutBase(), {
+      height: 360, barmode: "group", bargap: 0.25, barcornerradius: 4,
+      margin: {l: 60, r: 70, t: 40, b: 60},
+      hovermode: temporal ? "x unified" : "closest",
+      legend: {orientation: "h", x: 0, y: 1.12, font: {color: css("--text-primary")}},
+      xaxis: {type: "category", linecolor: css("--gridline"), tickangle: x.length > 8 ? -35 : 0, automargin: true},
+      yaxis: Object.assign(ejeValor("Porcentaje (%)"), {range: [0, 105]}),
+      annotations: etiquetas,
+    });
+    Plotly.react("dGrafica", trazas, layout, CONFIG_PLOTLY);
+  }
+
+  function pintarSlice() {
+    const d = datosSlice;
+    pintarSeleccion("sSeleccion", d);
+    pintarIndicadores("sIndicadores", d, IND_SLICE);
+    $("sNivelTxt").textContent = d.nivel.toLowerCase();
+    pintarTabla("sTabla", d);
+    $("sInterpretacion").innerHTML = interpretar(d, $("sMedida").value);
+    $("sMatrizTxt").textContent = `${d.matriz.etiqueta_filas} × ${COLS_MATRIZ[$("sColumnas").value]}`;
+    pintarMatriz("sMatriz", d.matriz);
+    $("sSQL").textContent = d.sql;
+    graficarSlice();
+  }
+
+  function pintarDice() {
+    const d = datosDice;
+    pintarSeleccion("dSeleccion", d);
+    pintarIndicadores("dIndicadores", d, IND_DICE);
+    $("dNivelTxt").textContent = d.nivel.toLowerCase();
+    pintarTabla("dTabla", d);
+    $("dInterpretacion").innerHTML = interpretar(d, "pct_continuo");
+    $("dMatrizTxt").textContent = `${d.matriz.etiqueta_filas} × ${COLS_MATRIZ[$("dColumnas").value]}`;
+    pintarMatriz("dMatriz", d.matriz);
+    pintarComparacion(d);
+    $("dSQL").textContent = d.sql;
+    graficarDice();
+  }
+
+  // ---------------- Pedir datos a Flask ----------------
+  function consultar(params, alTerminar, idError) {
+    $(idError).classList.add("d-none");
+    fetch(URL_DATOS + "?" + params.toString())
+      .then(r => r.json().then(j => ({ok: r.ok, j})))
+      .then(({ok, j}) => {
+        if (!ok) { $(idError).textContent = j.error; $(idError).classList.remove("d-none"); return; }
+        alTerminar(j);
+      })
+      .catch(() => { $(idError).textContent = "No se pudo consultar el modelo."; $(idError).classList.remove("d-none"); });
+  }
+
+  function aplicarSlice(ev) {
+    if (ev) ev.preventDefault();
+    const p = new URLSearchParams({op: "slice", dimension: $("sDimension").value, valor: $("sValor").value,
+      nivel: $("sNivel").value, filas: $("sFilas").value, columnas: $("sColumnas").value});
+    consultar(p, j => { datosSlice = j; pintarSlice(); }, "sError");
+  }
+
+  function aplicarDice(ev) {
+    if (ev) ev.preventDefault();
+    const p = new URLSearchParams({op: "dice", nivel: $("dNivel").value, filas: $("dFilas").value,
+      columnas: $("dColumnas").value});
+    document.querySelectorAll("#formDice input[type=checkbox]:checked").forEach(c => p.append(c.name, c.value));
+    consultar(p, j => { datosDice = j; pintarDice(); }, "dError");
+  }
+
+  // ---------------- Controles ----------------
+  const paresNiveles = Object.entries(NIVELES).map(([k, v]) => [k, v[2]]);
+  const paresMatriz  = Object.entries(COLS_MATRIZ);
+
+  function valoresSlice() {
+    const dim = $("sDimension").value;
+    llenarSelect($("sValor"), OPCIONES[dim].map(v => [v, v]));
+  }
+
+  function iniciarSlice() {
+    llenarSelect($("sDimension"), DIM_SLICE.map(k => [k, `${FILTROS[k][1]} (${FILTROS[k][2]})`]), SLICE_INI.dimension);
+    valoresSlice();
+    $("sValor").value = SLICE_INI.valor;
+    llenarSelect($("sNivel"), paresNiveles, SLICE_INI.nivel);
+    llenarSelect($("sMedida"), Object.keys(MEDIDAS).filter(k => k !== "mediciones" && k !== "municipios")
+      .map(k => [k, etiquetaMedida(k)]), "pct_riesgo_alto");
+    llenarSelect($("sFilas"), paresNiveles, SLICE_INI.filas);
+    llenarSelect($("sColumnas"), paresMatriz, SLICE_INI.columnas);
+  }
+
+  function iniciarDice() {
+    const f = DICE_INI.filtros;
+    llenarChecks($("dRegion"),   "region",   OPCIONES.region,   f.region   || []);
+    llenarChecks($("dAnio"),     "anio",     OPCIONES.anio,     f.anio     || []);
+    llenarChecks($("dSistema"),  "sistema",  OPCIONES.sistema,  f.sistema  || []);
+    llenarChecks($("dServicio"), "servicio", OPCIONES.servicio, f.servicio || []);
+    llenarChecks($("dRiesgo"),   "riesgo",   OPCIONES.riesgo,   f.riesgo   || []);
+    llenarSelect($("dNivel"), paresNiveles, DICE_INI.nivel);
+    llenarSelect($("dFilas"), paresNiveles, DICE_INI.filas);
+    llenarSelect($("dColumnas"), paresMatriz, DICE_INI.columnas);
+  }
+
+  $("sDimension").addEventListener("change", valoresSlice);
+  $("sMedida").addEventListener("change", pintarSlice);
+  $("formSlice").addEventListener("submit", aplicarSlice);
+  $("sReset").addEventListener("click", () => { iniciarSlice(); aplicarSlice(); });
+  $("formDice").addEventListener("submit", aplicarDice);
+  $("dReset").addEventListener("click", () => { iniciarDice(); aplicarDice(); });
+
+  // Botones "Ver esta selección": ponen en los controles los filtros de cada conocimiento
+  $("verK1").addEventListener("click", () => {
+    iniciarSlice();
+    $("sNivel").value = "servicio";
+    $("sMedida").value = "pct_riesgo_alto";
+    aplicarSlice();
+    $("formSlice").scrollIntoView({behavior: "smooth"});
+  });
+  $("verK2").addEventListener("click", () => {
+    iniciarDice();
+    aplicarDice();
+    $("formDice").scrollIntoView({behavior: "smooth"});
+  });
+
+  iniciarSlice();
+  iniciarDice();
+  pintarSlice();
+  pintarDice();
+</script>
