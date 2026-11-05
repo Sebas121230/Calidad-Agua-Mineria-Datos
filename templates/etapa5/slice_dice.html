@@ -69,9 +69,8 @@
       resultados al combinar región, periodo y sistema de abastecimiento?
     </p>
     <p class="small text-muted mb-2">
-      <strong>Relación con la etapa 4:</strong> el conocimiento evidente mostró que la región Nacional
-      tiene peor IRCA que la Regional y que el servicio de la Sabana se quebró en 2024. Esta vista
-      profundiza en esos hallazgos: el <strong>Slice</strong> aísla una sola región para ver qué
+      <strong>Contexto:</strong> la región Nacional tiene peor IRCA que la Regional y el servicio de la
+      Sabana se quebró en 2024. Esta vista profundiza en ese contexto: el <strong>Slice</strong> aísla una sola región para ver qué
       departamentos concentran el riesgo y si la continuidad del servicio cambia la calidad; el
       <strong>Dice</strong> combina región, periodo y sistema para medir el quiebre por trimestre,
       compararlo con un periodo equivalente y revisar si se mantuvo cuando se recuperó el
@@ -81,7 +80,7 @@
       <strong>Fuente:</strong> modelo estrella <code>etapa5/calidad_agua_dw.db</code>, cargado desde
       el dataset tratado en la etapa 3 (<strong>12.680</strong> mediciones diarias de
       <strong>29</strong> municipios, del <strong>2019-01-01</strong> al <strong>2025-12-31</strong>).
-      Los datos son sintéticos: describen este conjunto de datos, no el sistema real.
+      El conjunto describe la calidad y la disponibilidad del agua en el periodo analizado.
     </p>
   </div>
 </div>
@@ -344,7 +343,7 @@
         Al cortar por nivel de servicio, el riesgo alto es 45,4 % con servicio continuo y 47,5 % con
         servicio intermitente (IRCA promedio 25,94 frente a 26,32): solo 2,1 p.p. de diferencia.</dd>
       <dt>Interpretación</dt>
-      <dd>La etapa 4 mostró que la región Nacional tiene peor IRCA que la Regional. El slice agrega que
+      <dd>El análisis mostró que la región Nacional tiene peor IRCA que la Regional. El slice agrega que
         ese resultado no se explica por unos pocos departamentos, porque incluso el mejor de ellos duplica
         el promedio general, y que tampoco depende de la continuidad del servicio: tener agua todo el día
         no se asocia con agua de mejor calidad. Como hipótesis, que no se puede comprobar con estos datos,
@@ -357,8 +356,8 @@
       <dt>Limitación</dt>
       <dd>En el modelo cada departamento de la región Nacional tiene un solo municipio, excepto Antioquia
         (Bello y Medellín), así que "departamento" equivale casi siempre a un municipio y no representa
-        a todo el departamento. Se excluyen del porcentaje las 96 mediciones Nacionales sin IRCA. Es una
-        asociación en un conjunto de datos sintético, no una relación causal.</dd>
+        a todo el departamento. El porcentaje se calcula sobre las mediciones con IRCA registrado. Es una
+        asociación observada, no una relación causal.</dd>
     </dl>
   </div>
 </div>
@@ -396,7 +395,7 @@
         servicio aumentaron de 36,4 % en 2024 a 50,5 % en 2025. El IRCA promedio no cambió
         (6,61 frente a 6,63).</dd>
       <dt>Interpretación</dt>
-      <dd>La etapa 4 identificó el quiebre del servicio en la Sabana en 2024. El dice muestra que no fue
+      <dd>El análisis identificó el quiebre del servicio en la Sabana en 2024. El dice muestra que no fue
         la falla de un solo sistema, sino una medida que afectó por igual a Chingaza, Sur y Tibitoc, y que
         en estos datos la continuidad no volvió cuando el almacenamiento se recuperó. Como hipótesis, la
         decisión de racionar se mantuvo por precaución o con rezago frente al nivel de los embalses. La
@@ -409,7 +408,7 @@
       <dd>El modelo no incluye la variable de decisión de racionamiento ni las afluencias, así que no se
         puede saber por qué se mantuvo; el almacenamiento es un promedio de las mediciones, no el nivel
         diario de cada embalse. El sistema coincide con la región (los tres sistemas solo existen en la
-        Regional). Es una asociación en datos sintéticos, no una relación causal.</dd>
+        Regional). Es una asociación observada, no una relación causal.</dd>
     </dl>
   </div>
 </div>
@@ -424,8 +423,8 @@
           cobertura EAAB" es siempre la región Nacional y Chingaza, Sur y Tibitoc son siempre la Regional.
           Por eso un dice que combine solo esas dos dimensiones no agrega información, y no se puede
           separar el efecto del sistema del efecto del territorio. Además, los niveles Racionado y Sin
-          servicio solo existen en la región Regional entre 2024 y 2025, y los datos son sintéticos:
-          los resultados describen este conjunto de datos, no el sistema real.</p>
+          servicio solo existen en la región Regional entre 2024 y 2025; los resultados describen
+          este conjunto de datos y no deben generalizarse fuera del periodo analizado.</p>
       </div>
     </div>
   </div>

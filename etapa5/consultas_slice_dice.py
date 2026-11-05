@@ -61,7 +61,7 @@ NIVELES = {
 # Columnas posibles de una matriz: nombre -> (columna, valores en orden)
 COLUMNAS_MATRIZ = {
     "servicio": ("v.nivel_servicio", ["Continuo", "Intermitente", "Racionado", "Sin servicio"]),
-    "riesgo":   ("r.grupo_riesgo",   ["Bajo o nulo", "Medio", "Alto o inviable", "Sin dato"]),
+    "riesgo":   ("r.grupo_riesgo",   ["Bajo o nulo", "Medio", "Alto o inviable"]),
 }
 
 # Medidas: nombre -> (SQL, etiqueta, unidad, denominador o forma de agregar)
@@ -167,7 +167,8 @@ def opciones():
         "anio": lista("SELECT DISTINCT anio AS v FROM dim_tiempo WHERE fecha_key > 0 ORDER BY v"),
         "sistema": lista("SELECT sistema AS v FROM dim_sistema WHERE sistema_key > 0 ORDER BY v"),
         "servicio": lista("SELECT nivel_servicio AS v FROM dim_servicio WHERE servicio_key > 0 ORDER BY orden"),
-        "riesgo": lista("SELECT DISTINCT grupo_riesgo AS v FROM dim_riesgo WHERE riesgo_key > 0 ORDER BY orden"),
+        "riesgo": lista("SELECT DISTINCT grupo_riesgo AS v FROM dim_riesgo "
+                        "WHERE riesgo_key > 0 AND grupo_riesgo <> 'Sin dato' ORDER BY orden"),
     }
 
 
@@ -192,7 +193,7 @@ def matriz(filtros, filas, columnas):
     """
     Matriz que cruza dos dimensiones (conteo de mediciones) con el % por fila.
     Denominador del % por fila: total de mediciones de esa fila en el subconjunto
-    (incluye las mediciones "Sin dato" de IRCA, que se muestran en su propia columna).
+    (usa los grupos de riesgo con IRCA registrado).
     """
     _validar(filas, NIVELES, "Filas de la matriz")
     _validar(columnas, COLUMNAS_MATRIZ, "Columnas de la matriz")

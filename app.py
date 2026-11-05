@@ -3,9 +3,10 @@ import json
 import os
 from datetime import date
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_file
 
 from etapa5 import consultas_slice_dice as olap
+from scripts import consultas_multidimensional as multidimensional
 from scripts.generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
@@ -1285,21 +1286,8 @@ def _datos_dice(filtros, nivel, filas, columnas):
 
 @app.route("/etapa5/slice-dice")
 def etapa5_slice_dice():
-    """Vista de las operaciones Slice y Dice sobre el modelo estrella."""
-    if not olap.BASE.exists():
-        return render_template("etapa5/slice_dice.html", hay_datos=False)
-    return render_template(
-        "etapa5/slice_dice.html",
-        hay_datos=True,
-        opciones=olap.opciones(),
-        filtros_info=olap.FILTROS,
-        niveles=olap.NIVELES,
-        medidas=olap.MEDIDAS,
-        slice_inicial=SLICE_INICIAL,
-        dice_inicial=DICE_INICIAL,
-        slice_json=json.dumps(_datos_slice(**SLICE_INICIAL)),
-        dice_json=json.dumps(_datos_dice(**DICE_INICIAL)),
-    )
+    """Compatibilidad: Slice y Dice ahora es la Vista 5 de la pagina integrada."""
+    return redirect("/etapa5/multidimensional#vista-5")
 
 
 @app.route("/etapa5/slice-dice/datos")
@@ -1329,6 +1317,76 @@ def etapa5_slice_dice_datos():
         return jsonify({"error": str(error)}), 400
     return jsonify(datos)
 
+
+# ---------- Etapa 5: analisis multidimensional ----------
+@app.route("/etapa5/multidimensional")
+def etapa5_multidimensional():
+    """Portada de la Etapa 5: modelo estrella y cuatro vistas interactivas."""
+    opciones_vacias = {"anios": [], "regiones": [], "sistemas": [], "servicios": [],
+                       "periodos": []}
+    try:
+        panorama = multidimensional.panorama()
+        opciones = {**multidimensional.opciones(), **olap.opciones()}
+        slice_json = json.dumps(_datos_slice(**SLICE_INICIAL))
+        dice_json = json.dumps(_datos_dice(**DICE_INICIAL))
+        hay_modelo = True
+    except Exception:
+        panorama = None
+        opciones = opciones_vacias
+        slice_json = "{}"
+        dice_json = "{}"
+        hay_modelo = False
+    return render_template(
+        "etapa5/multidimensional.html",
+        hay_modelo=hay_modelo,
+        panorama=panorama,
+        opciones=opciones,
+        filtros_info=olap.FILTROS,
+        niveles=olap.NIVELES,
+        medidas=olap.MEDIDAS,
+        slice_inicial=SLICE_INICIAL,
+        dice_inicial=DICE_INICIAL,
+        slice_json=slice_json,
+        dice_json=dice_json,
+    )
+
+
+@app.route("/etapa5/diagrama-modelo")
+def etapa5_diagrama_modelo():
+    """Entrega la imagen del modelo estrella usada en la Etapa 5."""
+    return send_file(
+        os.path.join(BASE_DIR, "etapa5", "diagrama_modelo.png"),
+        mimetype="image/png",
+    )
+
+
+@app.route("/etapa5/multidimensional/datos")
+def etapa5_multidimensional_datos():
+    """Datos de una vista, recalculados con los filtros y niveles activos."""
+    vista = request.args.get("vista", "1")
+    filtros = {
+        "anio": request.args.get("anio", "Todos"),
+        "tipo_region": request.args.get("tipo_region", "Todos"),
+        "sistema": request.args.get("sistema", "Todos"),
+        "nivel_servicio": request.args.get("nivel_servicio", "Todos"),
+        "nivel_geo": request.args.get("nivel_geo", "region"),
+        "nivel_tiempo": request.args.get("nivel_tiempo", "anio"),
+        "periodo": request.args.get("periodo", "2024-2025"),
+    }
+    try:
+        if vista == "1":
+            datos = multidimensional.pregunta1(filtros)
+        elif vista == "2":
+            datos = multidimensional.pregunta2(filtros)
+        elif vista == "3":
+            datos = multidimensional.pregunta3(filtros)
+        elif vista == "4":
+            datos = multidimensional.pregunta4(filtros)
+        else:
+            return jsonify({"error": "Vista no válida"}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(datos)
 
 # Ejecutar el servidor en modo desarrollo
 if __name__ == "__main__":
