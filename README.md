@@ -417,3 +417,37 @@ La API tambien se puede consultar directamente, por ejemplo:
 
 El slice exige una sola dimension con un solo valor y el dice exige filtros sobre al menos dos
 dimensiones diferentes; si no se cumple, la API responde con un mensaje de error (codigo 400).
+
+### Operacion Pivot
+
+Vista interactiva en el menu **Etapa 5 - Analisis multidimensional > Pivot: rotar la matriz**
+(ruta `/etapa5/pivot`). Permite intercambiar filas y columnas, elegir otras dimensiones y ubicar
+varias medidas en uno de los ejes. Cada celda y cada total se recalculan desde la tabla de hechos;
+los totales no son la suma ni el promedio de las celdas.
+
+| Archivo | Contenido |
+|---|---|
+| `etapa5/sql/04_consultas_pivot.sql` | Consultas de los ejemplos y validaciones del pivot |
+| `etapa5/consultas_pivot.py` | Consultas parametrizadas, matrices y validaciones |
+| `app.py` | Rutas `/etapa5/pivot` (vista) y `/etapa5/pivot/datos` (API JSON) |
+| `templates/etapa5/pivot.html` | Controles, matriz, visualizaciones, validaciones y conocimientos |
+| `templates/base.html` | Enlace en el menu de la Etapa 5 |
+
+#### Como probar
+
+```
+python etapa5/consultas_pivot.py
+python app.py
+```
+
+Abre `http://127.0.0.1:5000/etapa5/pivot`. La API permite consultar la orientacion inicial,
+rotarla o mostrar medidas por trimestre:
+
+```
+/etapa5/pivot/datos?filas=region&columnas=anio&medida=pct_continuo
+/etapa5/pivot/datos?filas=anio&columnas=region&medida=pct_continuo
+/etapa5/pivot/datos?filas=trimestre&columnas=medidas&region=Regional&anio=2022&anio=2023&anio=2024&anio=2025&medidas=almacenamiento&medidas=precipitacion&medidas=pct_continuo
+```
+
+Filas y columnas deben ser ejes diferentes; de lo contrario, la API responde con un mensaje de error
+(codigo 400).
