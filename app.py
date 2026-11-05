@@ -5,11 +5,13 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, request
 
+from etapa5.pivot import pivot_bp
 from etapa5 import consultas_slice_dice as olap
 from scripts.generar_dataset_limpio import clasificar_riesgo
 
 # Inicializar la aplicacion
 app = Flask(__name__)
+app.register_blueprint(pivot_bp)
 
 # Carpetas del proyecto (para leer los datos sin importar desde donde se ejecute)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
