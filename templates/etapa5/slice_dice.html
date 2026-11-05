@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    --series-3:       #6c8bab;
+    --status-critical:#d03b3b;
+  }
+  .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
+  .viz-root .interpretacion {
+    font-size: .88rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--gridline);
+    padding: .5rem .9rem;
+    margin-top: .5rem;
+  }
+  .viz-root .stat-tile h3 { color: var(--text-primary); font-size: 1.5rem; margin: 0; }
+  .viz-root .stat-tile .lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .viz-root .stat-tile .ctx { font-size: .76rem; color: var(--text-muted); }
+  .viz-root .seleccion-activa {
+    background: #eaf2fe;
+    border-left: 4px solid #0d6efd;
+    padding: .5rem .9rem;
+    font-size: .88rem;
+  }
+  .viz-root .op-badge { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+  .viz-root .matriz td, .viz-root .matriz th { text-align: right; white-space: nowrap; }
+  .viz-root .matriz td:first-child, .viz-root .matriz th:first-child { text-align: left; }
+  .viz-root .matriz .pct { color: var(--text-muted); font-size: .78rem; }
+  .viz-root .checks { max-height: 9rem; overflow-y: auto; }
+  .viz-root pre.sql {
+    background: #0d2137; color: #e8eef5; border-radius: 8px; padding: 12px 14px;
+    font-size: .74rem; white-space: pre; overflow-x: auto; margin: 0;
+  }
+  .conocimiento dt { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-top: .6rem; }
+  .conocimiento dd { margin-bottom: 0; }
+</style>
+
+<div class="viz-root">
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h1 class="h4 mb-1">Etapa 5 &middot; Análisis multidimensional &middot; Slice y Dice</h1>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+</div>
+
+{% if not hay_datos %}
+<div class="alert alert-warning">
+  No se encontró la base <code>etapa5/calidad_agua_dw.db</code>. Créala con
+  <code>python etapa5/cargar_modelo.py</code> y vuelve a cargar esta página.
+</div>
+{% else %}
+
+<!-- ================= 1. TITULO Y 2. PREGUNTA ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">Riesgo sanitario y continuidad del servicio por territorio, periodo y sistema de abastecimiento</h2>
+    <p class="mb-2">
+      <strong>Pregunta de análisis:</strong> ¿qué subconjuntos del territorio y del tiempo concentran
+      el riesgo sanitario del agua y la pérdida de continuidad del servicio, y cómo cambian esos
+      resultados al combinar región, periodo y sistema de abastecimiento?
+    </p>
+    <p class="small text-muted mb-2">
+      <strong>Relación con la etapa 4:</strong> el conocimiento evidente mostró que la región Nacional
+      tiene peor IRCA que la Regional y que el servicio de la Sabana se quebró en 2024. Esta vista
+      profundiza en esos hallazgos: el <strong>Slice</strong> aísla una sola región para ver qué
+      departamentos concentran el riesgo y si la continuidad del servicio cambia la calidad; el
+      <strong>Dice</strong> combina región, periodo y sistema para medir el quiebre por trimestre,
+      compararlo con un periodo equivalente y revisar si se mantuvo cuando se recuperó el
+      almacenamiento.
+    </p>
+    <p class="small text-muted mb-0">
+      <strong>Fuente:</strong> modelo estrella <code>etapa5/calidad_agua_dw.db</code>, cargado desde
+      el dataset tratado en la etapa 3 (<strong>12.680</strong> mediciones diarias de
+      <strong>29</strong> municipios, del <strong>2019-01-01</strong> al <strong>2025-12-31</strong>).
+      Los datos son sintéticos: describen este conjunto de datos, no el sistema real.
+    </p>
+  </div>
+</div>
+
+<!-- ================= 3. DIMENSIONES, MEDIDAS Y JERARQUIAS ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Dimensiones, medidas y jerarquías utilizadas</h2>
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>Dimensión</th><th>Atributos / jerarquía</th></tr></thead>
+          <tbody>
+            <tr><td>Geografía</td><td>tipo_region &rarr; departamento &rarr; municipio</td></tr>
+            <tr><td>Tiempo</td><td>año &rarr; trimestre &rarr; mes &rarr; día</td></tr>
+            <tr><td>Sistema</td><td>Chingaza, Sur, Tibitoc, Fuera de cobertura EAAB</td></tr>
+            <tr><td>Servicio</td><td>Continuo, Intermitente, Racionado, Sin servicio</td></tr>
+            <tr><td>Riesgo</td><td>grupo_riesgo &rarr; clasificación del IRCA</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-lg-7">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>Medida</th><th>Unidad</th><th>Cálculo y denominador</th></tr></thead>
+          <tbody>
+            {% for nombre, m in medidas.items() %}
+            <tr><td>{{ m[1] }}</td><td>{{ m[2] }}</td><td>{{ m[3] }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="small text-muted mt-2 mb-0">
+      Al cambiar un filtro, todas las medidas se recalculan desde la tabla de hechos con la selección
+      activa; ningún porcentaje ni promedio se obtiene sumando o promediando los de otros grupos.
+      En los datos, "Fuera de cobertura EAAB" coincide siempre con la región Nacional y los sistemas
+      Chingaza, Sur y Tibitoc con la Regional; por eso el Dice cruza estas dimensiones con el tiempo
+      y no solo entre sí.
+    </p>
+  </div>
+</div>
+
+<!-- ======================================================================
+     SLICE
+     ====================================================================== -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge bg-primary op-badge">Slice</span>
+      <h2 class="h6 mb-0">Fijar un valor de una dimensión y estudiar el subconjunto</h2>
+    </div>
+
+    <!-- Controles del slice -->
+    <form id="formSlice" class="row g-2 align-items-end">
+      <div class="col-sm-6 col-lg-2">
+        <label for="sDimension" class="form-label small mb-1">Dimensión a cortar</label>
+        <select id="sDimension" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <label for="sValor" class="form-label small mb-1">Valor del corte</label>
+        <select id="sValor" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <label for="sNivel" class="form-label small mb-1">Nivel de detalle</label>
+        <select id="sNivel" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <label for="sMedida" class="form-label small mb-1">Medida principal</label>
+        <select id="sMedida" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <label for="sFilas" class="form-label small mb-1">Matriz: filas</label>
+        <select id="sFilas" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <label for="sColumnas" class="form-label small mb-1">Matriz: columnas</label>
+        <select id="sColumnas" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">Aplicar slice</button>
+        <button type="button" id="sReset" class="btn btn-outline-secondary btn-sm">Volver al ejemplo</button>
+      </div>
+    </form>
+    <div id="sError" class="alert alert-danger small py-2 mt-2 d-none"></div>
+    <div id="sSeleccion" class="seleccion-activa mt-3"></div>
+  </div>
+</div>
+
+<!-- Indicadores del slice -->
+<div class="row g-3 mb-3" id="sIndicadores"></div>
+
+<!-- Tabla por nivel del slice -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Resultado del slice por <span id="sNivelTxt"></span></h2>
+    <div class="table-responsive"><table class="table table-sm small mb-0" id="sTabla"></table></div>
+    <div class="interpretacion" id="sInterpretacion"></div>
+  </div>
+</div>
+
+<!-- Matriz del slice -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Matriz del slice: <span id="sMatrizTxt"></span></h2>
+    <p class="small text-muted mb-2">Cada celda: número de mediciones y, debajo, el % de la fila
+      (denominador: total de mediciones de la fila dentro del corte).</p>
+    <div class="table-responsive"><table class="table table-sm small matriz mb-0" id="sMatriz"></table></div>
+    <details class="mt-2"><summary class="small">Consulta SQL ejecutada</summary>
+      <pre class="sql mt-2" id="sSQL"></pre></details>
+  </div>
+</div>
+
+<!-- ======================================================================
+     DICE
+     ====================================================================== -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge bg-warning text-dark op-badge">Dice</span>
+      <h2 class="h6 mb-0">Combinar filtros sobre dos o más dimensiones</h2>
+    </div>
+
+    <!-- Controles del dice -->
+    <form id="formDice">
+      <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="form-label small mb-1 fw-semibold">Geografía: región</div>
+          <div class="checks" id="dRegion"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="form-label small mb-1 fw-semibold">Tiempo: año</div>
+          <div class="checks" id="dAnio"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="form-label small mb-1 fw-semibold">Sistema de abastecimiento</div>
+          <div class="checks" id="dSistema"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="form-label small mb-1 fw-semibold">Nivel de servicio</div>
+          <div class="checks" id="dServicio"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="form-label small mb-1 fw-semibold">Grupo de riesgo</div>
+          <div class="checks" id="dRiesgo"></div>
+        </div>
+      </div>
+      <div class="row g-2 align-items-end mt-1">
+        <div class="col-sm-6 col-lg-3">
+          <label for="dNivel" class="form-label small mb-1">Nivel de detalle</label>
+          <select id="dNivel" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="dFilas" class="form-label small mb-1">Matriz: filas</label>
+          <select id="dFilas" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="dColumnas" class="form-label small mb-1">Matriz: columnas</label>
+          <select id="dColumnas" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-sm-6 col-lg-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">Aplicar dice</button>
+          <button type="button" id="dReset" class="btn btn-outline-secondary btn-sm">Volver al ejemplo</button>
+        </div>
+      </div>
+      <p class="small text-muted mt-2 mb-0">Dentro de cada grupo, no marcar nada equivale a no filtrar
+        esa dimensión. El dice exige filtros en al menos dos dimensiones diferentes.</p>
+    </form>
+    <div id="dError" class="alert alert-danger small py-2 mt-2 d-none"></div>
+    <div id="dSeleccion" class="seleccion-activa mt-3"></div>
+  </div>
+</div>
+
+<!-- Indicadores del dice -->
+<div class="row g-3 mb-3" id="dIndicadores"></div>
+
+<!-- Tabla por nivel del dice -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Resultado del dice por <span id="dNivelTxt"></span></h2>
+    <div class="table-responsive"><table class="table table-sm small mb-0" id="dTabla"></table></div>
+    <div class="interpretacion" id="dInterpretacion"></div>
+  </div>
+</div>
+
+<!-- Matriz del dice y comparación de periodos -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Matriz del dice: <span id="dMatrizTxt"></span></h2>
+    <p class="small text-muted mb-2">Cada celda: número de mediciones y, debajo, el % de la fila
+      (denominador: total de mediciones de la fila dentro de la selección).</p>
+    <div class="table-responsive"><table class="table table-sm small matriz mb-0" id="dMatriz"></table></div>
+    <div id="dComparacionBox" class="mt-3">
+      <h3 class="h6 mb-1">Comparación con el periodo equivalente anterior</h3>
+      <p class="small text-muted mb-2">Mismos filtros de geografía, sistema, servicio y riesgo; solo
+        cambia el periodo, con la misma cantidad de años.</p>
+      <div class="table-responsive"><table class="table table-sm small mb-0" id="dComparacion"></table></div>
+    </div>
+    <details class="mt-2"><summary class="small">Consulta SQL ejecutada</summary>
+      <pre class="sql mt-2" id="dSQL"></pre></details>
+  </div>
+</div>
+
+{% endif %}
+</div>
+
+{% if hay_datos %}
+<script>
+  // ---------------- Datos que envía Flask ----------------
+  const OPCIONES   = {{ opciones|tojson }};
+  const FILTROS    = {{ filtros_info|tojson }};   // nombre -> [columna, etiqueta, dimensión]
+  const NIVELES    = {{ niveles|tojson }};        // nombre -> [columna, orden, etiqueta]
+  const MEDIDAS    = {{ medidas|tojson }};        // nombre -> [sql, etiqueta, unidad, denominador]
+  const SLICE_INI  = {{ slice_inicial|tojson }};
+  const DICE_INI   = {{ dice_inicial|tojson }};
+  const URL_DATOS  = "{{ url_for('etapa5_slice_dice_datos') }}";
+  let datosSlice   = {{ slice_json|safe }};
+  let datosDice    = {{ dice_json|safe }};
+
+  const COLUMNAS_TABLA = ["mediciones", "municipios", "irca_promedio", "pct_riesgo_alto",
+                          "pct_continuo", "pct_interrumpido", "almacenamiento"];
+  const IND_SLICE = ["mediciones", "irca_promedio", "pct_riesgo_alto", "pct_continuo"];
+  const IND_DICE  = ["mediciones", "pct_continuo", "pct_interrumpido", "almacenamiento"];
+  const COLS_MATRIZ = {servicio: "Nivel de servicio", riesgo: "Grupo de riesgo"};
+  const DIM_SLICE = ["region", "departamento", "anio", "sistema", "servicio", "riesgo"];
+
+  // ---------------- Utilidades ----------------
+  const $ = id => document.getElementById(id);
+  // unidad "%" -> 46,4 %   |   unidad "pp" -> 13,9 p.p. (diferencia entre porcentajes)
+  function fmt(v, unidad) {
+    if (v === null || v === undefined) return "—";
+    const dec = (unidad === "%" || unidad === "pp") ? 1 : (Number.isInteger(v) ? 0 : 2);
+    const txt = Number(v).toLocaleString("es-CO", {minimumFractionDigits: dec, maximumFractionDigits: dec});
+    if (unidad === "%") return txt + " %";
+    if (unidad === "pp") return txt + " p.p.";
+    return txt;
+  }
+  const etiquetaMedida = m => MEDIDAS[m][1];
+  const unidadMedida   = m => MEDIDAS[m][2];
+  function llenarSelect(sel, pares, valor) {
+    sel.innerHTML = pares.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+    if (valor !== undefined) sel.value = valor;
+  }
+  function llenarChecks(div, nombre, valores, marcados) {
+    div.innerHTML = valores.map((v, i) => `
+      <div class="form-check small">
+        <input class="form-check-input" type="checkbox" name="${nombre}" value="${v}" id="${nombre}${i}"
+               ${marcados.map(String).includes(String(v)) ? "checked" : ""}>
+        <label class="form-check-label" for="${nombre}${i}">${v}</label>
+      </div>`).join("");
+  }
+
+  // ---------------- Pintar resultados ----------------
+  function pintarIndicadores(id, datos, claves) {
+    $(id).innerHTML = claves.map(k => `
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+          <div class="lbl">${etiquetaMedida(k)}</div>
+          <h3>${fmt(datos.indicadores[k], unidadMedida(k))}</h3>
+          <div class="ctx">Total sin filtro: ${fmt(datos.contexto[k], unidadMedida(k))}</div>
+          <div class="ctx">${MEDIDAS[k][3]}</div>
+        </div></div>
+      </div>`).join("");
+  }
+
+  function pintarTabla(id, datos) {
+    const cab = `<thead><tr><th>${datos.nivel}</th>` +
+      COLUMNAS_TABLA.map(k => `<th class="text-end">${etiquetaMedida(k)}</th>`).join("") + "</tr></thead>";
+    const filas = datos.tabla.map(f => `<tr><td>${f.grupo}</td>` +
+      COLUMNAS_TABLA.map(k => `<td class="text-end">${fmt(f[k], unidadMedida(k))}</td>`).join("") + "</tr>").join("");
+    $(id).innerHTML = cab + "<tbody>" + filas + "</tbody>";
+  }
+
+  function pintarMatriz(id, m) {
+    const cab = `<thead><tr><th>${m.etiqueta_filas}</th>` +
+      m.columnas.map(c => `<th>${c}</th>`).join("") + "<th>Total</th></tr></thead>";
+    const filas = m.filas.map(f => `<tr><td>${f.grupo}</td>` +
+      f.conteos.map((c, i) => `<td>${fmt(c)}<div class="pct">${fmt(f.porcentajes[i], "%")}</div></td>`).join("") +
+      `<td><strong>${fmt(f.total)}</strong></td></tr>`).join("");
+    const pie = `<tr class="table-light"><td><strong>Total</strong></td>` +
+      m.totales.map(t => `<td><strong>${fmt(t)}</strong><div class="pct">${fmt(m.total_general ? 100 * t / m.total_general : null, "%")}</div></td>`).join("") +
+      `<td><strong>${fmt(m.total_general)}</strong></td></tr>`;
+    $(id).innerHTML = cab + "<tbody>" + filas + pie + "</tbody>";
+  }
+
+  function pintarSeleccion(id, datos) {
+    $(id).innerHTML = `<strong>Selección activa (${datos.operacion}):</strong> ${datos.seleccion}
+      &nbsp;·&nbsp; <strong>Dimensiones filtradas:</strong> ${datos.dimensiones_filtradas.join(", ")}
+      &nbsp;·&nbsp; <strong>Nivel:</strong> ${datos.nivel}
+      &nbsp;·&nbsp; <strong>Mediciones en el subconjunto:</strong> ${fmt(datos.indicadores.mediciones)}
+      de ${fmt(datos.contexto.mediciones)}`;
+  }
+
+  function extremos(tabla, medida) {
+    const validas = tabla.filter(f => f[medida] !== null && f[medida] !== undefined);
+    if (!validas.length) return null;
+    const orden = [...validas].sort((a, b) => b[medida] - a[medida]);
+    return {max: orden[0], min: orden[orden.length - 1], n: validas.length};
+  }
+
+  function interpretar(datos, medida) {
+    const u = unidadMedida(medida), e = extremos(datos.tabla, medida);
+    let txt = `Con la selección <em>${datos.seleccion}</em>, ${etiquetaMedida(medida).toLowerCase()} es
+      <strong>${fmt(datos.indicadores[medida], u)}</strong>, frente a ${fmt(datos.contexto[medida], u)} en el total
+      sin filtrar.`;
+    if (e && e.n > 1) {
+      txt += ` Por ${datos.nivel.toLowerCase()}, el valor más alto es <strong>${e.max.grupo}</strong>
+        (${fmt(e.max[medida], u)}) y el más bajo <strong>${e.min.grupo}</strong> (${fmt(e.min[medida], u)}),
+        una diferencia de ${fmt(Math.abs(e.max[medida] - e.min[medida]), u === "%" ? "pp" : undefined)}${u === "%" ? "" : " " + u + "."}`;
+    }
+    txt += " Las cifras describen asociaciones en este conjunto de datos, no causas.";
+    return txt;
+  }
+
+  function pintarComparacion(datos) {
+    if (!datos.comparacion) {
+      $("dComparacionBox").classList.add("d-none");
+      return;
+    }
+    $("dComparacionBox").classList.remove("d-none");
+    const claves = ["mediciones", "pct_continuo", "pct_interrumpido", "almacenamiento", "irca_promedio"];
+    const [a, b] = datos.comparacion;
+    const cab = "<thead><tr><th>Periodo</th>" + claves.map(k => `<th class="text-end">${etiquetaMedida(k)}</th>`).join("") + "</tr></thead>";
+    const fila = p => `<tr><td>${p.periodo}</td>` + claves.map(k => `<td class="text-end">${fmt(p[k], unidadMedida(k))}</td>`).join("") + "</tr>";
+    const dif = `<tr class="table-light"><td><strong>Cambio</strong></td>` + claves.map(k => {
+      if (a[k] === null || b[k] === null) return "<td class='text-end'>—</td>";
+      const d = b[k] - a[k];
+      const u = unidadMedida(k) === "%" ? "pp" : undefined;
+      return `<td class="text-end"><strong>${d > 0 ? "+" : ""}${fmt(Math.round(d * 100) / 100, u)}</strong></td>`;
+    }).join("") + "</tr>";
+    $("dComparacion").innerHTML = cab + "<tbody>" + fila(a) + fila(b) + dif + "</tbody>";
+  }
+
+  function pintarSlice() {
+    const d = datosSlice;
+    pintarSeleccion("sSeleccion", d);
+    pintarIndicadores("sIndicadores", d, IND_SLICE);
+    $("sNivelTxt").textContent = d.nivel.toLowerCase();
+    pintarTabla("sTabla", d);
+    $("sInterpretacion").innerHTML = interpretar(d, $("sMedida").value);
+    $("sMatrizTxt").textContent = `${d.matriz.etiqueta_filas} × ${COLS_MATRIZ[$("sColumnas").value]}`;
+    pintarMatriz("sMatriz", d.matriz);
+    $("sSQL").textContent = d.sql;
+  }
+
+  function pintarDice() {
+    const d = datosDice;
+    pintarSeleccion("dSeleccion", d);
+    pintarIndicadores("dIndicadores", d, IND_DICE);
+    $("dNivelTxt").textContent = d.nivel.toLowerCase();
+    pintarTabla("dTabla", d);
+    $("dInterpretacion").innerHTML = interpretar(d, "pct_continuo");
+    $("dMatrizTxt").textContent = `${d.matriz.etiqueta_filas} × ${COLS_MATRIZ[$("dColumnas").value]}`;
+    pintarMatriz("dMatriz", d.matriz);
+    pintarComparacion(d);
+    $("dSQL").textContent = d.sql;
+  }
+
+  // ---------------- Pedir datos a Flask ----------------
+  function consultar(params, alTerminar, idError) {
+    $(idError).classList.add("d-none");
+    fetch(URL_DATOS + "?" + params.toString())
+      .then(r => r.json().then(j => ({ok: r.ok, j})))
+      .then(({ok, j}) => {
+        if (!ok) { $(idError).textContent = j.error; $(idError).classList.remove("d-none"); return; }
+        alTerminar(j);
+      })
+      .catch(() => { $(idError).textContent = "No se pudo consultar el modelo."; $(idError).classList.remove("d-none"); });
+  }
+
+  function aplicarSlice(ev) {
+    if (ev) ev.preventDefault();
+    const p = new URLSearchParams({op: "slice", dimension: $("sDimension").value, valor: $("sValor").value,
+      nivel: $("sNivel").value, filas: $("sFilas").value, columnas: $("sColumnas").value});
+    consultar(p, j => { datosSlice = j; pintarSlice(); }, "sError");
+  }
+
+  function aplicarDice(ev) {
+    if (ev) ev.preventDefault();
+    const p = new URLSearchParams({op: "dice", nivel: $("dNivel").value, filas: $("dFilas").value,
+      columnas: $("dColumnas").value});
+    document.querySelectorAll("#formDice input[type=checkbox]:checked").forEach(c => p.append(c.name, c.value));
+    consultar(p, j => { datosDice = j; pintarDice(); }, "dError");
+  }
+
+  // ---------------- Controles ----------------
+  const paresNiveles = Object.entries(NIVELES).map(([k, v]) => [k, v[2]]);
+  const paresMatriz  = Object.entries(COLS_MATRIZ);
+
+  function valoresSlice() {
+    const dim = $("sDimension").value;
+    llenarSelect($("sValor"), OPCIONES[dim].map(v => [v, v]));
+  }
+
+  function iniciarSlice() {
+    llenarSelect($("sDimension"), DIM_SLICE.map(k => [k, `${FILTROS[k][1]} (${FILTROS[k][2]})`]), SLICE_INI.dimension);
+    valoresSlice();
+    $("sValor").value = SLICE_INI.valor;
+    llenarSelect($("sNivel"), paresNiveles, SLICE_INI.nivel);
+    llenarSelect($("sMedida"), Object.keys(MEDIDAS).filter(k => k !== "mediciones" && k !== "municipios")
+      .map(k => [k, etiquetaMedida(k)]), "pct_riesgo_alto");
+    llenarSelect($("sFilas"), paresNiveles, SLICE_INI.filas);
+    llenarSelect($("sColumnas"), paresMatriz, SLICE_INI.columnas);
+  }
+
+  function iniciarDice() {
+    const f = DICE_INI.filtros;
+    llenarChecks($("dRegion"),   "region",   OPCIONES.region,   f.region   || []);
+    llenarChecks($("dAnio"),     "anio",     OPCIONES.anio,     f.anio     || []);
+    llenarChecks($("dSistema"),  "sistema",  OPCIONES.sistema,  f.sistema  || []);
+    llenarChecks($("dServicio"), "servicio", OPCIONES.servicio, f.servicio || []);
+    llenarChecks($("dRiesgo"),   "riesgo",   OPCIONES.riesgo,   f.riesgo   || []);
+    llenarSelect($("dNivel"), paresNiveles, DICE_INI.nivel);
+    llenarSelect($("dFilas"), paresNiveles, DICE_INI.filas);
+    llenarSelect($("dColumnas"), paresMatriz, DICE_INI.columnas);
+  }
+
+  $("sDimension").addEventListener("change", valoresSlice);
+  $("sMedida").addEventListener("change", pintarSlice);
+  $("formSlice").addEventListener("submit", aplicarSlice);
+  $("sReset").addEventListener("click", () => { iniciarSlice(); aplicarSlice(); });
+  $("formDice").addEventListener("submit", aplicarDice);
+  $("dReset").addEventListener("click", () => { iniciarDice(); aplicarDice(); });
+
+  iniciarSlice();
+  iniciarDice();
+  pintarSlice();
+  pintarDice();
+</script>
+{% endif %}
+{% endblock %}
