@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+  }
+  .viz-root .plot-box { background: var(--surface-1); border-radius: .5rem; }
+  .viz-root .interpretacion {
+    font-size: .88rem; color: var(--text-secondary);
+    border-left: 3px solid var(--gridline); padding: .5rem .9rem; margin-top: .5rem;
+  }
+  .viz-root .stat-tile h3 { color: var(--text-primary); font-size: 1.5rem; margin: 0; }
+  .viz-root .stat-tile .lbl { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .viz-root .stat-tile .ctx { font-size: .76rem; color: var(--text-muted); }
+  .viz-root .seleccion-activa { background: #eaf2fe; border-left: 4px solid #0d6efd; padding: .5rem .9rem; font-size: .88rem; }
+  .viz-root .op-badge { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+  .viz-root .matriz td, .viz-root .matriz th { text-align: right; white-space: nowrap; }
+  .viz-root .matriz td:first-child, .viz-root .matriz th:first-child { text-align: left; }
+  .viz-root .matriz .pct { color: var(--text-muted); font-size: .72rem; }
+  .viz-root .matriz .tot { background: #f3f4f6; font-weight: 600; }
+  .viz-root .matriz th.esquina { font-size: .72rem; color: var(--text-muted); }
+  .viz-root .grafica { min-height: 340px; }
+  .viz-root pre.sql { background: #0d2137; color: #e8eef5; border-radius: 8px; padding: 12px 14px;
+    font-size: .74rem; white-space: pre; overflow-x: auto; margin: 0; }
+  .viz-root .btn-pivot { font-weight: 600; }
+  .viz-root .orientacion { font-size: .8rem; }
+  .viz-root .orientacion .eje { display: inline-block; padding: .1rem .5rem; border-radius: .3rem; font-weight: 600; }
+  .viz-root .orientacion .eje-f { background: #e7f0fd; color: #1c5fb0; }
+  .viz-root .orientacion .eje-c { background: #fdeee6; color: #b4501f; }
+  .viz-root .val-ok { color: #198754; font-weight: 600; }
+  .viz-root .val-no { color: #d03b3b; font-weight: 600; }
+  .conocimiento dt { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-top: .6rem; }
+  .conocimiento dd { margin-bottom: 0; }
+</style>
+
+<div class="viz-root">
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h1 class="h4 mb-1">Etapa 5 &middot; Análisis multidimensional &middot; Pivot</h1>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+</div>
+
+{% if not hay_datos %}
+<div class="alert alert-warning">
+  No se encontró la base <code>etapa5/calidad_agua_dw.db</code>. Créala con
+  <code>python etapa5/cargar_modelo.py</code> y vuelve a cargar esta página.
+</div>
+{% else %}
+
+<!-- ================= 1. TITULO Y 2. PREGUNTA ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">Continuidad del servicio y disponibilidad del agua vistas desde otra perspectiva</h2>
+    <p class="mb-2">
+      <strong>Pregunta de análisis:</strong> ¿qué cambia en la lectura de la continuidad del servicio
+      cuando se rota la matriz territorio &times; tiempo, y qué medida de disponibilidad se movió
+      primero antes del racionamiento de la Sabana?
+    </p>
+    <p class="small text-muted mb-2">
+      <strong>Relación con la etapa 4:</strong> el conocimiento evidente mostró que la región Nacional
+      tiene peor calidad del agua y que el servicio continuo de la Sabana cayó en 2024 y 2025. Esos
+      resultados se leían en una sola disposición (cada región o cada año por separado). El
+      <strong>Pivot</strong> cambia la disposición de las dimensiones: al pasar de <em>región &times;
+      año</em> a <em>año &times; región</em> se compara a las dos regiones dentro de cada año, y al
+      pasar de <em>trimestre &times; medidas</em> a <em>medidas &times; trimestre</em> cada medida se lee
+      como una serie para ver cuál cambió primero.
+    </p>
+    <p class="small text-muted mb-0">
+      <strong>Fuente:</strong> modelo estrella <code>etapa5/calidad_agua_dw.db</code>, cargado desde
+      el dataset tratado en la etapa 3 (<strong>12.680</strong> mediciones diarias de
+      <strong>29</strong> municipios, del <strong>2019-01-01</strong> al <strong>2025-12-31</strong>).
+      Los datos son sintéticos: describen este conjunto de datos, no el sistema real.
+    </p>
+  </div>
+</div>
+
+<!-- ================= 3. DIMENSIONES, MEDIDAS Y JERARQUIAS ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Dimensiones, medidas y jerarquías utilizadas</h2>
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>Dimensión</th><th>Atributos / jerarquía (ejes del pivot)</th></tr></thead>
+          <tbody>
+            <tr><td>Geografía</td><td>tipo_region &rarr; departamento &rarr; municipio</td></tr>
+            <tr><td>Tiempo</td><td>año &rarr; trimestre &rarr; mes</td></tr>
+            <tr><td>Sistema</td><td>Chingaza, Sur, Tibitoc, Fuera de cobertura EAAB</td></tr>
+            <tr><td>Servicio</td><td>Continuo, Intermitente, Racionado, Sin servicio</td></tr>
+            <tr><td>Riesgo</td><td>grupo_riesgo &rarr; clasificación del IRCA</td></tr>
+            <tr><td><em>Medidas</em></td><td>Eje especial: las medidas pueden ocupar las filas o las columnas</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-lg-7">
+        <table class="table table-sm small mb-0">
+          <thead><tr><th>Medida</th><th>Unidad</th><th>Cálculo y denominador</th></tr></thead>
+          <tbody>
+            {% for nombre, m in medidas.items() if nombre != 'municipios' %}
+            <tr><td>{{ m[1] }}</td><td>{{ m[2] }}</td><td>{{ m[3] }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="small text-muted mt-2 mb-0">
+      El pivot no cambia los valores, solo su disposición. Cada celda y cada total se recalculan desde
+      la tabla de hechos con su propio <code>GROUP BY</code>: los totales de fila y de columna no son la
+      suma ni el promedio de las celdas.
+    </p>
+  </div>
+</div>
+
+<!-- ================= 4. CONTROLES DEL PIVOT ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge bg-success op-badge">Pivot</span>
+      <h2 class="h6 mb-0">Cambiar la disposición de las dimensiones en la matriz</h2>
+    </div>
+
+    <form id="formPivot">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-6 col-lg-3">
+          <label for="pFilas" class="form-label small mb-1">Filas</label>
+          <select id="pFilas" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-sm-6 col-lg-1 d-flex">
+          <button type="button" id="pRotar" class="btn btn-success btn-sm btn-pivot w-100"
+                  title="Intercambiar filas y columnas">&#8644; Pivotar</button>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="pColumnas" class="form-label small mb-1">Columnas</label>
+          <select id="pColumnas" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-sm-6 col-lg-3" id="pMedidaBox">
+          <label for="pMedida" class="form-label small mb-1">Medida de las celdas</label>
+          <select id="pMedida" class="form-select form-select-sm"></select>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-12 col-lg-4 d-none" id="pMedidasBox">
+          <div class="form-label small mb-1 fw-semibold">Medidas del eje "Medidas"</div>
+          <div id="pMedidas"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="form-label small mb-1 fw-semibold">Filtro: región</div>
+          <div id="pRegion"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="form-label small mb-1 fw-semibold">Filtro: año</div>
+          <div id="pAnio"></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="form-label small mb-1 fw-semibold">Filtro: sistema</div>
+          <div id="pSistema"></div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button type="submit" class="btn btn-primary btn-sm">Aplicar</button>
+        <button type="button" id="pEj1" class="btn btn-outline-secondary btn-sm">Ejemplo 1: región &times; año</button>
+        <button type="button" id="pEj2" class="btn btn-outline-secondary btn-sm">Ejemplo 2: trimestre &times; medidas</button>
+      </div>
+      <p class="small text-muted mt-2 mb-0">El botón <strong>Pivotar</strong> intercambia filas y
+        columnas. También se puede rotar cambiando cualquiera de los dos ejes por otra dimensión o por
+        las medidas. En los filtros, no marcar nada equivale a no filtrar esa dimensión.</p>
+    </form>
+    <div id="pError" class="alert alert-danger small py-2 mt-2 d-none"></div>
+    <div id="pSeleccion" class="seleccion-activa mt-3"></div>
+  </div>
+</div>
+
+<!-- ================= 5. INDICADORES ================= -->
+<div class="row g-3 mb-3" id="pIndicadores"></div>
+
+<!-- ================= 6. VISUALIZACION 1: MAPA DE CALOR DE LA MATRIZ ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Visualización 1. Mapa de calor de la matriz: <span id="pCalorTxt"></span></h2>
+    <p class="small text-muted mb-2" id="pCalorNota"></p>
+    <div class="plot-box"><div id="pCalor" class="grafica"></div></div>
+  </div>
+</div>
+
+<!-- ================= 7. MATRIZ ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Matriz pivot: <span id="pMatrizTxt"></span></h2>
+    <p class="small text-muted mb-2" id="pMatrizNota"></p>
+    <div class="table-responsive"><table class="table table-sm small matriz mb-0" id="pMatriz"></table></div>
+    <div class="interpretacion" id="pInterpretacion"></div>
+    <details class="mt-2"><summary class="small">Consulta SQL ejecutada</summary>
+      <pre class="sql mt-2" id="pSQL"></pre></details>
+  </div>
+</div>
+
+<!-- ================= 8. VISUALIZACION 2: SERIES SEGUN LA ORIENTACION ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-1">Visualización 2. <span id="pSeriesTxt"></span></h2>
+    <p class="small text-muted mb-2" id="pSeriesNota"></p>
+    <div class="plot-box"><div id="pSeries" class="grafica"></div></div>
+  </div>
+</div>
+
+<!-- ================= 9. VALIDACION ================= -->
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h6 text-primary mb-2">Validación del pivot (se recalcula con cada selección)</h2>
+    <table class="table table-sm small mb-0" id="pValidacion"></table>
+  </div>
+</div>
+
+<!-- ================= 10. CONOCIMIENTOS ================= -->
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <h2 class="h6 text-primary mb-0">Conocimiento 1. Al rotar la matriz, la Sabana pasa de tener el
+        mejor servicio a tener el peor desde 2024</h2>
+      <button type="button" id="verK1" class="btn btn-outline-primary btn-sm">Ver esta selección</button>
+    </div>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>¿En qué año la región Regional deja de tener mejor continuidad que la Nacional, y la caída es
+        una tendencia del país o solo de la Sabana?</dd>
+      <dt>Dimensiones y medidas</dt>
+      <dd>Geografía (tipo_region) y Tiempo (año). Medida: % servicio continuo (denominador: todas las
+        mediciones del grupo).</dd>
+      <dt>Procedimiento</dt>
+      <dd><strong>Pivot</strong> de la matriz <em>región &times; año</em> (orientación A) a
+        <em>año &times; región</em> (orientación B), sin filtros, sobre las 12.680 mediciones. La
+        Visualización 2 cambia de barras por región a dos líneas, una por región.</dd>
+      <dt>Evidencia</dt>
+      <dd>Matriz pivot, mapa de calor y Visualización 2 en las dos orientaciones; consultas P1, P2 y P3
+        de <code>etapa5/sql/04_consultas_pivot.sql</code>.</dd>
+      <dt>Hallazgo</dt>
+      <dd>Entre 2019 y 2023 la Regional tiene 100 % de servicio continuo y la Nacional entre 48,8 % y
+        51,5 %, unos 50 p.p. menos. En 2024 la relación se invierte: la Regional baja a 43,9 % y queda
+        8,1 p.p. por debajo de la Nacional (52,1 %); en 2025 la diferencia llega a 25,6 p.p. (23,8 %
+        frente a 49,4 %). La Nacional no cambió: su rango en los siete años es de solo 3,3 p.p.</dd>
+      <dt>Interpretación</dt>
+      <dd>La etapa 4 mostró la caída de la Sabana en 2024-2025. Leída por región (orientación A) parece
+        solo una caída; rotada por año (orientación B) muestra que en 2024 la Sabana pasó a tener peor
+        continuidad que el resto del país, que se mantuvo estable. La caída del total (de 80 % a 34 %)
+        se debe solo a la región Regional.</dd>
+      <dt>Utilidad</dt>
+      <dd>Evita leer la caída del total como un problema nacional: las acciones de continuidad deben
+        centrarse en la Sabana, y la Nacional se debe vigilar por calidad, no por continuidad.</dd>
+      <dt>Limitación</dt>
+      <dd>La región Regional tiene 9 municipios y la Nacional 20; la comparación es entre grupos, no entre
+        municipios. Es una asociación en datos sintéticos, no una relación causal.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3 conocimiento">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <h2 class="h6 text-primary mb-0">Conocimiento 2. En la Sabana el almacenamiento cayó cinco
+        trimestres antes del racionamiento</h2>
+      <button type="button" id="verK2" class="btn btn-outline-primary btn-sm">Ver esta selección</button>
+    </div>
+    <dl class="mb-0">
+      <dt>Pregunta</dt>
+      <dd>Antes del racionamiento de 2024, ¿qué medida de disponibilidad cambió primero en la región
+        Regional y cuánto tiempo pasó hasta que cayó la continuidad?</dd>
+      <dt>Dimensiones y medidas</dt>
+      <dd>Tiempo (año &rarr; trimestre) y Geografía (filtro tipo_region = 'Regional'). Medidas:
+        almacenamiento promedio (%), precipitación promedio (mm) y % servicio continuo (denominador:
+        todas las mediciones del grupo).</dd>
+      <dt>Procedimiento</dt>
+      <dd>Filtros región Regional y años 2022 a 2025 (4.348 mediciones). <strong>Pivot</strong> de la
+        matriz <em>trimestre &times; medidas</em> a <em>medidas &times; trimestre</em>: las medidas pasan
+        a las filas y cada una se lee como una serie. La Visualización 2 muestra cada medida como índice
+        (2022-T1 = 100) para comparar su recorrido en un solo eje.</dd>
+      <dt>Evidencia</dt>
+      <dd>Matriz pivot y Visualización 2 en las dos orientaciones; consultas P4 y P5 de
+        <code>etapa5/sql/04_consultas_pivot.sql</code>.</dd>
+      <dt>Hallazgo</dt>
+      <dd>En 2022 el almacenamiento promedio fue 70,8 % y la precipitación 2,97 mm. En 2023-T1 el
+        almacenamiento bajó a 46,4 % y la precipitación a 1,17 mm, y el almacenamiento quedó por debajo
+        de 60 % durante cinco trimestres seguidos (2023-T1 a 2024-T1, mínimo 41,0 %) con el servicio
+        100 % continuo. El racionamiento empezó en 2024-T2 (26,4 % continuo), cuando el almacenamiento
+        estaba en 38,4 %.</dd>
+      <dt>Interpretación</dt>
+      <dd>La rotación muestra que la precipitación y el almacenamiento se movieron primero y que la
+        continuidad respondió con unos cinco trimestres de rezago. Junto con el conocimiento 2 del dice
+        (el racionamiento siguió en 2025 aunque el almacenamiento se recuperó), el racionamiento llegó
+        tarde y salió tarde frente al nivel de los embalses. Como hipótesis, la decisión no se tomó con
+        un umbral de almacenamiento definido.</dd>
+      <dt>Utilidad</dt>
+      <dd>Permite usar el almacenamiento trimestral como señal de alerta temprana: un nivel por debajo
+        de 60 % anticipó en estos datos la pérdida de continuidad.</dd>
+      <dt>Limitación</dt>
+      <dd>El modelo no incluye la decisión de racionamiento ni las afluencias; el almacenamiento y la
+        precipitación son promedios de las mediciones de los municipios, no el nivel diario de cada
+        embalse. Se excluyen del promedio de precipitación las mediciones sin dato. Es una asociación en
+        datos sintéticos.</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ================= 11. LIMITACION Y 12. DECISION ================= -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Limitación del análisis</h2>
+        <p class="small mb-0">El pivot reorganiza los resultados, pero no agrega información nueva: si
+          las dimensiones de los ejes dependen entre sí (por ejemplo, sistema y región), la matriz rotada
+          tiene celdas vacías. Cuando las medidas ocupan un eje, tienen unidades diferentes (% y mm), así
+          que el mapa de calor colorea cada medida con su propia escala y el total general no aplica.
+          Los datos son sintéticos: los resultados describen este conjunto de datos, no el sistema real.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h6 text-primary mb-2">Decisión sustentada en los datos</h2>
+        <p class="small mb-0">Concentrar las acciones de continuidad en la región Regional y adoptar
+          una alerta temprana con el almacenamiento trimestral: cuando el promedio baje de 60 %, activar
+          medidas preventivas de ahorro y planear el racionamiento, en lugar de esperar más de un año
+          como ocurrió entre 2023-T1 y 2024-T2. La región Nacional no necesita esta medida: su
+          continuidad fue estable (48,8 % a 52,1 %) y su prioridad sigue siendo la calidad del agua.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+</div>
+
+{% if hay_datos %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+  // ---------------- Datos que envía Flask ----------------
+  const OPCIONES  = {{ opciones|tojson }};
+  const EJES      = {{ ejes|tojson }};        // nombre -> [columna, orden, etiqueta, dimensión]
+  const MEDIDAS   = {{ medidas|tojson }};     // nombre -> [sql, etiqueta, unidad, denominador]
+  const PIVOT_INI = {{ pivot_inicial|tojson }};
+  const PIVOT2_INI = {{ pivot2_inicial|tojson }};
+  const URL_DATOS = "{{ url_for('etapa5_pivot_datos') }}";
+  let datos       = {{ pivot_json|safe }};
+
+  const EJES_TIEMPO = ["anio", "trimestre", "mes"];
+  const COLOR_F = "#2a78d6", COLOR_C = "#eb6834";
+  const PALETA = ["#2a78d6", "#eb6834", "#1baf7a", "#8a5cd1", "#d03b3b", "#c99a06", "#3aa6b8", "#7a7a7a"];
+
+  // ---------------- Utilidades ----------------
+  const $ = id => document.getElementById(id);
+  function fmt(v, unidad) {
+    if (v === null || v === undefined) return "—";
+    const dec = (unidad === "%" || unidad === "pp") ? 1 : (unidad === "mm" ? 2 : (Number.isInteger(v) ? 0 : 2));
+    const txt = Number(v).toLocaleString("es-CO", {minimumFractionDigits: dec, maximumFractionDigits: dec});
+    if (unidad === "%") return txt + " %";
+    if (unidad === "pp") return txt + " p.p.";
+    if (unidad === "mm") return txt + " mm";
+    return txt;
+  }
+  const etqEje = e => e === "medidas" ? "Medidas" : EJES[e][2];
+  function llenarSelect(sel, pares, valor) {
+    sel.innerHTML = pares.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+    if (valor !== undefined) sel.value = valor;
+  }
+  function llenarChecks(div, nombre, valores, marcados, etiquetas) {
+    div.innerHTML = valores.map((v, i) => `
+      <div class="form-check small">
+        <input class="form-check-input" type="checkbox" name="${nombre}" value="${v}" id="${nombre}${i}"
+               ${marcados.map(String).includes(String(v)) ? "checked" : ""}>
+        <label class="form-check-label" for="${nombre}${i}">${etiquetas ? etiquetas[i] : v}</label>
+      </div>`).join("");
+  }
+  const marcados = nombre => [...document.querySelectorAll(`input[name="${nombre}"]:checked`)].map(i => i.value);
+
+  // unidad de una celda (i, j) según el tipo de matriz
+  function unidadCelda(d, i, j) {
+    if (d.tipo === "dimensiones") return d.unidad;
+    return d.unidades_columnas ? d.unidades_columnas[j] : d.unidades_filas[i];
+  }
+
+  // ---------------- Pintar ----------------
+  function pintarSeleccion(d) {
+    $("pSeleccion").innerHTML = `<strong>Selección activa (Pivot):</strong> ${d.seleccion}
+      &nbsp;·&nbsp; <span class="orientacion">Filas: <span class="eje eje-f">${d.etiqueta_filas}</span>
+      &nbsp;Columnas: <span class="eje eje-c">${d.etiqueta_columnas}</span></span>
+      &nbsp;·&nbsp; <strong>Celdas:</strong> ${d.medida_etiqueta}
+      &nbsp;·&nbsp; <strong>Mediciones:</strong> ${fmt(d.n_total)} de ${fmt(d.contexto.mediciones)}`;
+  }
+
+  function celdasValidas(d) {
+    const out = [];
+    d.valores.forEach((fila, i) => fila.forEach((v, j) => {
+      if (v !== null && v !== undefined) out.push({v, i, j});
+    }));
+    return out;
+  }
+
+  function pintarIndicadores(d) {
+    let tiles;
+    if (d.tipo === "dimensiones") {
+      const c = celdasValidas(d).sort((a, b) => b.v - a.v);
+      const max = c[0], min = c[c.length - 1];
+      const nombre = x => `${d.filas[x.i]} · ${d.columnas[x.j]}`;
+      tiles = [
+        ["Mediciones en la matriz", fmt(d.n_total), `Total sin filtro: ${fmt(d.contexto.mediciones)}`, `${d.filas.length} filas × ${d.columnas.length} columnas`],
+        [d.medida_etiqueta + " (total)", fmt(d.total_general, d.unidad), `Total sin filtro: ${fmt(d.contexto[d.medida], d.unidad)}`, d.denominador],
+        ["Celda más alta", fmt(max.v, d.unidad), nombre(max), `${fmt(d.conteos[max.i][max.j])} mediciones`],
+        ["Celda más baja", fmt(min.v, d.unidad), nombre(min), `Rango: ${fmt(max.v - min.v, d.unidad === "%" ? "pp" : d.unidad)}`],
+      ];
+    } else {
+      tiles = [["Mediciones en la matriz", fmt(d.n_total), `Total sin filtro: ${fmt(d.contexto.mediciones)}`,
+                `${d.filas.length} filas × ${d.columnas.length} columnas`]];
+      d.medidas.slice(0, 3).forEach(m => tiles.push(
+        [MEDIDAS[m][1], fmt(d.indicadores[m], MEDIDAS[m][2]), `Total sin filtro: ${fmt(d.contexto[m], MEDIDAS[m][2])}`, MEDIDAS[m][3]]));
+    }
+    $("pIndicadores").innerHTML = tiles.map(([l, v, c1, c2]) => `
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+          <div class="lbl">${l}</div><h3>${v}</h3>
+          <div class="ctx">${c1}</div><div class="ctx">${c2}</div>
+        </div></div>
+      </div>`).join("");
+  }
+
+  function pintarMatriz(d) {
+    const dims = d.tipo === "dimensiones";
+    $("pMatrizTxt").textContent = `${d.etiqueta_filas} × ${d.etiqueta_columnas}` + (dims ? ` (${d.medida_etiqueta})` : "");
+    $("pMatrizNota").innerHTML = dims
+      ? `Cada celda: ${d.medida_etiqueta.toLowerCase()} y, debajo, las mediciones que lo respaldan. ${d.denominador}.
+         Los totales se recalculan desde la tabla de hechos con su propio GROUP BY.`
+      : `Cada celda es el valor de una medida para un grupo. ${d.denominador}. No hay total entre medidas porque tienen unidades diferentes.`;
+    const cab = `<thead><tr><th class="esquina">${d.etiqueta_filas} &darr; / ${d.etiqueta_columnas} &rarr;</th>` +
+      d.columnas.map(c => `<th>${c}</th>`).join("") + (dims || d.etiqueta_columnas === "Medida" ? "" : `<th class="tot">Total</th>`) +
+      (dims ? `<th class="tot">Total</th>` : "") + "</tr></thead>";
+    const filas = d.filas.map((f, i) => `<tr><td>${f}</td>` +
+      d.valores[i].map((v, j) => `<td>${fmt(v, unidadCelda(d, i, j))}` +
+        (dims ? `<div class="pct">${fmt(d.conteos[i][j])} med.</div>` : "") + `</td>`).join("") +
+      ((dims || d.etiqueta_columnas !== "Medida") ? `<td class="tot">${fmt(d.total_fila[i], dims ? d.unidad : d.unidades_filas[i])}` +
+        `<div class="pct">${fmt(d.n_fila[i])} med.</div></td>` : "") + "</tr>").join("");
+    let pie = "";
+    if (dims || d.etiqueta_columnas === "Medida") {
+      pie = `<tr><td class="tot">Total</td>` + d.columnas.map((c, j) =>
+        `<td class="tot">${fmt(d.total_columna[j], dims ? d.unidad : d.unidades_columnas[j])}` +
+        `<div class="pct">${fmt(d.n_columna[j])} med.</div></td>`).join("") +
+        (dims ? `<td class="tot">${fmt(d.total_general, d.unidad)}<div class="pct">${fmt(d.n_total)} med.</div></td>` : "") + "</tr>";
+    }
+    $("pMatriz").innerHTML = cab + "<tbody>" + filas + pie + "</tbody>";
+    $("pSQL").textContent = d.sql;
+  }
+
+  function pintarCalor(d) {
+    const dims = d.tipo === "dimensiones";
+    $("pCalorTxt").textContent = `${d.etiqueta_filas} (filas) × ${d.etiqueta_columnas} (columnas)`;
+    $("pCalorNota").textContent = dims
+      ? `El color representa ${d.medida_etiqueta.toLowerCase()} de cada celda (más oscuro = mayor). Al pivotar, el mapa rota: lo que se leía por fila se lee por columna.`
+      : "Cada medida se colorea con su propia escala (0 = su mínimo, 1 = su máximo en la selección), porque tienen unidades diferentes; el texto muestra el valor real.";
+    let z = d.valores;
+    if (!dims) {
+      // normalizar por medida
+      const porFila = d.etiqueta_filas === "Medida";
+      const norm = arr => { const v = arr.filter(x => x !== null); const mn = Math.min(...v), mx = Math.max(...v);
+        return arr.map(x => x === null ? null : (mx === mn ? 0.5 : (x - mn) / (mx - mn))); };
+      if (porFila) z = d.valores.map(norm);
+      else { const t = d.columnas.map((_, j) => norm(d.valores.map(f => f[j]))); z = d.valores.map((f, i) => f.map((_, j) => t[j][i])); }
+    }
+    const texto = d.valores.map((f, i) => f.map((v, j) => fmt(v, unidadCelda(d, i, j))));
+    Plotly.react("pCalor", [{
+      type: "heatmap", z, x: d.columnas, y: d.filas, text: texto, texttemplate: "%{text}",
+      hovertemplate: `${d.etiqueta_filas}: %{y}<br>${d.etiqueta_columnas}: %{x}<br>Valor: %{text}<extra></extra>`,
+      colorscale: [[0, "#f1f6fd"], [1, "#1c5fb0"]], showscale: dims,
+      colorbar: dims ? {title: {text: d.unidad, side: "right"}, thickness: 12} : undefined,
+      xgap: 2, ygap: 2,
+    }], {
+      margin: {l: 170, r: 30, t: 10, b: 60}, height: Math.max(300, 34 * d.filas.length + 110),
+      xaxis: {title: {text: d.etiqueta_columnas, font: {color: COLOR_C}}, type: "category", side: "bottom"},
+      yaxis: {title: {text: d.etiqueta_filas, font: {color: COLOR_F}}, type: "category", autorange: "reversed"},
+      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: {size: 11},
+    }, {displayModeBar: false, responsive: true});
+  }
+
+  function pintarSeries(d) {
+    const dims = d.tipo === "dimensiones";
+    let trazas = [], layout = {
+      margin: {l: 60, r: 60, t: 10, b: 60}, height: 360, legend: {orientation: "h", y: -0.22},
+      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: {size: 11},
+      xaxis: {type: "category", gridcolor: "#e1e0d9"}, yaxis: {gridcolor: "#e1e0d9", zeroline: false},
+    };
+    if (dims) {
+      const temporal = EJES_TIEMPO.includes(d.filas_eje);
+      $("pSeriesTxt").textContent = `${d.medida_etiqueta}: ${d.etiqueta_filas} en el eje X, una serie por ${d.etiqueta_columnas.toLowerCase()}`;
+      $("pSeriesNota").textContent = `La gráfica sigue la orientación de la matriz: las filas van en el eje X y cada columna es una serie. ` +
+        `Al pivotar se intercambian, y la comparación pasa a hacerse entre ${d.etiqueta_filas.toLowerCase()} dentro de cada ${d.etiqueta_columnas.toLowerCase()}. ` +
+        (temporal ? "Con un eje de tiempo en X se dibujan líneas." : "Se dibujan barras agrupadas.");
+      trazas = d.columnas.map((c, j) => ({
+        name: `${d.etiqueta_columnas}: ${c}`, x: d.filas, y: d.valores.map(f => f[j]),
+        type: temporal ? "scatter" : "bar", mode: temporal ? "lines+markers" : undefined,
+        marker: {color: PALETA[j % PALETA.length]}, line: {width: 2.5},
+        text: d.valores.map((f, i) => `${fmt(f[j], d.unidad)} (${fmt(d.conteos[i][j])} med.)`),
+        hovertemplate: `%{x}<br>${c}: %{text}<extra></extra>`, textposition: "none",
+      }));
+      layout.barmode = "group";
+      layout.yaxis.title = {text: `${d.medida_etiqueta} (${d.unidad})`};
+      layout.xaxis.title = {text: d.etiqueta_filas};
+      if (d.unidad === "%") layout.yaxis.range = [0, 105];
+    } else if (d.etiqueta_columnas === "Medida") {
+      // eje en filas, medidas en columnas: valores reales (eje derecho para lo que no es %)
+      const eje = d.filas;
+      $("pSeriesTxt").textContent = `Valores reales de cada medida por ${d.etiqueta_filas.toLowerCase()}`;
+      $("pSeriesNota").textContent = "Orientación con las medidas en columnas: se leen los valores reales de cada grupo. Las medidas en % usan el eje izquierdo y la precipitación (mm) el derecho. Al pivotar, las medidas pasan a las filas y la gráfica cambia a índice para comparar su recorrido.";
+      trazas = d.medidas.map((m, j) => ({
+        name: `${MEDIDAS[m][1]} (${MEDIDAS[m][2]})`, x: eje, y: d.valores.map(f => f[j]),
+        type: "scatter", mode: "lines+markers", line: {width: 2.5, dash: MEDIDAS[m][2] === "%" ? "solid" : "dot"},
+        marker: {color: PALETA[j % PALETA.length]}, yaxis: MEDIDAS[m][2] === "%" ? "y" : "y2",
+      }));
+      layout.yaxis.title = {text: "%"}; layout.yaxis.range = [0, 105];
+      layout.yaxis2 = {title: {text: "mm"}, overlaying: "y", side: "right", showgrid: false, rangemode: "tozero"};
+      layout.xaxis.title = {text: d.etiqueta_filas};
+    } else {
+      // medidas en filas: cada medida es una serie, como índice (primera columna = 100)
+      $("pSeriesTxt").textContent = `Recorrido de cada medida como índice (${d.columnas[0]} = 100)`;
+      $("pSeriesNota").textContent = `Orientación rotada: cada fila de la matriz (una medida) es una serie. Para comparar medidas con unidades distintas en un solo eje, cada una se expresa como índice: valor ÷ valor de ${d.columnas[0]} × 100. Así se ve cuál medida se apartó primero de su nivel inicial.`;
+      trazas = d.filas.map((f, i) => {
+        const base = d.valores[i][0];
+        return {
+          name: f, x: d.columnas, y: d.valores[i].map(v => (v === null || !base) ? null : Math.round(1000 * v / base) / 10),
+          type: "scatter", mode: "lines+markers", line: {width: 2.5}, marker: {color: PALETA[i % PALETA.length]},
+          text: d.valores[i].map((v, j) => fmt(v, d.unidades_filas[i])),
+          hovertemplate: `%{x}<br>Índice: %{y}<br>Valor real: %{text}<extra>${f}</extra>`,
+        };
+      });
+      layout.yaxis.title = {text: `Índice (${d.columnas[0]} = 100)`};
+      layout.xaxis.title = {text: d.etiqueta_columnas};
+      layout.shapes = [{type: "line", xref: "paper", x0: 0, x1: 1, y0: 100, y1: 100, line: {color: "#898781", dash: "dash", width: 1}}];
+    }
+    Plotly.react("pSeries", trazas, layout, {displayModeBar: false, responsive: true});
+  }
+
+  function pintarInterpretacion(d) {
+    let txt;
+    if (d.tipo === "dimensiones") {
+      const c = celdasValidas(d).sort((a, b) => b.v - a.v), max = c[0], min = c[c.length - 1];
+      // ¿en cuántas filas cambia la columna que va primero? (cambio de perspectiva)
+      const lider = d.valores.map(f => { let b = -1, k = null; f.forEach((v, j) => { if (v !== null && v > b) { b = v; k = j; } }); return k; });
+      const cambios = new Set(lider.filter(k => k !== null)).size;
+      txt = `Con la selección <em>${d.seleccion}</em>, ${d.medida_etiqueta.toLowerCase()} total es
+        <strong>${fmt(d.total_general, d.unidad)}</strong>. La celda más alta es <strong>${d.filas[max.i]} · ${d.columnas[max.j]}</strong>
+        (${fmt(max.v, d.unidad)}) y la más baja <strong>${d.filas[min.i]} · ${d.columnas[min.j]}</strong> (${fmt(min.v, d.unidad)}).
+        Leyendo por fila (cada ${d.etiqueta_filas.toLowerCase()}), ${cambios > 1
+          ? `el ${d.etiqueta_columnas.toLowerCase()} con el valor más alto cambia entre filas: hay ${cambios} ${d.etiqueta_columnas.toLowerCase()}s distintos en primer lugar, así que la comparación depende de la fila.`
+          : `siempre lidera ${d.columnas[lider.find(k => k !== null)]}.`}
+        Pulsa <strong>Pivotar</strong> para leer la misma matriz desde la otra dimensión.`;
+    } else {
+      const porFila = d.etiqueta_filas === "Medida";
+      const grupos = porFila ? d.columnas : d.filas;
+      const serie = j => porFila ? d.valores[j] : d.valores.map(f => f[j]);
+      const partes = d.medidas.map((m, j) => {
+        const s = serie(j), v = s.filter(x => x !== null);
+        const mx = Math.max(...v), mn = Math.min(...v);
+        return `${MEDIDAS[m][1].toLowerCase()} va de ${fmt(mn, MEDIDAS[m][2])} (${grupos[s.indexOf(mn)]}) a ${fmt(mx, MEDIDAS[m][2])} (${grupos[s.indexOf(mx)]})`;
+      });
+      txt = `Con la selección <em>${d.seleccion}</em>: ${partes.join("; ")}. ` +
+        (porFila ? "Con las medidas en las filas, cada una se lee como una serie para ver cuál cambió primero."
+                 : "Con las medidas en las columnas, cada fila describe el estado de un grupo; pulsa Pivotar para leer cada medida como serie.");
+    }
+    $("pInterpretacion").innerHTML = txt + " Las cifras describen asociaciones en este conjunto de datos, no causas.";
+  }
+
+  function pintarValidacion(d) {
+    const v = d.validacion, ok = b => b ? `<span class="val-ok">Coincide</span>` : `<span class="val-no">No coincide</span>`;
+    let filas = `
+      <tr><td>P1. Mediciones de las celdas frente al total del subconjunto</td><td>${fmt(v.p1_suma_celdas)} = ${fmt(v.p1_total)}</td><td>${ok(v.p1_ok)}</td></tr>
+      <tr><td>P2. La matriz rotada es la transpuesta de la original (mismos ${fmt(v.p2_celdas)} valores, filas y columnas intercambiadas)</td><td>${v.p2_ok ? "Sí" : "No"}</td><td>${ok(v.p2_ok)}</td></tr>`;
+    if (v.p3_total !== undefined)
+      filas += `<tr><td>P3. El total general se recalcula desde los hechos y no es el promedio simple de los totales por ${v.p3_eje.toLowerCase()}</td>
+        <td>${fmt(v.p3_total, "%")} frente a ${fmt(v.p3_promedio_simple, "%")}</td><td><span class="val-ok">Se recalcula</span></td></tr>`;
+    $("pValidacion").innerHTML = `<thead><tr><th>Validación</th><th>Resultado</th><th>Conclusión</th></tr></thead><tbody>${filas}</tbody>`;
+  }
+
+  function pintar() {
+    pintarSeleccion(datos);
+    pintarIndicadores(datos);
+    pintarCalor(datos);
+    pintarMatriz(datos);
+    pintarSeries(datos);
+    pintarInterpretacion(datos);
+    pintarValidacion(datos);
+  }
+
+  // ---------------- Controles ----------------
+  const paresEjes = [...Object.keys(EJES).map(k => [k, `${EJES[k][2]} (${EJES[k][3]})`]), ["medidas", "Medidas (varias)"]];
+  const medidasCelda = Object.keys(MEDIDAS).filter(k => k !== "municipios");
+
+  function mostrarMedidas() {
+    const conMedidas = $("pFilas").value === "medidas" || $("pColumnas").value === "medidas";
+    $("pMedidasBox").classList.toggle("d-none", !conMedidas);
+    $("pMedidaBox").classList.toggle("d-none", conMedidas);
+  }
+
+  function cargarSeleccion(sel) {
+    llenarSelect($("pFilas"), paresEjes, sel.filas);
+    llenarSelect($("pColumnas"), paresEjes, sel.columnas);
+    llenarSelect($("pMedida"), medidasCelda.map(k => [k, MEDIDAS[k][1]]), sel.medida);
+    const med = sel.medidas && sel.medidas.length ? sel.medidas : ["almacenamiento", "precipitacion", "pct_continuo"];
+    llenarChecks($("pMedidas"), "medidas", medidasCelda.filter(k => k !== "mediciones"), med,
+                 medidasCelda.filter(k => k !== "mediciones").map(k => MEDIDAS[k][1]));
+    const f = sel.filtros || {};
+    llenarChecks($("pRegion"), "region", OPCIONES.region, f.region || []);
+    llenarChecks($("pAnio"), "anio", OPCIONES.anio, f.anio || []);
+    llenarChecks($("pSistema"), "sistema", OPCIONES.sistema, f.sistema || []);
+    mostrarMedidas();
+  }
+
+  function aplicar(ev) {
+    if (ev) ev.preventDefault();
+    const p = new URLSearchParams({filas: $("pFilas").value, columnas: $("pColumnas").value, medida: $("pMedida").value});
+    ["region", "anio", "sistema", "medidas"].forEach(n => marcados(n).forEach(v => p.append(n, v)));
+    fetch(URL_DATOS + "?" + p.toString())
+      .then(r => r.json().then(j => ({ok: r.ok, j})))
+      .then(({ok, j}) => {
+        if (!ok) { $("pError").textContent = j.error; $("pError").classList.remove("d-none"); return; }
+        $("pError").classList.add("d-none");
+        datos = j; pintar();
+      })
+      .catch(() => { $("pError").textContent = "No se pudo consultar el modelo."; $("pError").classList.remove("d-none"); });
+  }
+
+  function rotar() {
+    const f = $("pFilas").value;
+    $("pFilas").value = $("pColumnas").value;
+    $("pColumnas").value = f;
+    mostrarMedidas();
+    aplicar();
+  }
+
+  $("pFilas").addEventListener("change", mostrarMedidas);
+  $("pColumnas").addEventListener("change", mostrarMedidas);
+  $("formPivot").addEventListener("submit", aplicar);
+  $("pRotar").addEventListener("click", rotar);
+  $("pEj1").addEventListener("click", () => { cargarSeleccion(PIVOT_INI); aplicar(); });
+  $("pEj2").addEventListener("click", () => { cargarSeleccion(PIVOT2_INI); aplicar(); });
+  $("verK1").addEventListener("click", () => {
+    cargarSeleccion({...PIVOT_INI, filas: "anio", columnas: "region"}); aplicar();
+    $("formPivot").scrollIntoView({behavior: "smooth"});
+  });
+  $("verK2").addEventListener("click", () => {
+    cargarSeleccion({...PIVOT2_INI, filas: "medidas", columnas: "trimestre"}); aplicar();
+    $("formPivot").scrollIntoView({behavior: "smooth"});
+  });
+
+  cargarSeleccion(PIVOT_INI);
+  pintar();
+</script>
+{% endif %}
+{% endblock %}

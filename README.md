@@ -359,3 +359,95 @@ contra el CSV (todas deben salir `OK`). Para consultar la base desde Flask:
 import sqlite3
 con = sqlite3.connect("etapa5/calidad_agua_dw.db")
 ```
+
+### Operaciones Slice y Dice
+
+Responsable: John Sebastian Rodriguez D.
+
+Vista interactiva en la aplicacion: menu **Etapa 5 - Analisis multidimensional > Slice y Dice:
+riesgo y continuidad** (ruta `/etapa5/slice-dice`). Todos los indicadores, tablas, matrices y
+graficas se calculan con consultas a `etapa5/calidad_agua_dw.db`; al cambiar un filtro las medidas se
+recalculan desde la tabla de hechos (no se suman ni se promedian porcentajes de otros grupos).
+
+**Pregunta de la vista:** que subconjuntos del territorio y del tiempo concentran el riesgo sanitario
+del agua y la perdida de continuidad del servicio, y como cambian al combinar region, periodo y
+sistema de abastecimiento.
+
+| Archivo | Contenido |
+|---|---|
+| `etapa5/sql/03_consultas_slice_dice.sql` | Consultas de los ejemplos (S0-S2 slice, D1-D3 dice) y validaciones V1-V3 |
+| `etapa5/consultas_slice_dice.py` | Modulo con las consultas parametrizadas que usa Flask |
+| `app.py` | Rutas `/etapa5/slice-dice` (vista) y `/etapa5/slice-dice/datos` (API JSON) |
+| `templates/etapa5/slice_dice.html` | Vista: indicadores, filtros, matrices, 2 graficas y 2 conocimientos |
+| `templates/base.html` | Enlace en el menu de la Etapa 5 |
+
+#### Ejemplos implementados
+
+| Operacion | Filtros | Nivel / matriz | Resultado principal |
+|---|---|---|---|
+| **Slice** | `tipo_region = 'Nacional'` (una dimension, un valor) | departamento; nivel de servicio x grupo de riesgo | 46,4 % de mediciones en riesgo alto o inviable (total: 18,6 %); los 19 departamentos entre 38,6 % y 52,5 %; continuo 45,4 % vs. intermitente 47,5 % |
+| **Dice** | `tipo_region = 'Regional'` + `anio IN (2024, 2025)` + `sistema IN ('Chingaza', 'Sur', 'Tibitoc')` (tres dimensiones) | trimestre; sistema x nivel de servicio; comparacion con 2022-2023 | Servicio continuo de 100 % a 33,8 % (-66,2 p.p.); quiebre desde 2024-T2; en 2025 el almacenamiento (61,1 %) supera al de 2022-2023 y las interrupciones suben a 50,5 % |
+
+#### Medidas y denominadores
+
+| Medida | Calculo | Denominador |
+|---|---|---|
+| % riesgo alto o inviable | mediciones "Alto o inviable" / mediciones con IRCA | Mediciones con IRCA reportado |
+| % servicio continuo | promedio de `es_continuo` | Todas las mediciones del grupo |
+| % racionado o sin servicio | mediciones Racionado o Sin servicio / mediciones | Todas las mediciones del grupo |
+| IRCA y almacenamiento promedio | `AVG` sobre la tabla de hechos | Mediciones con dato (los NULL no cuentan) |
+
+#### Como probar
+
+```
+python etapa5/consultas_slice_dice.py
+python app.py
+```
+
+El primer comando imprime los ejemplos del slice y el dice (deben salir 5074 mediciones y 46,4 % para el
+slice; 2170 mediciones y 33,8 % de servicio continuo para el dice). Luego se abre
+`http://127.0.0.1:5000/etapa5/slice-dice`.
+
+La API tambien se puede consultar directamente, por ejemplo:
+
+```
+/etapa5/slice-dice/datos?op=slice&dimension=region&valor=Nacional&nivel=departamento&filas=servicio&columnas=riesgo
+/etapa5/slice-dice/datos?op=dice&region=Regional&anio=2024&anio=2025&sistema=Chingaza&sistema=Sur&sistema=Tibitoc&nivel=trimestre&filas=sistema&columnas=servicio
+```
+
+El slice exige una sola dimension con un solo valor y el dice exige filtros sobre al menos dos
+dimensiones diferentes; si no se cumple, la API responde con un mensaje de error (codigo 400).
+
+### Operacion Pivot
+
+Vista interactiva en el menu **Etapa 5 - Analisis multidimensional > Pivot: rotar la matriz**
+(ruta `/etapa5/pivot`). Permite intercambiar filas y columnas, elegir otras dimensiones y ubicar
+varias medidas en uno de los ejes. Cada celda y cada total se recalculan desde la tabla de hechos;
+los totales no son la suma ni el promedio de las celdas.
+
+| Archivo | Contenido |
+|---|---|
+| `etapa5/sql/04_consultas_pivot.sql` | Consultas de los ejemplos y validaciones del pivot |
+| `etapa5/consultas_pivot.py` | Consultas parametrizadas, matrices y validaciones |
+| `app.py` | Rutas `/etapa5/pivot` (vista) y `/etapa5/pivot/datos` (API JSON) |
+| `templates/etapa5/pivot.html` | Controles, matriz, visualizaciones, validaciones y conocimientos |
+| `templates/base.html` | Enlace en el menu de la Etapa 5 |
+
+#### Como probar
+
+```
+python etapa5/consultas_pivot.py
+python app.py
+```
+
+Abre `http://127.0.0.1:5000/etapa5/pivot`. La API permite consultar la orientacion inicial,
+rotarla o mostrar medidas por trimestre:
+
+```
+/etapa5/pivot/datos?filas=region&columnas=anio&medida=pct_continuo
+/etapa5/pivot/datos?filas=anio&columnas=region&medida=pct_continuo
+/etapa5/pivot/datos?filas=trimestre&columnas=medidas&region=Regional&anio=2022&anio=2023&anio=2024&anio=2025&medidas=almacenamiento&medidas=precipitacion&medidas=pct_continuo
+```
+
+Filas y columnas deben ser ejes diferentes; de lo contrario, la API responde con un mensaje de error
+(codigo 400).
