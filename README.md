@@ -434,3 +434,65 @@ Las primeras cuatro vistas consultan `etapa5/calidad_agua_dw.db` mediante
 `/etapa5/multidimensional/datos`; la Vista 5 usa `/etapa5/slice-dice/datos`. Todas recalculan
 indicadores, visualizaciones y matrices con los filtros y niveles activos. Las consultas estan en
 `scripts/consultas_multidimensional.py` y `etapa5/consultas_slice_dice.py`.
+
+
+## Etapa 6 - Conocimiento oculto
+
+### 1. Modelos supervisados
+
+**Pregunta de prediccion:** las condiciones hidrologicas y climaticas de un dia permiten anticipar
+si en Bogota y la Sabana habra una restriccion del servicio de agua?
+
+- **Tipo de problema:** clasificacion binaria. Variable objetivo `restriccion` (Si / No): "Si" cuando
+  la decision de racionamiento del dia es distinta de "Sin restriccion".
+- **Unidad:** un dia de la region Regional (2.557 dias, 2019-2025). 640 dias con restriccion (25 %)
+  y 1.917 sin restriccion (75 %): clases desbalanceadas.
+- **Predictoras:** mes, almacenamiento_pct, afluencias_m3s, precipitacion_mm y temperatura_c.
+- **Excluidas:** `anio` (el modelo memorizaria los anos del racionamiento; se usa como meta para
+  analizar errores), `consumo_m3s` (es una consecuencia del racionamiento) y
+  `decision_racionamiento` (de ella sale la variable objetivo).
+
+| Archivo | Contenido |
+|---|---|
+| `etapa6/preparar_supervisado.py` | Convierte las mediciones en una fila por dia y crea la variable objetivo |
+| `etapa6/datos/dataset_supervisado_dia.csv` | Datos de entrada de Orange (2.557 dias) |
+| `etapa6/orange/etapa6_supervisado.ows` | Flujo de Orange con los tres modelos y su evaluacion |
+| `etapa6/capturas/supervisado/` | Capturas de los widgets y resultados |
+
+**Por que una fila por dia:** en el dataset, las mediciones de un mismo dia en la Sabana comparten
+almacenamiento, precipitacion, temperatura, consumo y decision. Con una fila por medicion, el mismo
+dia quedaria a la vez en entrenamiento y en prueba, y las metricas saldrian infladas.
+
+#### Como reproducir
+
+```
+python etapa6/preparar_supervisado.py
+```
+
+Luego se abre `etapa6/orange/etapa6_supervisado.ows` en Orange Data Mining (3.36 o superior). Si el
+widget File no encuentra el CSV, se selecciona de nuevo `etapa6/datos/dataset_supervisado_dia.csv`.
+
+Flujo: File > Select Columns > Test and Score (validacion cruzada estratificada de 10 particiones)
+con los learners Arbol de decision, Random Forest, Regresion logistica y Constante (referencia) >
+Confusion Matrix, ROC Analysis y Pivot Table (errores por ano). Tree Viewer, Rank y Box Plot apoyan
+la interpretacion.
+
+| Modelo | Parametros |
+|---|---|
+| Arbol de decision | Arbol binario, minimo 10 dias por hoja, no divide grupos de menos de 20, profundidad maxima 5, parada al 95 % de mayoria |
+| Random Forest | 100 arboles, entrenamiento replicable, no divide grupos de menos de 5 |
+| Regresion logistica | Regularizacion Ridge (L2), C = 1 |
+
+#### Resultados (clase objetivo: Si)
+
+| Modelo | AUC | CA | F1 | Precision | Recall | MCC |
+|---|---|---|---|---|---|---|
+| Arbol de decision | 0,82 | 0,85 | 0,61 | 0,84 | 0,47 | 0,55 |
+| **Random Forest (seleccionado)** | **0,92** | **0,88** | **0,73** | **0,87** | **0,63** | **0,67** |
+| Regresion logistica | 0,76 | 0,79 | 0,48 | 0,65 | 0,38 | 0,38 |
+| Constante (referencia) | 0,50 | 0,75 | 0 | 0 | 0 | 0 |
+
+**Hallazgo:** la restriccion se asocia sobre todo al nivel del embalse (almacenamiento <= 41,7 % entre
+abril y septiembre: 99 % de los dias con restriccion). Los errores del Random Forest revelan que la
+decision no fue solo hidrologica: en 2023 hubo 56 falsas alarmas (embalse bajo sin restriccion) y en
+2025 no anticipo 212 de 365 dias con restriccion (embalse ya recuperado).
