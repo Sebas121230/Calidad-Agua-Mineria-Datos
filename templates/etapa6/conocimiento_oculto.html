@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+
+{% macro figura(src, caption, alt="Captura de Orange Data Mining") %}
+<figure class="figure w-100 mb-3">
+  <a href="{{ src }}" target="_blank" rel="noopener">
+    <img src="{{ src }}" class="figure-img img-fluid rounded border w-100" alt="{{ alt }}" loading="lazy">
+  </a>
+  <figcaption class="figure-caption text-center"><strong>{{ caption }}</strong></figcaption>
+</figure>
+{% endmacro %}
+
+{% block contenido %}
+<style>
+  .oculto .plot-box, .oculto .captura { background: #fcfcfb; border-radius: .5rem; }
+  .oculto .stat-tile h3 { color: #0d2137; font-size: 1.45rem; margin: 0; }
+  .oculto .stat-tile .lbl { color: #6c757d; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+  .oculto .hallazgo { border-left: 4px solid #0d6efd; background: #f5f9ff; padding: .7rem .9rem; border-radius: .25rem; }
+  .oculto .cita { color: #52514e; font-size: .9rem; }
+  .oculto .tabla-metricas td, .oculto .tabla-metricas th { vertical-align: middle; }
+  .oculto .cluster-card { border-top: 4px solid #0d6efd; }
+  .oculto .cluster-c1 { border-top-color: #2878c8; }
+  .oculto .cluster-c2 { border-top-color: #c73e3a; }
+  .oculto .cluster-c3 { border-top-color: #138a43; }
+  .oculto .figura-pequena img { max-height: 310px; object-fit: contain; }
+</style>
+
+<div class="oculto">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-1" style="color:#0d2137;">Etapa 6 &middot; Conocimiento oculto</h1>
+      <p class="text-secondary mb-0">Aprendizaje supervisado, clustering y comentarios de YouTube</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('inicio') }}">Volver al inicio</a>
+  </div>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">Propósito</h2>
+      <p class="mb-2">
+        Esta sección reúne los patrones que no se ven con una lectura descriptiva: un modelo que
+        anticipa restricciones del servicio a partir de condiciones hidrológicas, una tipología de
+        días construida sin usar la variable objetivo y el análisis de comentarios públicos sobre
+        el agua en Bogotá y la Sabana.
+      </p>
+      <p class="small text-secondary mb-0">
+        Los resultados supervisados, de clustering y de comentarios están calculados sobre
+        <code>etapa6/datos/</code>. Las capturas de Orange y el corpus de 500 comentarios ya se
+        incluyen en esta sección.
+      </p>
+    </div>
+  </section>
+
+  <section class="row g-3 mb-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+        <div class="lbl">Modelo supervisado</div>
+        <h3 class="mb-1">Random Forest</h3>
+        <p class="small mb-1">AUC 0,915 en validación aleatoria</p>
+        <p class="small text-secondary mb-0">El holdout temporal muestra que la restricción es un régimen de política: no puede anticiparse solo con clima.</p>
+      </div></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+        <div class="lbl">Clustering</div>
+        <h3 class="mb-1">3 regímenes</h3>
+        <p class="small mb-1">C1 891 · C2 838 · C3 828 días</p>
+        <p class="small text-secondary mb-0">En el holdout 2024-2025 los tres grupos tienen entre 83,2 % y 100 % de restricción.</p>
+      </div></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 h-100 stat-tile"><div class="card-body">
+        <div class="lbl">Comentarios de YouTube</div>
+        <h3 class="mb-1">500 comentarios</h3>
+        <p class="small mb-1">Consumo, empresas y gobierno</p>
+        <p class="small text-secondary mb-0">Predomina una lectura crítica; el corpus es global y no representa a toda la población.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">1. Aprendizaje supervisado: anticipar una restricción</h2>
+      <p class="mb-2"><strong>Pregunta:</strong> ¿las condiciones hidrológicas y climáticas de un día
+        permiten anticipar si habrá una restricción del servicio en Bogotá y la Sabana?</p>
+      <p class="small text-secondary mb-3">
+        Es un problema de <strong>clasificación binaria</strong>: la variable objetivo
+        <code>restriccion</code> toma los valores <strong>No</strong> (1917 días) y
+        <strong>Si</strong> (640 días). Se eligió clasificación porque la decisión que se quiere
+        apoyar es “restricción / no restricción”, no un valor continuo. Los predictores son
+        <code>mes</code>, almacenamiento, afluencias, precipitación y temperatura. No se usan
+        <code>decision_racionamiento</code>, <code>fecha</code>, <code>anio</code> ni
+        <code>consumo_m3s</code>: son metadatos, consecuencias de la decisión o variables del mismo
+        día que producirían fuga de información.
+      </p>
+
+      {{ figura(url_for('etapa6_captura', filename='supervisado/20_flujo_completo.png'),
+                'Flujo supervisado completo: preparación, tres modelos, validación, matrices, ROC y exploración.',
+                'Flujo de Orange del modelo supervisado') }}
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+          {{ figura(url_for('etapa6_captura', filename='supervisado/01_file_tipos.png'),
+                    'Archivo de trabajo: 2557 días y 10 variables.', 'Tipos de variables') }}
+        </div>
+        <div class="col-lg-4">
+          {{ figura(url_for('etapa6_captura', filename='supervisado/02_select_columns.png'),
+                    'Selección de variables: cinco predictoras numéricas y la variable objetivo.',
+                    'Selección de columnas') }}
+        </div>
+        <div class="col-lg-4">
+          {{ figura(url_for('etapa6_captura', filename='supervisado/04_distribucion_clase.png'),
+                    'Distribución de la clase: 1917 días sin restricción y 640 con restricción.',
+                    'Distribución de la variable objetivo') }}
+        </div>
+      </div>
+
+      <h3 class="h6 text-primary">Parámetros de los tres modelos</h3>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Modelo</th><th>Configuración</th><th>Papel en la comparación</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Árbol de decisión</strong></td><td>Árbol binario; profundidad máxima 5; mínimo 20 casos para dividir y 10 en hoja; detener con mayoría de 95 %.</td><td>Modelo interpretable de referencia.</td></tr>
+            <tr><td><strong>Random Forest</strong></td><td>100 árboles; mínimo 5 casos para dividir; profundidad y número de atributos por división sin límite; entrenamiento replicable.</td><td>Modelo de ensamble para capturar relaciones no lineales.</td></tr>
+            <tr><td><strong>Regresión logística</strong></td><td>Regularización Ridge (L2), C = 1; sin balanceo de clases.</td><td>Referencia lineal y probabilística.</td></tr>
+            <tr><td><strong>Constante</strong></td><td>Predice siempre la clase mayoritaria.</td><td>Línea base: si un modelo no la supera, no aporta.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/05_parametros_arbol.png'), 'Parámetros del árbol de decisión.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/06_parametros_random_forest.png'), 'Parámetros de Random Forest.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/07_parametros_regresion_logistica.png'), 'Parámetros de la regresión logística.') }}</div>
+      </div>
+
+      <h3 class="h6 text-primary">Evaluación con la misma validación cruzada</h3>
+      <p class="small text-secondary">
+        Los tres modelos se evaluaron con validación cruzada estratificada de 10 pliegues sobre
+        los 2557 días. La tabla muestra el promedio sobre las clases; la segunda tabla se concentra
+        en la clase <strong>Si</strong>, que es la que importa para una alerta de restricción.
+      </p>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Modelo</th><th>AUC</th><th>CA</th><th>F1</th><th>Precisión</th><th>Recall</th><th>MCC</th></tr></thead>
+          <tbody>
+            <tr><td>Árbol de decisión</td><td>0,823</td><td>0,846</td><td>0,829</td><td>0,846</td><td>0,846</td><td>0,553</td></tr>
+            <tr class="table-success"><td><strong>Random Forest</strong></td><td><strong>0,915</strong></td><td><strong>0,884</strong></td><td><strong>0,878</strong></td><td><strong>0,883</strong></td><td><strong>0,884</strong></td><td><strong>0,674</strong></td></tr>
+            <tr><td>Regresión logística</td><td>0,764</td><td>0,794</td><td>0,773</td><td>0,776</td><td>0,794</td><td>0,381</td></tr>
+            <tr><td>Constante</td><td>0,499</td><td>0,750</td><td>0,642</td><td>0,562</td><td>0,750</td><td>0,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Modelo</th><th>Recall clase Si</th><th>Precisión clase Si</th><th>F1 clase Si</th><th>Falsos negativos</th><th>Falsos positivos</th></tr></thead>
+          <tbody>
+            <tr><td>Árbol de decisión</td><td>0,469</td><td>0,847</td><td>0,604</td><td>340</td><td>54</td></tr>
+            <tr class="table-success"><td><strong>Random Forest</strong></td><td><strong>0,633</strong></td><td><strong>0,869</strong></td><td><strong>0,732</strong></td><td><strong>235</strong></td><td><strong>61</strong></td></tr>
+            <tr><td>Regresión logística</td><td>0,377</td><td>0,651</td><td>0,477</td><td>399</td><td>129</td></tr>
+            <tr><td>Constante</td><td>0,000</td><td>0,000</td><td>0,000</td><td>640</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/08_test_score_promedio.png'), 'Test and Score: promedio sobre las dos clases.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/09_test_score_clase_si.png'), 'Test and Score: métricas de la clase Si.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/10_test_score_constante.png'), 'Línea base de la clase constante.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/11_matriz_arbol.png'), 'Matriz de confusión del árbol: 1863 TN, 54 FP, 340 FN y 300 TP.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/12_matriz_random_forest.png'), 'Matriz de confusión de Random Forest: 1856 TN, 61 FP, 235 FN y 405 TP.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='supervisado/13_matriz_regresion_logistica.png'), 'Matriz de confusión de regresión logística: 1788 TN, 129 FP, 399 FN y 241 TP.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='supervisado/15_roc.png'), 'Curvas ROC: Random Forest queda por encima del árbol y de la regresión logística.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='supervisado/19_rank.png'), 'Ranking de atributos: almacenamiento y afluencias son los que más separan las clases.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='supervisado/18_tree_viewer.png'), 'Árbol de decisión: la primera separación usa el almacenamiento.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='supervisado/16_pivot_errores_anio.png'), 'Errores por año: se concentran en los años con más días restringidos.') }}</div>
+      </div>
+
+      <h3 class="h6 text-primary">Respuesta con un conjunto reservado (2024-2025)</h3>
+      <p class="small text-secondary">
+        Para no depender de la validación cruzada aleatoria, se separaron los años. La tabla
+        muestra por qué el problema no se puede validar como una predicción prospectiva con este
+        conjunto: antes de 2024 no hay restricciones y en 2025 todos los días están restringidos.
+      </p>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Escenario</th><th>Entrenamiento</th><th>Prueba</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td>Temporal 2019-2023 → 2024-2025</td><td>1.825 días; 0 con restricción</td><td>731 días; 640 con restricción</td><td>No hay clase positiva en entrenamiento: el modelo no puede aprender a anticipar el evento.</td></tr>
+            <tr><td>Año siguiente 2024 → 2025</td><td>366 días; 275 Sí y 91 No</td><td>365 días; 365 Sí</td><td>No hay negativos en prueba; una constante acierta 100 % y el AUC no está definido.</td></tr>
+            <tr><td>Partición temporal 70/30 (2024-2025)</td><td>511 días; 420 Sí y 91 No</td><td>220 días; 220 Sí</td><td>La prueba queda sin clase negativa; no se puede evaluar discriminación.</td></tr>
+            <tr><td>Validación cruzada aleatoria (Orange)</td><td>Mezcla 2019-2025</td><td>Mezcla 2019-2025</td><td>AUC 0,915; es una medida descriptiva, no una prueba de anticipación.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hallazgo mb-3">
+        <h3 class="h6 mb-2">Respuesta a la pregunta</h3>
+        <p class="small mb-0">
+          <strong>No con este conjunto y este objetivo.</strong> Las condiciones hidrológicas no
+          permiten anticipar de forma prospectiva la restricción: antes de 2024 no existen días
+          restringidos para entrenar y en 2025 la restricción cubre el 100 % de los días. La
+          validación aleatoria mezcla los períodos y por eso se ve alta. El resultado del proyecto
+          no es “el clima predice el racionamiento”, sino que <strong>la restricción es un cambio
+          de régimen operativo o de política</strong>; el clima describe el contexto, pero la
+          decisión necesita variables de gestión.
+        </p>
+      </div>
+
+      <div class="hallazgo mb-3">
+        <h3 class="h6 mb-2">Qué revela el modelo</h3>
+        <ul class="small mb-0">
+          <li><strong>En validación aleatoria, Random Forest es el mejor modelo</strong> (AUC 0,915; CA 0,884; F1 0,878), pero la accuracy es engañosa: la constante ya obtiene 0,750 porque 75 % de los días no tienen restricción.</li>
+          <li><strong>El holdout temporal cambia la conclusión</strong>: no hay restricciones antes de 2024 y en 2025 todos los días están restringidos. La prueba no puede evaluar anticipación; la validación aleatoria solo describe una mezcla de períodos.</li>
+          <li><strong>La señal hidrológica existe, pero no explica el cambio de régimen</strong>: almacenamiento y afluencias separan días normales de días secos, pero no permiten saber cuándo una decisión política activa o levanta la restricción. Esa es la variable oculta que el modelo no tiene.</li>
+        </ul>
+      </div>
+      <p class="small mb-1"><strong>Limitación:</strong> el entrenamiento no puede anticipar un régimen que no existía antes de 2024; la validación aleatoria mezcla años y <code>mes</code> puede actuar como un calendario estacional o de política. Además, el modelo no incluye variables de decisión política ni de operación, y la clase Si es minoritaria (25 %).</p>
+      <p class="small mb-0"><strong>Decisión:</strong> no usar este modelo como alerta automática de restricción. Sirve para describir qué condiciones acompañan al régimen restringido y para construir hipótesis; para anticipar decisiones se necesitan variables de política, operación y una serie temporal con ejemplos negativos posteriores a 2024.</p>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">2. Clustering: tres regímenes de días</h2>
+      <p class="mb-2"><strong>Pregunta:</strong> ¿qué tipos de días se pueden distinguir a partir únicamente de las condiciones hidrológicas, climáticas y de consumo, sin usar la variable de restricción?</p>
+      <p class="small text-secondary mb-3">
+        Se usaron cuatro variables numéricas —almacenamiento, afluencias, precipitación y
+        temperatura—, se normalizaron con <em>Normalize columns</em> y se aplicó k-Means con k = 3,
+        KMeans++, 10 reinicios y 300 iteraciones. La variable <code>restriccion</code> y el consumo
+        del mismo día no participaron en la formación de los grupos; solo se usaron después para
+        caracterizarlos.
+      </p>
+
+      {{ figura(url_for('etapa6_captura', filename='clustering/00_flujo_clustering.png'),
+                'Flujo de clustering: datos, k-Means, preprocesamiento, silueta, cajas y matrices.',
+                'Flujo de clustering en Orange') }}
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='clustering/03_kmeans_siluetas.png'), 'Comparación de soluciones de k = 2 a k = 8: k = 2 tiene 0,231 y k = 3 tiene 0,221.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='clustering/04_kmeans_k3.png'), 'Configuración final: k = 3, normalización y 10 reinicios.') }}</div>
+      </div>
+      <p class="small text-secondary">
+        k = 3 no maximiza la silueta: k = 2 obtiene 0,231 frente a 0,221. Se eligió k = 3 porque
+        separa tres regímenes con interpretación distinta y la diferencia de silueta es pequeña;
+        la decisión privilegia la utilidad descriptiva, no solo el valor máximo del indicador.
+      </p>
+
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Grupo</th><th>Días</th><th>%</th><th>Almacenamiento</th><th>Precipitación</th><th>Afluencias</th><th>Temperatura</th><th>Consumo</th><th>Días con restricción</th><th>Meses dominantes</th></tr></thead>
+          <tbody>
+            <tr><td><strong>C1</strong></td><td>891</td><td>34,8 %</td><td>68,5 %</td><td>2,64 mm</td><td>15,37 m³/s</td><td>15,9 °C</td><td>16,74 m³/s</td><td>16,7 % (149)</td><td>jul.–oct.</td></tr>
+            <tr><td><strong>C2</strong></td><td>838</td><td>32,8 %</td><td>46,4 %</td><td>1,40 mm</td><td>11,72 m³/s</td><td>13,8 °C</td><td>16,53 m³/s</td><td><strong>43,3 % (363)</strong></td><td>dic.–mar.</td></tr>
+            <tr><td><strong>C3</strong></td><td>828</td><td>32,4 %</td><td>68,9 %</td><td>3,41 mm</td><td>15,48 m³/s</td><td>12,2 °C</td><td>18,23 m³/s</td><td>15,5 % (128)</td><td>mar.–jun.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small text-secondary">El consumo se muestra como descripción del grupo, no se usó para construir los clusters.</p>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100 cluster-card cluster-c1"><div class="card-body">
+          <h3 class="h6">C1 · Almacenamiento alto y clima cálido</h3>
+          <p class="small mb-1">Nivel medio-alto de embalse (68,5 %), temperatura alta (15,9 °C) y consumo intermedio (16,74 m³/s). Predomina entre julio y octubre.</p>
+          <p class="small text-secondary mb-0">Aun así, 149 días tuvieron restricción: no es un grupo “sin riesgo”.</p>
+        </div></div></div>
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100 cluster-card cluster-c2"><div class="card-body">
+          <h3 class="h6">C2 · Estrés hídrico y restricción</h3>
+          <p class="small mb-1">Almacenamiento bajo (46,4 %), poca lluvia (1,40 mm) y menores afluencias (11,72 m³/s). Predomina entre diciembre y marzo.</p>
+          <p class="small text-secondary mb-0">Concentra 363 de los 640 días restringidos (43,3 % del grupo): es el régimen de escasez.</p>
+        </div></div></div>
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100 cluster-card cluster-c3"><div class="card-body">
+          <h3 class="h6">C3 · Recarga hídrica y consumo alto</h3>
+          <p class="small mb-1">Almacenamiento alto (68,9 %), lluvia alta (3,41 mm) y temperatura baja (12,2 °C), con el mayor consumo (18,23 m³/s). Predomina entre marzo y junio.</p>
+          <p class="small text-secondary mb-0">También registra 128 días restringidos: la disponibilidad no se traduce automáticamente en servicio continuo.</p>
+        </div></div></div>
+      </div>
+
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/06_box_almacenamiento.png'), 'Cajas de almacenamiento por cluster.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/07_box_afluencias.png'), 'Cajas de afluencias por cluster.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/08_box_precipitacion.png'), 'Cajas de precipitación por cluster.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/09_box_temperatura.png'), 'Cajas de temperatura por cluster.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/10_box_mes.png'), 'Distribución mensual de los clusters.') }}</div>
+        <div class="col-lg-4">{{ figura(url_for('etapa6_captura', filename='clustering/11_box_restriccion.png'), 'Restricción por cluster: C2 se separa del resto.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='clustering/12_pivot_cluster_restriccion.png'), 'Matriz cluster × restricción: C2 concentra 363 de los 640 días restringidos.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='clustering/13b_pivot_cluster_anio.png'), 'Cluster por año: C2 crece en 2023-2025.') }}</div>
+      </div>
+
+      <h3 class="h6 text-primary">Validación temporal del agrupamiento</h3>
+      <p class="small text-secondary">
+        Se entrenó k-Means con los días 2019-2023 y se asignaron los días 2024-2025, sin volver a
+        ajustar los centroides. La estructura cambia: la silueta baja a 0,190 y los tres grupos del
+        período nuevo tienen una proporción de restricción muy alta. Las etiquetas G0, G1 y G2 de
+        esta prueba no equivalen uno a uno a C1, C2 y C3.
+      </p>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered tabla-metricas small align-middle">
+          <thead class="table-light"><tr><th>Grupo holdout</th><th>Días</th><th>Almacenamiento</th><th>Precipitación</th><th>Afluencias</th><th>Temperatura</th><th>Consumo</th><th>Días restringidos</th></tr></thead>
+          <tbody>
+            <tr><td>G0</td><td>109</td><td>65,0 %</td><td>2,45 mm</td><td>15,03 m³/s</td><td>16,3 °C</td><td>16,70 m³/s</td><td><strong>100,0 %</strong></td></tr>
+            <tr><td>G1</td><td>543</td><td>43,9 %</td><td>1,62 mm</td><td>12,15 m³/s</td><td>13,8 °C</td><td>16,44 m³/s</td><td><strong>83,2 %</strong></td></tr>
+            <tr><td>G2</td><td>79</td><td>67,0 %</td><td>3,68 mm</td><td>14,60 m³/s</td><td>12,3 °C</td><td>18,54 m³/s</td><td><strong>100,0 %</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hallazgo mb-3">
+        <h3 class="h6 mb-2">Respuesta a la pregunta</h3>
+        <p class="small mb-0">
+          <strong>Los tres regímenes meteorológicos existen, pero no se mantienen como predictores
+          de la restricción.</strong> En el período nuevo, los tres grupos tienen entre 83,2 % y
+          100 % de días restringidos: la pertenencia al grupo ya no separa días con y sin
+          restricción. La asociación que se ve en el conjunto completo está confundida por el año
+          y por el cambio de política de 2024. El clustering sirve para describir contextos
+          hidrológicos y para monitorear, no para clasificar el estado del servicio.
+        </p>
+      </div>
+
+      <div class="hallazgo mb-3">
+        <h3 class="h6 mb-2">Qué revela el agrupamiento</h3>
+        <ul class="small mb-0">
+          <li>En el conjunto completo, C2 concentra el 56,7 % de los días restringidos (363 de 640) y triplica la proporción de C1 y C3. Es el régimen que mejor describe la escasez.</li>
+          <li><strong>La señal no es causal ni estable:</strong> en el holdout 2024-2025 los tres grupos tienen 83,2 %–100 % de restricción; el año y la política pesan más que el régimen meteorológico.</li>
+          <li>Los grupos siguen siendo útiles para describir contextos (C2 escasez, C3 recarga y consumo alto, C1 calor y disponibilidad), pero no para decidir si un día estará restringido.</li>
+        </ul>
+      </div>
+      <p class="small mb-1"><strong>Limitación:</strong> k-Means supone grupos compactos y esféricos; la estructura cambia al pasar a 2024-2025 (silueta 0,190) y los límites entre grupos son sensibles a la normalización. El agrupamiento usa solo cuatro variables hidrológicas, no incluye decisiones de política, y la etiqueta C1/C2/C3 es una convención.</p>
+      <p class="small mb-0"><strong>Decisión:</strong> usar los clusters para monitoreo y comunicación de contextos (escasez, recarga/demanda, calor/disponibilidad), no para clasificar el estado del servicio. La inestabilidad del holdout refuerza la necesidad de mirar la regla operativa y no solo el clima.</p>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">3. Comentarios de YouTube: percepción y prioridades</h2>
+      <p class="mb-2"><strong>Pregunta:</strong> ¿qué temas y tonos aparecen en los comentarios de
+        videos sobre calidad, racionamiento y disponibilidad del agua, y coinciden con los patrones
+        de los datos?</p>
+      <p class="small text-secondary">
+        Se analizaron <strong>500 comentarios</strong> extraídos entre el <strong>14 de abril de
+        2024</strong> y el <strong>2 de noviembre de 2026</strong>. El criterio de selección fue
+        temático: videos en español sobre crisis hídrica, consumo de agua y “día cero”. El archivo
+        conserva texto, fecha y número de likes; no incluye identificadores personales, enlaces de
+        video ni canal, por lo que la lista exacta de videos no se puede reconstruir. El flujo de
+        Orange trabaja con el texto en español, tokenización, normalización, filtrado de términos y
+        análisis de sentimiento.
+      </p>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+          <h3 class="h6 text-primary">Cobertura y calidad del corpus</h3>
+          <table class="table table-sm table-bordered small mb-0">
+            <tbody>
+              <tr><th>Comentarios</th><td>500</td></tr>
+              <tr><th>Periodo</th><td>2024-04-14 a 2026-11-02</td></tr>
+              <tr><th>Campos</th><td>texto, fecha y likes</td></tr>
+              <tr><th>Textos vacíos</th><td>0</td></tr>
+              <tr><th>Textos repetidos</th><td>8</td></tr>
+              <tr><th>Textos de menos de 10 caracteres</th><td>24</td></tr>
+              <tr><th>Comentarios con enlaces</th><td>2</td></tr>
+              <tr><th>Comentarios con likes</th><td>106; máximo 403</td></tr>
+            </tbody>
+          </table>
+        </div></div></div>
+        <div class="col-lg-6"><div class="card border-0 bg-light h-100"><div class="card-body">
+          <h3 class="h6 text-primary">Temas detectados</h3>
+          <table class="table table-sm table-bordered small mb-0">
+            <thead class="table-light"><tr><th>Tema</th><th>Comentarios</th><th>Señal principal</th></tr></thead>
+            <tbody>
+              <tr><td>Consumo y ahorro</td><td>76</td><td>agua, litros, gastar, ahorrar</td></tr>
+              <tr><td>Empresas e industria</td><td>59</td><td>empresas, Coca-Cola, refrescos, botellas</td></tr>
+              <tr><td>Clima y ambiente</td><td>48</td><td>planeta, crisis, contaminación, sequía</td></tr>
+              <tr><td>Escasez y “día cero”</td><td>42</td><td>día cero, se acaba, sequía, crisis</td></tr>
+              <tr><td>Crítica al contenido</td><td>33</td><td>no menciona, error, falta, actualizar</td></tr>
+              <tr><td>Gobierno y política</td><td>25</td><td>gobierno, políticos, regulaciones, leyes</td></tr>
+              <tr><td>Positivo o educativo</td><td>21</td><td>excelente, interesante, gracias, aprender</td></tr>
+            </tbody>
+          </table>
+          <p class="small text-secondary mt-2 mb-0">Un comentario puede tocar varios temas; los conteos no son excluyentes.</p>
+        </div></div></div>
+      </div>
+
+      {{ figura(url_for('etapa6_captura', filename='Comentarios/09_flujo_completo.png'),
+                'Flujo de comentarios: CSV → Corpus → Preprocess Text → Word Cloud y Sentiment Analysis.') }}
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/04_Prepocess_txt.png'), 'Preprocesamiento: minúsculas, sin acentos, sin URLs, español, etiquetas NOUN/VERB, 100 términos y n-gramas.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/05_Word_Cloud.png'), 'Nube de palabras: agua (284), hacer (43), día (35), empresas (28), video (28), mundo (21), planeta (21).') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/06_Sentiment_Analysis.png'), 'Configuración del análisis de sentimiento en español.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/07_Data_Table.png'), 'Tabla de comentarios con la columna sentiment generada por el flujo.') }}</div>
+      </div>
+      <div class="row g-3 mb-3 figura-pequena">
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/03_Vista.png'), 'Corpus Viewer: 500 documentos y metadatos de fecha y likes.') }}</div>
+        <div class="col-lg-6">{{ figura(url_for('etapa6_captura', filename='Comentarios/08_Distributions.png'), 'Distribución del sentimiento: la mayoría de los valores está en la zona negativa o cercana a cero.') }}</div>
+      </div>
+
+      <h3 class="h6 text-primary">Qué dicen los comentarios</h3>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered small align-middle">
+          <thead class="table-light"><tr><th>Comentario (resumen)</th><th>Tema</th><th>Likes</th></tr></thead>
+          <tbody>
+            <tr><td>“Probablemente algunos o la mayoría vean esto por una tarea… yo lo veo por interés”.</td><td>Uso educativo / meta</td><td>61</td></tr>
+            <tr><td>“No consuman más refresco como Coca-Cola y productos que no necesitamos”.</td><td>Consumo y empresas</td><td>18</td></tr>
+            <tr><td>“Vengo aquí dos años después porque ha empeorado fatal”.</td><td>Deterioro percibido</td><td>4</td></tr>
+            <tr><td>“El problema no es que no existan políticas… la ley se la pasan por el hueco por un gobierno corrupto”.</td><td>Gobierno y política</td><td>3</td></tr>
+            <tr><td>“Muy interesante. Se debería incluir la educación…”.</td><td>Positivo / educativo</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small text-secondary">
+        El comentario con más likes (403) es una promoción con enlaces, no una opinión sobre el agua:
+        por eso el número de likes no se usa como medida de importancia. La conversación se concentra
+        en el consumo individual, la responsabilidad de las empresas y la acción del gobierno; la
+        escasez aparece como “día cero” y el clima como marco general. El sentimiento es
+        mayoritariamente crítico, con una minoría de comentarios positivos o educativos.
+      </p>
+
+      <div class="hallazgo mb-3">
+        <h3 class="h6 mb-2">Respuesta a la pregunta</h3>
+        <p class="small mb-0">
+          <strong>Los comentarios complementan el análisis de datos, pero no lo validan
+          localmente.</strong> Coinciden en que el problema del agua se percibe como una crisis de
+          consumo, responsabilidad empresarial y acción política, no solo como un fenómeno
+          hidrológico. Esa lectura refuerza la dimensión operativa/política que apareció en los
+          modelos. Sin embargo, solo 3 comentarios mencionan Bogotá y 2 Colombia; el corpus es
+          global y no permite afirmar cómo percibe la ciudadanía de Bogotá el servicio.
+        </p>
+      </div>
+
+      <p class="small mb-1"><strong>Limitación:</strong> la muestra no es aleatoria ni representativa; depende de los videos y del algoritmo de YouTube. No se conservaron enlaces, canal ni identificadores de video, así que no se puede reconstruir la selección. Hay 8 textos repetidos, 24 comentarios muy cortos y 2 con enlaces promocionales; el análisis de sentimiento del flujo es una aproximación léxica y no capta ironía ni contexto. La mayoría de los comentarios alude a un debate global, no exclusivamente a Bogotá y la Sabana.</p>
+      <p class="small mb-0"><strong>Decisión:</strong> usar los comentarios como evidencia cualitativa para orientar comunicación y educación (consumo, empresas, gobierno), no para estimar prevalencias ni para reemplazar los datos de servicio. Para afirmar algo sobre Bogotá se necesita una extracción local con videos y metadatos verificables.</p>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">4. Conclusiones integradas</h2>
+      <div class="row g-3">
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100"><div class="card-body">
+          <h3 class="h6 text-primary">Evidencia: el clima no anticipa el régimen</h3>
+          <p class="small mb-0">No hay restricciones antes de 2024 y en 2025 todos los días están restringidos. El AUC 0,915 de la validación aleatoria mezcla períodos; no demuestra anticipación del cambio de régimen.</p>
+        </div></div></div>
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100"><div class="card-body">
+          <h3 class="h6 text-primary">Evidencia: el cluster no sostiene la clasificación</h3>
+          <p class="small mb-0">En el holdout 2024-2025 los tres grupos tienen 83,2 %–100 % de restricción y la silueta baja a 0,190. El agrupamiento describe contextos meteorológicos, no el estado del servicio.</p>
+        </div></div></div>
+        <div class="col-lg-4"><div class="card border-0 bg-light h-100"><div class="card-body">
+          <h3 class="h6 text-primary">Evidencia: la conversación es crítica y global</h3>
+          <p class="small mb-0">500 comentarios: 76 sobre consumo/ahorro, 59 sobre empresas, 25 sobre gobierno y 42 sobre escasez/día cero. Solo 3 mencionan Bogotá: sirven para enmarcar el debate, no para validar la percepción local.</p>
+        </div></div></div>
+      </div>
+      <div class="table-responsive mt-3">
+        <table class="table table-sm table-bordered small align-middle">
+          <thead class="table-light"><tr><th>Hallazgo</th><th>Tipo</th><th>Evidencia</th><th>Uso</th></tr></thead>
+          <tbody>
+            <tr><td>La restricción es un régimen de política, no una predicción hidrológica.</td><td>Evidencia</td><td>0 días restringidos en 2019-2023; 365 de 365 en 2025; el AUC aleatorio no es prospectivo.</td><td>Incluir variables de política y operación antes de hablar de anticipación.</td></tr>
+            <tr><td>El agrupamiento describe contextos, no el estado del servicio.</td><td>Evidencia</td><td>Holdout 2024-2025: los tres grupos tienen 83,2 %–100 % de restricción; silueta 0,190.</td><td>Usarlo para monitoreo climático, no para clasificar restricción.</td></tr>
+            <tr><td>C2 es el régimen de escasez en el conjunto completo.</td><td>Evidencia</td><td>43,3 % de sus días con restricción; 363 de 640 casos, pero confundido por el año.</td><td>Vigilancia diferenciada con cautela temporal.</td></tr>
+            <tr><td>La conversación pública prioriza consumo, empresas y gobierno.</td><td>Evidencia cualitativa</td><td>500 comentarios: 76 consumo, 59 empresas, 25 gobierno; sentimiento mayoritariamente crítico.</td><td>Orientar comunicación y educación; no estimar prevalencia local.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small mb-0"><strong>Decisión integrada:</strong> no usar el modelo como alerta automática de restricción; incorporar variables de política y operación y validar con períodos futuros. Usar los clusters para monitorear contextos climáticos, no para clasificar el estado del servicio. Usar los comentarios para orientar comunicación y educación, y ampliar la muestra local antes de afirmar cómo percibe la ciudadanía de Bogotá el servicio.</p>
+    </div>
+  </section>
+
+  <section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5">5. Origen de los datos</h2>
+      <p class="small text-secondary">
+        Los tres archivos usados en esta sección se obtuvieron de la siguiente manera:
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered small align-middle mb-0">
+          <thead class="table-light"><tr><th>Archivo</th><th>Origen</th><th>Cómo se obtuvo</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>dataset_supervisado_dia.csv</code></td>
+              <td><code>datos/dataset_calidad_agua_limpio.csv</code>, resultado de la limpieza de la Etapa 3 (12.680 mediciones).</td>
+              <td>Se filtraron los registros de la región Regional, se agruparon por fecha y se promediaron las variables hidrológicas y de consumo. La variable objetivo <code>restriccion</code> se derivó de <code>decision_racionamiento</code>.</td>
+            </tr>
+            <tr>
+              <td><code>dias_clusters.csv</code></td>
+              <td>Flujo de clustering de Orange (<code>etapa6_clustering.ows</code>).</td>
+              <td>k-Means con k = 3, KMeans++ y 10 reinicios sobre las variables normalizadas; el archivo exporta la asignación de cluster y la silueta de cada día.</td>
+            </tr>
+            <tr>
+              <td><code>comentarios_youtube.csv</code></td>
+              <td>Comentarios públicos extraídos mediante la API de YouTube.</td>
+              <td>Se conservaron 500 comentarios en español sobre crisis hídrica, consumo de agua y “día cero”, con fecha y número de likes. No se almacenaron credenciales ni datos personales de los autores.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
