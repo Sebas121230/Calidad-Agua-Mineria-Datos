@@ -496,3 +496,104 @@ la interpretacion.
 abril y septiembre: 99 % de los dias con restriccion). Los errores del Random Forest revelan que la
 decision no fue solo hidrologica: en 2023 hubo 56 falsas alarmas (embalse bajo sin restriccion) y en
 2025 no anticipo 212 de 365 dias con restriccion (embalse ya recuperado).
+
+### 2. Clustering (k-Means)
+
+Responsable: Diego Armando Guzman Garzon.
+
+**Pregunta de agrupamiento:** que tipos de dias hidrologicos y climaticos existen en Bogota y la
+Sabana, y como se relacionan con las restricciones del servicio de agua?
+
+- **Unidad:** el mismo dia de la region Regional del punto 1 (2.557 dias, 2019-2025), usando
+  `etapa6/datos/dataset_supervisado_dia.csv`.
+- **Variables para agrupar (4):** almacenamiento_pct, afluencias_m3s, precipitacion_mm y
+  temperatura_c. Describen el estado del agua y del clima de cada dia.
+- **No se usan para agrupar (meta):** `restriccion` y `decision_racionamiento` (son la variable
+  objetivo del punto 1 y la decision de la que sale; el clustering es no supervisado),
+  `consumo_m3s` (es demanda y consecuencia del racionamiento), `fecha`, `anio` y `mes` (se usan
+  despues para interpretar los grupos, no para formarlos).
+- **Normalizacion:** si. Las variables tienen escalas muy distintas (%, m3/s, mm, grados C) y k-Means
+  usa distancia euclidiana; sin normalizar, el almacenamiento dominaria la distancia. Se usa
+  "Normalize columns" del widget k-Means (media 0, desviacion 1).
+
+| Archivo | Contenido |
+|---|---|
+| `etapa6/orange/etapa6_clustering.ows` | Flujo de Orange del clustering |
+| `etapa6/capturas/clustering/` | Capturas de los widgets y resultados (00 a 13b) |
+
+#### Como reproducir
+
+Se abre `etapa6/orange/etapa6_clustering.ows` en Orange Data Mining (3.36 o superior). Si el widget
+File no encuentra el CSV, se selecciona de nuevo `etapa6/datos/dataset_supervisado_dia.csv` y se
+revisan los roles (4 feature y 6 meta, captura `01_file_roles.png`).
+
+Flujo: File > Data Table > k-Means > Box Plot y Pivot Table (caracterizacion). Para el Silhouette
+Plot: k-Means > Preprocess (Normalize Features, media 0 y varianza 1) > Silhouette Plot, para que la
+silueta se mida con los mismos datos normalizados que uso el k-Means.
+
+| Parametro | Valor |
+|---|---|
+| Algoritmo | k-Means, distancia euclidiana |
+| Inicializacion | k-Means++ |
+| Re-ejecuciones | 10 (se queda la mejor) |
+| Iteraciones maximas | 300 |
+| Normalizacion | Normalize columns |
+| Numero de grupos | K = 3 |
+
+#### Eleccion de K
+
+Se probaron K de 2 a 8 y se comparo la silueta (captura `03_kmeans_siluetas.png`):
+
+| K | 2 | **3** | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|
+| Silueta | 0,231 | **0,221** | 0,206 | 0,204 | 0,201 | 0,197 | 0,195 |
+
+K = 2 tiene la silueta mas alta, pero solo separa dias secos de dias humedos. K = 3 pierde apenas
+0,01 y separa ademas dos temporadas humedas distintas (fria y lluviosa frente a calida), lo que da
+grupos interpretables. Desde K = 4 la silueta sigue bajando sin aportar grupos nuevos.
+
+**Calidad:** silueta promedio 0,22 (C1 0,224; C2 0,237; C3 0,203; capturas `05a` a `05c`). Casi todos
+los dias tienen silueta positiva, pero la separacion es moderada: el clima cambia de forma gradual y
+hay dias de transicion entre temporadas.
+
+#### Caracterizacion de los grupos
+
+Promedios por grupo (Box Plot, capturas `06` a `11`; conteos con Pivot Table, captura `12`):
+
+| | C1 | C2 | C3 |
+|---|---|---|---|
+| **Nombre** | **Segundo semestre calido con embalse lleno** | **Dias secos con embalse bajo** | **Temporada de lluvias fria con embalse lleno** |
+| Dias | 891 | 838 | 828 |
+| Almacenamiento (%) | 68,5 | **46,4** | 68,9 |
+| Afluencias (m3/s) | 15,4 | **11,7** | 15,5 |
+| Precipitacion (mm) | 2,6 | **1,4** | **3,4** |
+| Temperatura (C) | **15,9** | 13,8 | **12,2** |
+| Meses tipicos | julio a octubre | casi todo el ano (2 a 11) | marzo a mayo |
+| Dias con restriccion | 149 (17 %) | **363 (43 %)** | 128 (15 %) |
+
+- **Variables que mas diferencian:** temperatura (ANOVA 1.415) y almacenamiento (ANOVA 1.300),
+  seguidas de precipitacion (463) y afluencias (369). Todas con p < 0,001.
+- **Relacion con la restriccion** (solo para interpretar, no se uso para agrupar): chi cuadrado 222,5
+  (p < 0,001). C2 reune 363 de los 640 dias con restriccion (57 %).
+
+#### Patrones ocultos
+
+1. **El grupo seco no es una temporada, es la sequia de 2023-2024.** 601 de los 838 dias de C2 (72 %)
+   son de 2023 (258) y 2024 (343); entre 2019 y 2022 solo aparecen de 21 a 48 dias por ano
+   (captura `13b_pivot_cluster_anio.png`).
+2. **La restriccion llego tarde.** En 2023 hubo 258 dias secos con embalse bajo y ninguno tuvo
+   restriccion; las restricciones empiezan en abril de 2024 (captura `13a_pivot_anio_restriccion.png`).
+3. **La restriccion se mantuvo despues de la recuperacion.** En 2025 la mayoria de dias vuelven a C1 y
+   C3 (embalse lleno), pero hubo restriccion los 365 dias.
+
+Esto coincide con el punto 1: la decision de racionar no dependio solo del estado hidrologico. Los
+datos son sinteticos, por lo que los resultados describen este conjunto de datos y no el sistema real.
+
+#### Decisiones que apoya
+
+- **Alerta temprana:** cuando los dias empiezan a caer en C2 (almacenamiento cercano o menor a 55 % y
+  afluencias menores a 12 m3/s), activar campanas de ahorro antes de llegar al racionamiento.
+- **Criterio de salida:** cuando la mayoria de dias vuelven a C1 o C3, evaluar levantar o reducir la
+  restriccion.
+- **Planeacion por temporada:** C3 (marzo a mayo) es la epoca de recarga del embalse; C1 (julio a
+  octubre) es la mas calida y conviene vigilar la demanda.
