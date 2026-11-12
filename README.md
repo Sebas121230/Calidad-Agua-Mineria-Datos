@@ -1,436 +1,179 @@
-# Calidad y Accesibilidad del Agua - Mineria de Datos
+# Calidad y Accesibilidad del Agua - Minería de Datos
 
-Aplicacion Flask y scripts que documentan las **etapas 1 a 5** del proyecto de Mineria
-de Datos sobre la disponibilidad y continuidad del servicio de agua potable en Bogota D.C.
+Aplicación Flask y scripts del proyecto de Minería de Datos sobre la disponibilidad y
+continuidad del servicio de agua potable en Bogotá, la Sabana y otros municipios del país
 (2019-2025).
 
-**Universidad de Cundinamarca** - Ingenieria de Sistemas y Computacion
+**Universidad de Cundinamarca** - Ingeniería de Sistemas y Computación
 
 ## Integrantes
 
-- Diego Armando Guzman Garzon
-- Andres Felipe Beltran Barrera
-- Juan Sebastian Rodriguez Rivero
-- John Sebastian Rodriguez Dominguez
+- Diego Armando Guzmán Garzón
+- Andrés Felipe Beltrán Barrera
+- Juan Sebastián Rodríguez Riveros
+- John Sebastián Rodríguez Domínguez
 
-## Estructura del proyecto
+## Estructura
 
-```
+```text
 Calidad-Agua-Mineria-Datos/
-├── app.py                  # Rutas de la aplicacion Flask
-├── requirements.txt        # Dependencias
+├── app.py
+├── requirements.txt
 ├── README.md
-├── scripts/                # Scripts de generacion, limpieza y auditoria
-├── datos/                  # CSV de entrada, salidas y evidencias
-├── docs/                   # Documentacion de las etapas
-│   └── etapa5/             # Modelo estrella y diagrama
-├── etapa3/                 # ETL SSIS y scripts SQL de la Etapa 3
-│   ├── ETL_CalidadAgua/    # Proyecto de Visual Studio
+├── scripts/                 # Generación, limpieza y auditoría
+├── datos/                   # CSV de entrada, salidas y evidencias
+├── etapa3/                  # ETL SSIS y SQL
+│   ├── ETL_CalidadAgua/
 │   └── sql/
-├── etapa5/                 # Modelo multidimensional en SQLite
+├── etapa5/                  # Modelo estrella en SQLite
 │   ├── cargar_modelo.py
+│   ├── consultas_slice_dice.py
 │   ├── calidad_agua_dw.db
+│   ├── diagrama_modelo.png
 │   └── sql/
-├── static/                 # CSS e imagenes
-└── templates/              # Vistas Flask por etapa
+├── etapa6/                  # Modelos de Orange y comentarios
+│   ├── preparar_supervisado.py
+│   ├── datos/
+│   ├── orange/
+│   └── capturas/
+├── templates/
+└── static/
 ```
 
-## Como ejecutar el proyecto
+## Ejecución
 
 ```bash
-# 1. Crear el entorno virtual
 python -m venv venv
-
-# 2. Activarlo
-#    Windows:
-.\venv\Scripts\Activate
-#    Linux / macOS:
-source venv/bin/activate
-
-# 3. Instalar dependencias
+source venv/bin/activate          # Linux/macOS
+# .\venv\Scripts\Activate         # Windows
 pip install -r requirements.txt
-
-# 4. Ejecutar
 python app.py
 ```
 
-Luego abrir <http://127.0.0.1:5000> en el navegador.
+Abrir <http://127.0.0.1:5000>.
 
-## Contenido de la Etapa 1
+La aplicación Flask solo necesita Flask; pandas se usa en algunos scripts. Si el entorno usa
+Python 3.14, `pandas==2.2.3` puede no instalar: en ese caso ejecuta `pip install "pandas>=2.3"`.
 
-| # | Submenu | Estado |
-|---|---------|--------|
-| 1 | Problema y contexto | Completo |
-| 2 | Pregunta principal y preguntas secundarias | Completo |
-| 3 | Necesidades de informacion | Completo |
-| 4 | Fuentes de datos | Completo |
-| 5 | Dataset | Estructura lista, pendiente consolidar datos |
-| 6 | Diccionario de datos | Estructura lista, pendiente consolidar datos |
-| 7 | Calidad inicial de los datos | Estructura lista, pendiente perfilado |
-| 8 | Limitaciones y consideraciones | Completo |
+## Etapas 1 y 2
 
-## Flujo de trabajo con Git
+Se definió el problema, las preguntas, las fuentes y la calidad inicial de un conjunto
+consolidado de mediciones diarias de calidad y servicio de agua. La Etapa 2 documentó el
+perfilamiento, las dimensiones de calidad, el inventario de problemas y el plan de tratamiento
+que se ejecutó en la Etapa 3.
 
-El desarrollo de la Etapa 1 se realiza en la rama `feature/etapa-1`.
-Una vez validada, se integra a `main` mediante merge.
+## Etapa 3: limpieza con SSIS
 
-## Etapa 3 - Limpieza de datos con SSIS
+El paquete `etapa3/ETL_CalidadAgua/ETL_CalidadAgua/Package.dtsx` se ejecuta sobre
+`datos/dataset_calidad_agua.csv` (12.989 registros) y deja 12.680 mediciones válidas, 62
+duplicados y 247 registros en revisión. Los scripts SQL están en `etapa3/sql/`.
 
-Proceso ETL en SQL Server Integration Services que trata los problemas de calidad
-identificados en la Etapa 2 sobre `datos/dataset_calidad_agua.csv` (12.989 registros), en tres
-iteraciones documentadas en la tabla `etl_log`.
+- Resultado reproducible: `datos/resultados_iteraciones.csv`.
+- Video: ruta `/etapa3/video`.
+- Para reconstruir el dataset limpio sin SQL Server: `python scripts/generar_dataset_limpio.py`.
 
-### Contenido
+## Etapa 4: conocimiento evidente
 
-```
-Calidad-Agua-Mineria-Datos/
-├── etapa3/
-│   ├── ETL_CalidadAgua/                    # Proyecto de Visual Studio (SSIS)
-│   │   ├── ETL_CalidadAgua.slnx            # Abrir este archivo
-│   │   └── ETL_CalidadAgua/Package.dtsx    # Paquete: Control Flow y Data Flows
-│   └── sql/
-│       ├── 01_crear_staging.sql            # Zona staging (datos originales, todo texto)
-│       ├── 02_crear_destino.sql            # Datos limpios con tipos reales y llave UNIQUE
-│       ├── 03_crear_revision.sql           # Registros rechazados con valor original y motivo
-│       ├── 04_crear_log.sql                # Una fila por ejecucion con los conteos
-│       ├── 05_consultas_verificacion.sql   # Evidencias y verificacion de resultados
-│       └── 06_sql_del_paquete.sql          # SQL que ejecuta SSIS internamente
-├── datos/
-│   ├── dataset_calidad_agua.csv            # Datos originales
-│   └── resultados_iteraciones.csv          # Log exportado de las tres iteraciones
-```
+La sección `/etapa4/conocimiento-evidente` integra el informe publicado de Power BI y sus cuatro
+páginas. Los tableros de apoyo están en:
 
-### Como reproducir el proceso
+- `/etapa4/territorial`
+- `/etapa4/temporal`
+- `/etapa4/multivariable`
 
-Requisitos: SQL Server 2025 (Developer), SSMS y Visual Studio con la extension
-*SQL Server Integration Services Projects 2022+*.
+Hallazgos principales: el IRCA de Nacional (26,13) es muy superior al de Regional (6,61); la
+continuidad de la Sabana cayó de 100 % (2019-2023) a 43,91 % (2024) y 23,76 % (2025); la cobertura
+alta no garantiza continuidad y el servicio continuo no garantiza calidad.
 
-1. En SSMS, crear la base de datos `CalidadAgua_ETL` y ejecutar `etapa3/sql/01` a `etapa3/sql/04` en orden.
-2. Abrir `etapa3/ETL_CalidadAgua/ETL_CalidadAgua.slnx` en Visual Studio.
-3. En *Administradores de conexiones*, editar `CSV_CalidadAgua` y seleccionar la ruta local
-   de `datos/dataset_calidad_agua.csv`. La conexion a `localhost` usa autenticacion de Windows
-   (el repositorio no contiene contrasenas).
-4. Fijar la variable `vIteracion` (1, 2 o 3) y `vObservacion`, y ejecutar el paquete.
-5. Revisar los resultados con `etapa3/sql/05_consultas_verificacion.sql`.
+## Etapa 5: análisis multidimensional
 
-### Resultados
+El modelo estrella está en `etapa5/calidad_agua_dw.db`:
 
-| Iteracion | Recibidos | Aceptados | Duplicados | Revision | Ya cargados |
-|---|---|---|---|---|---|
-| 1 | 12.989 | 1.732 | 12 | 11.245 | 0 |
-| 2 | 12.989 | 12.680 | 62 | 247 | 0 |
-| 3 (1.a ejecucion) | 12.989 | 12.680 | 62 | 247 | 0 |
-| 3 (re-ejecucion del mismo lote) | 12.989 | 0 | 0 | 247 | 12.742 |
+- Hechos: `fact_medicion`, una fila por fecha y municipio.
+- Dimensiones: `dim_tiempo`, `dim_geografia`, `dim_sistema`, `dim_riesgo` y `dim_servicio`.
 
-En todas las ejecuciones: recibidos = aceptados + duplicados + revision + ya cargados.
-La re-ejecucion del mismo lote no genera duplicados.
-
-### Video de demostracion
-
-El video de la entrega se incrusta en la pagina `/etapa3/video` con un `<iframe>` a
-`https://www.youtube-nocookie.com/embed/wH8ADSF4i8c` (`youtube-nocookie` no guarda
-cookies de seguimiento). Para cambiarlo basta con definir la variable de entorno
-`ETAPA3_VIDEO_URL` o editar `VIDEO_URL` y `VIDEO_WATCH` en `app.py`; el archivo de
-video no se versiona en el repositorio.
-
-El desarrollo de la Etapa 3 se realiza en la rama `feature/limpieza_de_datos`.
-
-## Etapa 4 - Mineria para Descubrimiento de Conocimiento Evidente
-
-### Tableros
-
-El menu de la Etapa 4 incluye tres tableros: la **Dimension territorial** en
-`/etapa4/territorial`, la **Dimension temporal** en `/etapa4/temporal` y el **Analisis
-multivariable** en `/etapa4/multivariable`.
-El tablero multivariable relaciona IRCA, cobertura de acueducto, nivel de servicio,
-municipio, region y periodo. Incluye indicadores, dispersion por registro, comparacion
-de grupos y las combinaciones trimestrales mas frecuentes, con filtros interactivos de
-año y region. Sus agregaciones se calculan sobre el dataset limpio; las relaciones son
-descriptivas y no implican causalidad.
-
-El tablero temporal sigue la serie 2019-2025 trimestre a trimestre: continuidad del
-servicio por año y region, IRCA promedio por año, almacenamiento y precipitacion por año, con
-filtros de año, periodo y tipo de region. Sus cifras se recalculan sobre el dataset limpio.
-
-```
-Calidad-Agua-Mineria-Datos/
-├── scripts/
-│   ├── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
-│   └── calcular_indicadores_temporal.py   # Recalcula los indicadores por año y trimestre
-├── datos/
-│   ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
-│   └── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
-└── templates/etapa4/
-    ├── territorial.html                   # Tablero de la dimension territorial
-    ├── temporal.html                      # Tablero de la dimension temporal
-    └── Multivariada.html                  # Tablero de analisis multivariable
-```
-
-**Por que un script en Python y no la tabla `dst_calidad_agua` de SQL Server:** el
-paquete SSIS de la Etapa 3 corre contra una base de datos local que no se exporta ni
-se versiona en el repositorio. `scripts/generar_dataset_limpio.py` aplica, en Python puro,
-las mismas reglas documentadas en `Informe_Etapa3_Calidad_Agua.pdf` (normalizacion,
-validacion P05/P09/P08, clasificacion de riesgo y llave unica fecha+municipio+sistema
-para los duplicados P07), para que el tablero de Flask tenga un dataset limpio sin
-depender de SQL Server. Se valido que coincide **exactamente** con la iteracion 2 del
-ETL real registrada en `datos/resultados_iteraciones.csv`: 12.680 aceptados, 62 duplicados y
-247 en revision sobre 12.989 recibidos.
-
-Para regenerar los archivos limpios:
+Para recrear la base:
 
 ```bash
-python scripts/generar_dataset_limpio.py
-```
-
-**Pregunta de analisis:** ¿la calidad (IRCA) y la disponibilidad del servicio de
-agua varian de forma real entre los municipios de la Sabana de Bogota, o la
-diferencia territorial que realmente importa es otra?
-
-**Hallazgo principal:** no hay una diferencia real entre los 9 municipios de la
-Sabana (rango de 0.2 puntos de IRCA frente a una desviacion estandar intra-municipio
-de ~4.1 a 4.3 puntos: la diferencia es ruido estadistico). La diferencia territorial
-real y grande esta entre **Regional (Sabana) vs Nacional**: 19.52 puntos de brecha en
-IRCA y 17.11 puntos porcentuales en cobertura de acueducto.
-
-**Limitacion conocida:** 8 de los 9 municipios de la Sabana llegan con una variante
-corrupta del nombre (la letra "A" aparece como "@", p. ej. "CHI@" junto a "CHIA").
-Esta corrupcion ya viene del dataset original y el ETL de la Etapa 3 no la corrige
-(su regla P10 solo hace `UPPER(TRIM(...))`). Se homologa unicamente dentro de la capa
-de agregacion del tablero (`app.py`), sin modificar `datos/dataset_calidad_agua_limpio.csv`,
-para no alterar el resultado ya validado de la Etapa 3.
-
-El desarrollo de la Etapa 4 (dimension territorial) se realiza en la rama
-`feature/dim-territorial`.
-
-
-## Etapa 4 - Conocimiento evidente en Power BI
-
-La Etapa 4 se entrega como un informe de Power BI con cuatro paginas (una por integrante) y una
-seccion de la aplicacion Flask que lo presenta. Esta parte documenta la **pagina 2: comparacion de
-territorios**.
-
-Responsable: John Sebastian Rodriguez Dominguez.
-
-**Pregunta de la pagina:** ¿hay diferencias reales en la calidad del agua, la cobertura de
-acueducto y la continuidad del servicio entre los municipios, o la diferencia esta solo entre los
-de la Sabana de Bogota (Regional) y los del resto del pais (Nacional)?
-
-**Resultados principales** (todo el periodo 2019-2025, sin filtros):
-
-- El IRCA promedio de Nacional (26,13) es casi cuatro veces el de Regional (6,61).
-- En Regional no hay mediciones de riesgo alto ni inviable; en Nacional son el 46,42 %.
-- Dentro de cada grupo los municipios son casi iguales: la diferencia esta entre los dos grupos.
-
-### Contenido
-
-El archivo `.pbix` y las fichas de `docs/etapa4/` no se versionan en esta rama; el informe
-publicado se incrusta en la aplicacion. Los archivos que si acompañan esta pagina son:
-
-```
-Calidad-Agua-Mineria-Datos/
-├── scripts/
-│   └── generar_dataset_limpio.py          # Reproduce en Python el resultado del ETL (SSIS)
-├── datos/
-│   ├── dataset_calidad_agua_limpio.csv    # Salida: equivalente a dst_calidad_agua
-│   ├── dataset_calidad_agua_revision.csv  # Salida: equivalente a rev_calidad_agua
-│   └── resultados_iteraciones.csv         # Log de las iteraciones del ETL
-└── templates/etapa4/
-    └── conocimiento_evidente.html         # Seccion "Conocimiento evidente" de la aplicacion
-```
-
-### Como abrir el informe
-
-El informe se consulta en `/etapa4/conocimiento-evidente`, donde se incrustan sus cuatro
-paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
-`DataSource.NotFound`, se cambia el origen de datos a `datos/dataset_calidad_agua_limpio.csv`.
-
-### Datos y periodo
-
-Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
-mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. Es un conjunto de datos consolidado y depurado.
-
-### Seccion en la aplicacion
-
-Con la aplicacion en marcha, el menu lateral tiene la entrada **Conocimiento evidente (Power BI)**
-(`/etapa4/conocimiento-evidente`), con el proposito, las cuatro preguntas, el informe y la fuente
-de los datos.
-
-La pagina ya trae el identificador del informe publicado y arma una vista por pagina con
-`pageName`. Se puede cambiar con las variables de entorno `POWER_BI_REPORT_ID` y
-`POWER_BI_GROUP_ID`; el enlace de apertura se ajusta con `CONOCIMIENTO_EVIDENTE_URL`.
-
-El desarrollo de la pagina territorial en Power BI se realiza en la rama
-`feature/conocimiento-territorial`.
-
-
-## Etapa 4 - Conocimiento evidente en Power BI (pagina 3: evolucion en el tiempo)
-
-Esta parte documenta la **pagina 3: evolucion en el tiempo** del informe de Power BI y el tablero
-correspondiente de la aplicacion (`/etapa4/temporal`).
-
-Responsable: John Sebastian Rodriguez Dominguez.
-
-**Pregunta de la pagina:** ¿la calidad del agua y la disponibilidad del servicio cambiaron a lo
-largo del periodo 2019-2025, o el servicio se comporto igual los siete años?
-
-**Resultados principales** (todo el periodo 2019-2025, sin filtros):
-
-- El servicio de la Sabana dejo de ser continuo en un trimestre exacto (**2024-T2**, primer registro
-  no continuo el 2024-04-01) y no se recupero en los siete trimestres siguientes: la continuidad
-  Regional pasa de 100 % (2019-2023) a 43,91 % (2024) y 23,76 % (2025), mientras el Nacional se
-  mantiene entre 48,76 % y 52,06 %.
-- El IRCA no se movio: entre 14,22 y 14,69 por año, con variaciones de 0,34 puntos como maximo
-  entre años consecutivos, en el mismo periodo en que el servicio continuo caia de 80,30 % a
-  47,19 %. Un tablero construido solo con calidad no habria detectado el quiebre.
-- El almacenamiento de la Sabana se deterioro un año antes del quiebre (70,79 % en 2022, 50,84 % en
-  2023 y 37,98 % en 2024) y sirve de alerta temprana, pero su recuperacion en 2025 (61,11 %) no
-  devolvio el servicio.
-
-### Contenido
-
-El archivo `.pbix` y las fichas de `docs/etapa4/` no se versionan en esta rama; el informe
-publicado se incrusta en la aplicacion. Los archivos que si acompañan esta pagina son:
-
-```
-Calidad-Agua-Mineria-Datos/
-├── scripts/
-│   └── calcular_indicadores_temporal.py   # Recalcula las tablas citadas
-├── datos/
-│   └── dataset_calidad_agua_limpio.csv    # Fuente de los indicadores
-└── templates/etapa4/
-    └── temporal.html                      # Tablero de la dimension temporal
-```
-
-### Como abrir el informe
-
-El informe se consulta en `/etapa4/conocimiento-evidente`, donde se incrustan sus cuatro
-paginas. Si se abre una copia local del `.pbix` en Power BI Desktop y aparece
-`DataSource.NotFound`, se cambia el origen de datos a `datos/dataset_calidad_agua_limpio.csv`.
-
-### Datos y periodo
-
-Fuente: `datos/dataset_calidad_agua_limpio.csv` (resultado de la limpieza de la Etapa 3), 12.680
-mediciones diarias de municipios entre 2019-01-01 y 2025-12-31. La causa del quiebre de 2024 se
-presenta como hipótesis: el conjunto permite describir el cambio y su momento, pero no aislar
-todas las causas operativas.
-
-### Seccion en la aplicacion
-
-El menu lateral tiene la entrada **Dimension temporal** (`/etapa4/temporal`), con los indicadores,
-las cuatro graficas, los tres conocimientos evidentes, la limitacion y la decision sustentada. Los
-filtros de año, periodo y tipo de region recalculan todo el tablero sobre el dataset limpio.
-
-El desarrollo de la pagina temporal en Power BI se realiza en la rama
-`feature/conocimiento-temporal`.
-## Etapa 5 - Analisis multidimensional
-
-### Modelo estrella
-
-Modelo multidimensional en SQLite construido a partir de `datos/dataset_calidad_agua_limpio.csv`
-(12.680 mediciones diarias de 29 municipios, 2019-2025).
-
-- Tabla de hechos: `fact_medicion` (una medicion diaria de un municipio).
-- Dimensiones: `dim_tiempo`, `dim_geografia`, `dim_sistema`, `dim_riesgo` y `dim_servicio`.
-- Jerarquias: anio > trimestre > mes > dia; tipo_region > departamento > municipio;
-  grupo_riesgo > clasificacion.
-- Diagrama y diccionario: [docs/etapa5/modelo_estrella.md](docs/etapa5/modelo_estrella.md).
-
-### Archivos
-
-| Archivo | Contenido |
-|---|---|
-| `etapa5/sql/01_crear_modelo.sql` | Creacion de tablas, claves y relaciones |
-| `etapa5/cargar_modelo.py` | Carga reproducible del CSV a las dimensiones y la tabla de hechos |
-| `etapa5/sql/02_validaciones.sql` | Claves unicas, claves foraneas, duplicados, consistencia y comparacion con el CSV |
-| `etapa5/calidad_agua_dw.db` | Base SQLite ya cargada, lista para consultar |
-
-### Como crear y cargar la base
-
-Requisitos: Python 3.10 o superior. No necesita librerias adicionales (usa `csv` y `sqlite3`).
-
-```
 python etapa5/cargar_modelo.py
 ```
 
-El script borra la base si existe, la vuelve a crear, carga los datos e imprime las comprobaciones
-contra el CSV (todas deben salir `OK`). Para consultar la base desde Flask:
+La sección `/etapa5/multidimensional` reúne cinco vistas en tarjetas desplegables: sistemas y
+cambio de régimen, prioridades por departamento, cobertura y continuidad, recuperación hídrica y
+Slice/Dice. Cada vista recalcula sus indicadores desde la tabla de hechos.
 
-```python
-import sqlite3
-con = sqlite3.connect("etapa5/calidad_agua_dw.db")
-```
+Hallazgos principales:
 
-### Operaciones Slice y Dice
+- El quiebre de 2024 es un cambio de régimen: la mezcla de niveles de servicio se repite en los
+  tres sistemas de la EAAB y en los nueve municipios de la Sabana.
+- Hay tres perfiles de prioridad: intervención conjunta de calidad y continuidad, prioridad de
+  calidad y recuperación de continuidad.
+- La cobertura está desacoplada de la continuidad y del riesgo dentro de cada región.
+- En 2025 el consumo y el almacenamiento se recuperaron, pero el servicio siguió restringido.
 
-Responsable: John Sebastian Rodriguez D.
+## Etapa 6: conocimiento oculto
 
-Vista integrada como **Vista 5** de `/etapa5/multidimensional`, en la tarjeta **Slice y Dice**
-del menu **Etapa 5 - Analisis multidimensional**. Todos los indicadores, tablas, matrices y
-graficas se calculan con consultas a `etapa5/calidad_agua_dw.db`; al cambiar un filtro las medidas se
-recalculan desde la tabla de hechos (no se suman ni se promedian porcentajes de otros grupos).
+La sección `/etapa6/conocimiento-oculto` reúne los flujos de Orange, las capturas y los
+resultados de aprendizaje supervisado, clustering y comentarios de YouTube.
 
-**Pregunta de la vista:** que subconjuntos del territorio y del tiempo concentran el riesgo sanitario
-del agua y la perdida de continuidad del servicio, y como cambian al combinar region, periodo y
-sistema de abastecimiento.
+### Aprendizaje supervisado
 
-| Archivo | Contenido |
+La pregunta es si las condiciones hidrológicas y climáticas permiten anticipar una restricción
+del servicio. Se compararon árbol de decisión, Random Forest, regresión logística y una constante
+con validación cruzada de 10 pliegues.
+
+- Random Forest obtiene el mejor desempeño en la validación aleatoria: AUC 0,915, CA 0,884 y F1
+  0,878.
+- La clase con restricción (640 de 2.557 días) es minoritaria: el bosque detecta 63,3 % y deja
+  235 falsos negativos.
+- La validación temporal cambia la lectura: 2019-2023 no tiene días restringidos y 2025 tiene
+  365 de 365. La restricción es un cambio de régimen operativo o de política, no una predicción
+  hidrológica que el modelo pueda anticipar con estos datos.
+
+### Clustering
+
+Se aplicó k-Means con k = 3 sobre las variables normalizadas de almacenamiento, afluencias,
+precipitación y temperatura, sin usar la restricción ni el consumo.
+
+- C1: almacenamiento alto y clima cálido; 891 días.
+- C2: estrés hídrico, baja precipitación y menores afluencias; 838 días y 43,3 % de días
+  restringidos.
+- C3: recarga hídrica, clima frío y consumo alto; 828 días.
+- En el holdout 2024-2025 los tres grupos tienen entre 83,2 % y 100 % de restricción y la silueta
+  baja a 0,190: los clusters describen contextos meteorológicos, no el estado del servicio.
+
+### Comentarios de YouTube
+
+Se analizaron 500 comentarios extraídos mediante la API de YouTube (texto, fecha y likes). El
+corpus se centra en consumo y ahorro (76 comentarios), empresas e industria (59), clima y ambiente
+(48), escasez y “día cero” (42), crítica al contenido (33) y gobierno y política (25). El
+sentimiento es mayoritariamente crítico.
+
+La conversación complementa la dimensión operativa/política de los modelos, pero no valida la
+percepción local: solo 3 comentarios mencionan Bogotá y 2 Colombia. El corpus es global y no es una
+muestra representativa.
+
+## Origen de los datos
+
+| Archivo | Origen y transformación |
 |---|---|
-| `etapa5/sql/03_consultas_slice_dice.sql` | Consultas de los ejemplos (S0-S2 slice, D1-D3 dice) y validaciones V1-V3 |
-| `etapa5/consultas_slice_dice.py` | Modulo con las consultas parametrizadas que usa Flask |
-| `app.py` | Ruta `/etapa5/slice-dice/datos` (API JSON) y redirección de `/etapa5/slice-dice` a la Vista 5 |
-| `templates/etapa5/_slice_dice_body.html` | Contenido integrado de la Vista 5 |
-| `templates/etapa5/_slice_dice_script.html` | Lógica interactiva de la Vista 5 |
-| `templates/base.html` | Enlace unico de la Etapa 5 |
+| `datos/dataset_calidad_agua_limpio.csv` | Resultado de la limpieza de la Etapa 3 sobre el dataset original. |
+| `etapa5/calidad_agua_dw.db` | Modelo estrella cargado desde el dataset limpio con `etapa5/cargar_modelo.py`. |
+| `etapa6/datos/dataset_supervisado_dia.csv` | Una fila por día de la región Regional, generada por `etapa6/preparar_supervisado.py`. |
+| `etapa6/datos/dias_clusters.csv` | Exportación de la asignación de clusters y la silueta del flujo de k-Means. |
+| `etapa6/datos/comentarios_youtube.csv` | 500 comentarios públicos extraídos de YouTube; sin credenciales ni datos personales. |
 
-#### Ejemplos implementados
+Los flujos de Orange están en `etapa6/orange/` y las capturas en `etapa6/capturas/`.
 
-| Operacion | Filtros | Nivel / matriz | Resultado principal |
-|---|---|---|---|
-| **Slice** | `tipo_region = 'Nacional'` (una dimension, un valor) | departamento; nivel de servicio x grupo de riesgo | 46,4 % de mediciones en riesgo alto o inviable (total: 18,6 %); los 19 departamentos entre 38,6 % y 52,5 %; continuo 45,4 % vs. intermitente 47,5 % |
-| **Dice** | `tipo_region = 'Regional'` + `anio IN (2024, 2025)` + `sistema IN ('Chingaza', 'Sur', 'Tibitoc')` (tres dimensiones) | trimestre; sistema x nivel de servicio; comparacion con 2022-2023 | Servicio continuo de 100 % a 33,8 % (-66,2 p.p.); quiebre desde 2024-T2; en 2025 el almacenamiento (61,1 %) supera al de 2022-2023 y las interrupciones suben a 50,5 % |
+## Rutas principales
 
-#### Medidas y denominadores
-
-| Medida | Calculo | Denominador |
-|---|---|---|
-| % riesgo alto o inviable | mediciones "Alto o inviable" / mediciones con IRCA | Mediciones con IRCA reportado |
-| % servicio continuo | promedio de `es_continuo` | Todas las mediciones del grupo |
-| % racionado o sin servicio | mediciones Racionado o Sin servicio / mediciones | Todas las mediciones del grupo |
-| IRCA y almacenamiento promedio | `AVG` sobre la tabla de hechos | Mediciones con el dato registrado |
-
-#### Como probar
-
-```
-python etapa5/consultas_slice_dice.py
-python app.py
-```
-
-El primer comando imprime los ejemplos del slice y el dice (deben salir 5074 mediciones y 46,4 % para el
-slice; 2170 mediciones y 33,8 % de servicio continuo para el dice). Luego se abre
-`http://127.0.0.1:5000/etapa5/multidimensional` y se despliega la tarjeta **Slice y Dice**.
-
-La API tambien se puede consultar directamente, por ejemplo:
-
-```
-/etapa5/slice-dice/datos?op=slice&dimension=region&valor=Nacional&nivel=departamento&filas=servicio&columnas=riesgo
-/etapa5/slice-dice/datos?op=dice&region=Regional&anio=2024&anio=2025&sistema=Chingaza&sistema=Sur&sistema=Tibitoc&nivel=trimestre&filas=sistema&columnas=servicio
-```
-
-El slice exige una sola dimension con un solo valor y el dice exige filtros sobre al menos dos
-dimensiones diferentes; si no se cumple, la API responde con un mensaje de error (codigo 400).
-
-### Vista de analisis multidimensional
-
-La entrada **Analisis multidimensional** del menu abre `/etapa5/multidimensional`. La pagina
-presenta el modelo estrella, las dimensiones, medidas y jerarquias, y cinco vistas interactivas:
-
-1. Sistemas y continuidad: cambio de regimen y homogeneidad entre sistemas y municipios.
-2. Prioridades por departamento: riesgo, continuidad y cobertura para tres perfiles de intervencion.
-3. Cobertura y continuidad: desacople y efecto de composicion regional.
-4. Recuperacion hidrica y continuidad: consumo, almacenamiento y servicio.
-5. Slice y Dice: subconjuntos y combinaciones de territorio, tiempo y sistema.
-
-Las primeras cuatro vistas consultan `etapa5/calidad_agua_dw.db` mediante
-`/etapa5/multidimensional/datos`; la Vista 5 usa `/etapa5/slice-dice/datos`. Todas recalculan
-indicadores, visualizaciones y matrices con los filtros y niveles activos. Las consultas estan en
-`scripts/consultas_multidimensional.py` y `etapa5/consultas_slice_dice.py`.
+| Ruta | Contenido |
+|---|---|
+| `/` | Inicio |
+| `/etapa3/video` | Video de la Etapa 3 |
+| `/etapa4/conocimiento-evidente` | Informe de Power BI |
+| `/etapa4/territorial` | Dimensión territorial |
+| `/etapa4/temporal` | Dimensión temporal |
+| `/etapa4/multivariable` | Análisis multivariable |
+| `/etapa5/multidimensional` | Análisis multidimensional |
+| `/etapa6/conocimiento-oculto` | Conocimiento oculto |

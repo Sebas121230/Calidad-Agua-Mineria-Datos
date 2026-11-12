@@ -3,7 +3,7 @@ import json
 import os
 from datetime import date
 
-from flask import Flask, jsonify, redirect, render_template, request, send_file
+from flask import Flask, jsonify, redirect, render_template, request, send_file, send_from_directory
 
 from etapa5 import consultas_slice_dice as olap
 from scripts import consultas_multidimensional as multidimensional
@@ -1387,6 +1387,18 @@ def etapa5_multidimensional_datos():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(datos)
+
+# ---------- Etapa 6: conocimiento oculto ----------
+@app.route("/etapa6/conocimiento-oculto")
+def etapa6_conocimiento_oculto():
+    """Sintesis de aprendizaje supervisado, clustering y comentarios de YouTube."""
+    return render_template("etapa6/conocimiento_oculto.html")
+
+
+@app.route("/etapa6/capturas/<path:filename>")
+def etapa6_captura(filename):
+    """Sirve las capturas de Orange que acompañan la seccion."""
+    return send_from_directory(os.path.join(BASE_DIR, "etapa6", "capturas"), filename)
 
 # Ejecutar el servidor en modo desarrollo
 if __name__ == "__main__":
